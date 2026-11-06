@@ -13,6 +13,7 @@ export function fillDemoForm(form) {
 export function prepareDemoForms(root, defaults, message) {
   if (document.body.dataset.demo !== 'true') return;
   for (const form of root.querySelectorAll('form')) {
+    if (form.dataset.demo === 'false') continue;
     form.dataset.demo = 'true';
     form.noValidate = true;
     for (const field of form.elements) {

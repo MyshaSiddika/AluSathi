@@ -1,0 +1,77 @@
+
+.farmer-v2[data-view="photos"] { background: var(--home-sky); color: var(--home-ink); }
+.farmer-v2[data-view="photos"] main { background: transparent; }
+.farmer-photo-scene { position: relative; height: clamp(150px, 13vw, 220px); overflow: hidden; background: #bde8d8 url('/alusathi-photo-banner-v2.png') center 25% / cover no-repeat; }
+.farmer-v2[data-view="photos"] .photo-page-titlebar { max-width: 1240px; padding: 26px 28px 0; }
+.farmer-v2[data-view="photos"] .photo-page-titlebar .farmer-greeting { min-height: auto; margin: 0; }
+.farmer-v2[data-view="photos"] .photo-page-titlebar h1 { margin: 0; font-size: clamp(26px,3vw,34px); line-height: 1.3; color: var(--home-ink); }
+.farmer-v2[data-view="photos"] .photo-page-titlebar p { max-width: 760px; margin-top: 8px; color: var(--home-muted); font-size: 17px; line-height: 1.65; }
+.farmer-v2 #scan.potato-scan { position: relative; display: grid; max-width: 1240px; grid-template-columns: repeat(2,minmax(0,1fr)); grid-template-areas: "workspace photos" "result result"; gap: 22px; padding: 22px 28px 48px; background: transparent; }
+.farmer-v2 #scan > .section-heading { display: none; }
+.farmer-v2 #scan > #tuber { position: absolute; }
+.farmer-v2 #scan > .scan-workspace { grid-area: workspace; display: grid; grid-template-columns: minmax(0,1fr); border: 1px solid var(--home-line); border-radius: 22px; background: #fff; box-shadow: 0 8px 24px #113a2d08; }
+.farmer-v2 #scan .scan-capture { padding: 20px; border: 0; }
+.farmer-v2 #scan .scan-workspace-empty .scan-capture { display: flex; flex-direction: column; }
+.farmer-v2 #scan .scan-workspace-empty .camera-stage { flex: 1; }
+.farmer-v2 #scan .camera-stage { min-height: 220px; border: 1.5px dashed var(--home-line); border-radius: 15px; background: color-mix(in srgb,var(--home-sky) 45%,white); }
+.farmer-v2 #scan .camera-stage:hover, .farmer-v2 #scan .camera-stage:focus-within { border-color: var(--home-green); }
+.farmer-v2 #scan .camera-stage > img { object-fit: contain; }
+.farmer-v2 #scan .camera-empty { padding: 18px; }
+.farmer-v2 #scan .leaf-frame { width: 64px; height: 64px; flex: 0 0 64px; border: 1px solid var(--home-line); border-radius: 50%; background: #fff; color: var(--home-green); transform: none; animation: none; }
+.farmer-v2 #scan .leaf-frame svg { width: 30px; height: 30px; }
+.farmer-v2 #scan .camera-empty strong { margin-top: 12px; color: var(--home-ink); font-size: 21px; }
+.farmer-v2 #scan .camera-empty small { color: var(--home-muted); font-size: 13px; }
+.farmer-v2 #scan .photo-tips { margin-top: 12px; }
+.farmer-v2 #scan .photo-tips span { min-height: 38px; background: var(--home-soft); color: var(--home-green); font-size: 13px; }
+.farmer-v2 #scan .main-button { min-height: 48px; margin-top: 14px; border-radius: 12px; background: var(--home-green); color: white; box-shadow: none; }
+.farmer-v2 #scan .main-button:disabled { background: color-mix(in srgb,var(--home-green) 42%,white); color: var(--home-ink); opacity: 1; }
+.farmer-v2 #scan .result-stage { min-height: 0; border-top: 1px solid var(--home-line); padding: 20px; background: white; color: var(--home-ink); }
+.farmer-v2 #scan .result-stage h3 { margin-bottom: 8px; font-size: 22px; font-weight: 700; }
+.farmer-v2 #scan .result-stage p { line-height: 1.7; }
+.farmer-v2 #scan .photo-guidance { margin: 12px 0 0; font-size: 16px; line-height: 1.6; color: var(--home-muted); }
+.farmer-v2 #scan .photo-next-action { margin: 0; padding: 0 20px 20px; }
+.farmer-v2 #scan .photo-next-action .main-button { width: 100%; margin-top: 0; }
+.farmer-v2 #scan .photo-demo-result { border-radius: 0; }
+.farmer-v2 #scan .photo-demo-calculating { margin: 0; }
+
+.farmer-v2 #scan > .photo-demo-section { grid-area: photos; margin: 0; padding: 20px; border: 1px solid var(--home-line); border-radius: 22px; background: #fff; }
+.photo-demo-heading { color: var(--home-ink); }
+.photo-demo-heading strong { font-size: 19px; }
+.photo-demo-heading small { display: block; margin-top: 4px; color: var(--home-muted); font-size: 14px; }
+.photo-demo-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 16px; }
+.photo-demo-card { flex: 0 0 calc((100% - 20px)/3); min-width: 0; overflow: hidden; padding: 5px; border: 2px solid transparent; border-radius: 13px; background: var(--home-sky); color: var(--home-ink); text-align: center; transition: border-color .15s,background .15s; }
+.photo-demo-card:hover { border-color: var(--home-line); }
+.photo-demo-card[aria-pressed="true"] { border-color: var(--home-green); background: var(--home-soft); }
+.photo-demo-card:disabled { cursor: wait; opacity: .65; }
+.photo-demo-card img { display: block; width: 100%; height: 145px; border-radius: 8px; object-fit: contain; background: #f7f8f5; }
+.photo-demo-card span { display: block; padding: 6px 3px 2px; font-size: 15px; font-weight: 700; }
+.photo-demo-calculating { display: flex; align-items: center; gap: 9px; margin-top: 14px; color: var(--home-green); font-weight: 700; }
+.photo-next-action { grid-column:1/-1; display:flex; justify-content:center; margin-top:4px; }
+.photo-next-action .main-button { width:auto; min-width:230px; gap:16px; text-decoration:none; }
+.farmer-v2 #scan > .photo-demo-result { grid-area: result; display: grid; grid-template-columns: 100px minmax(0,1fr); gap: 22px; align-items: start; margin: 0; padding: 24px; border: 1px solid var(--home-line); border-radius: 22px; background: #fff; color: var(--home-ink); }
+.photo-result-image { width: 100px; height: 118px; border-radius: 13px; object-fit: contain; background: var(--home-sky); }
+.photo-demo-result .section-kicker { margin: 0 0 5px; color: var(--home-green); font-size: 14px; font-weight: 700; }
+.photo-demo-result h3 { margin: 0 0 8px; font-size: 24px; font-weight: 700; line-height: 1.4; }
+.photo-demo-result p { margin: 0; font-size: 16px; line-height: 1.75; }
+.photo-result-action { margin-top: 14px; padding: 14px 16px; border-left: 3px solid var(--home-green); border-radius: 0 12px 12px 0; background: var(--home-soft); }
+.photo-result-action strong { display: block; margin-bottom: 3px; }
+.farmer-v2[data-view="photos"] > footer { border-top: 1px solid var(--home-line); background: var(--home-sky); color: var(--home-muted); }
+.farmer-v2[data-view="photos"] > footer .footer-brand { color: var(--home-ink); }
+.farmer-v2 #scan :focus-visible { outline: 3px solid var(--home-green); outline-offset: 3px; }
+
+@media(max-width:760px) {
+  .farmer-photo-scene { height: 144px; background-position: 27% center; }
+  .farmer-v2[data-view="photos"] .photo-page-titlebar { padding: 20px 16px 0; }
+  .farmer-v2[data-view="photos"] .photo-page-titlebar p { font-size: 16px; }
+  .farmer-v2 #scan.potato-scan { padding: 18px 16px 32px; grid-template-columns: minmax(0,1fr); grid-template-areas: "workspace" "photos" "result"; gap: 16px; }
+  .farmer-v2 #scan .scan-capture, .farmer-v2 #scan > .photo-demo-section { padding: 16px; }
+  .farmer-v2 #scan .camera-stage { min-height: 195px; }
+  .photo-demo-card { flex-basis: calc((100% - 10px)/2); }
+  .photo-demo-card img { height: 140px; }
+  .farmer-v2 #scan > .photo-demo-result { grid-template-columns: 68px minmax(0,1fr); padding: 18px; gap: 14px; }
+  .photo-result-image { width: 68px; height: 82px; }
+  .photo-demo-result h3 { font-size: 21px; }
+  .photo-result-action { margin-left: -82px; margin-top: 18px; }
+}
+@media(prefers-reduced-motion:reduce) { .photo-demo-card { transition: none; } }
+

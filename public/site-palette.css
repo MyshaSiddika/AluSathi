@@ -1,0 +1,19 @@
+:root {
+  --home-ink: #113a2d;
+  --home-green: #125640;
+  --home-leaf: #3e8148;
+  --home-sky: #edf6f8;
+  --home-line: #ccdedf;
+  --home-muted: #536b60;
+  --home-gold: #a17b29;
+  --home-soft: #e3f1e6;
+}
+[data-home-theme="monsoon"] { --home-sky: #e1efeb; --home-ink: #123c36; --home-green: #135d53; --home-leaf: #28695d; --home-line: #bcd4ca; --home-muted: #46665c; --home-soft: #cfE5da; --home-gold: #806323; }
+[data-home-theme="sky"] { --home-sky: #e6eefb; --home-ink: #17384e; --home-green: #285d84; --home-leaf: #315f77; --home-line: #c3d3e5; --home-muted: #4c6072; --home-soft: #dce8f5; --home-gold: #88631e; }
+[data-home-theme="earth"] { --home-sky: #eeeae3; --home-ink: #3c352d; --home-green: #874732; --home-leaf: #76583d; --home-line: #d3c5b7; --home-muted: #685d51; --home-soft: #e5d9cb; --home-gold: #856126; }
+[data-home-theme="harvest"] { --home-sky: #faf2d8; --home-ink: #393d22; --home-green: #57662d; --home-leaf: #627239; --home-line: #ddd3af; --home-muted: #66634b; --home-soft: #eee5bf; --home-gold: #806018; }
+[data-home-theme="paddy"] { --home-sky: #edf2df; --home-ink: #293c29; --home-green: #3f6639; --home-leaf: #4e6f3b; --home-line: #cdd7ba; --home-muted: #52634c; --home-soft: #dfe8cc; --home-gold: #7a631e; }
+[data-home-theme="coast"] { --home-sky: #e0f3f2; --home-ink: #173e43; --home-green: #1c6267; --home-leaf: #2a6c69; --home-line: #b9d8d8; --home-muted: #48656a; --home-soft: #cce6e5; --home-gold: #856321; }
+[data-home-theme="indigo"] { --home-sky: #e9ecfa; --home-ink: #293650; --home-green: #405682; --home-leaf: #49617d; --home-line: #c7cee3; --home-muted: #58617a; --home-soft: #dce1f1; --home-gold: #826323; }
+[data-home-theme="paper"] { --home-sky: #fafbf9; --home-ink: #263b32; --home-green: #265a46; --home-leaf: #3f7056; --home-line: #d7dfd9; --home-muted: #58675e; --home-soft: #e8eee7; --home-gold: #82651e; }
+[data-home-theme="slate"] { --home-sky: #e6ebef; --home-ink: #283c48; --home-green: #3a596a; --home-leaf: #4c6871; --home-line: #c5d0d8; --home-muted: #526473; --home-soft: #d7e1e8; --home-gold: #826326; }

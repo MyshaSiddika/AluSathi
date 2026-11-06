@@ -21,23 +21,38 @@
   .hero.page-shell { background-size: 100% 100%, auto 100%; background-position: center, center bottom; }
   .hero-visual { min-height: 270px; background: transparent; }
 }
-.buyer-hero{background:linear-gradient(90deg,#173d30ee 0%,#173d30c8 42%,#173d3040 75%),url('./potato-harvest.png') center/cover no-repeat;}
-.buyer-hero h1{max-width:620px}
-.hero-mini-points{display:flex;flex-wrap:wrap;gap:10px 18px;margin-top:22px;color:#e1efe0;font-size:13px;font-weight:700}
-.hero-mini-points span{display:inline-flex;align-items:center;gap:6px}
-.buyer-workspace{padding-top:28px}
-.buyer-brief{padding:24px 26px;margin-bottom:28px;background:#fffdf8}
-.buyer-brief .section-header{align-items:center;margin-bottom:18px}
-.brief-status{border-radius:999px;padding:7px 11px;background:#e4f0e6;color:#2b6645;font-size:12px;font-weight:800}
-.brief-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto;gap:12px;align-items:end}
-.brief-grid label{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:800;color:#274935}
-.brief-grid input,.brief-grid select{width:100%;min-height:44px;border:1px solid #cbd5c8;background:#fff;border-radius:9px;padding:9px 11px;color:#183b2d;font-size:14px}
-.brief-submit{min-height:44px;white-space:nowrap}
-.brief-note{margin:15px 0 0;color:#687a6c;font-size:12px;line-height:1.5}
-.buyer-lots-heading{align-items:center}
-.buyer-lots-heading .small-label{color:#3e7550}
-.buyer-hero .inner-hero-mark{background:#ffffff20}
-@media(max-width:1120px){.brief-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.brief-submit{justify-self:start}}
-@media(max-width:760px){.brief-grid{grid-template-columns:1fr}.buyer-brief{padding:19px}.buyer-hero{background-position:62% center}.hero-mini-points{display:grid;gap:7px}.buyer-lots-heading{align-items:start}}
-.brief-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.brief-grid label:nth-last-of-type(-n+2){grid-column:span 1}.buyer-purchase-estimate{margin:1rem 0;padding:.85rem 1rem;border:1px solid rgba(15,77,56,.18);border-radius:14px;background:#eef8f0;color:#174f3b;font-weight:700}.cost-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.cost-confirm{display:block;font-size:.78rem;margin-top:.35rem;color:#577065}.cost-confirm input{width:auto!important;margin-right:.3rem}.deal-terms-input{margin:1rem 0}.form-note{color:#64766d;font-size:.9rem}.lot-card .small-label{max-width:70%}@media(max-width:900px){.brief-grid,.cost-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:560px){.brief-grid,.cost-grid{grid-template-columns:1fr}}
-.history-prefill-note { margin: 0 0 1rem; padding: .8rem 1rem; border-left: 4px solid var(--green, #166145); border-radius: 10px; background: #edf6f1; color: #285343; font-weight: 650; }
+.buyer-discovery { padding-top: clamp(32px, 5vw, 64px); }
+.buyer-search-panel, .buyer-search-edit { display: grid; gap: 16px; margin: 24px 0; padding: 22px; border: 1px solid #cbded5; border-radius: 18px; background: #fffdf8; }
+.buyer-search-panel label, .buyer-search-edit label { display: grid; gap: 8px; font-weight: 700; }
+.buyer-search-panel textarea, .buyer-search-edit input, .buyer-search-edit select, #buyer-profile-form input, #buyer-profile-form select { width: 100%; min-height: 46px; padding: 10px 12px; border: 1px solid #bdd1c6; border-radius: 10px; background: white; color: #163f2d; }
+.buyer-search-panel textarea { min-height: 72px; resize: vertical; }
+.buyer-search-edit .form-grid, #buyer-profile-form.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; }
+.buyer-contact-card .lot-copy { display: grid; gap: 8px; }
+.buyer-card-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.buyer-card-actions .icon-button { min-width: 40px; min-height: 40px; color: #b44b46; }
+.compare-pick { display: inline-flex; align-items: center; gap: 6px; font-size: .9rem; }
+.buyer-search-actions, .compare-tray, .profile-shortcuts { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin: 18px 0; }
+.buyer-comparison { margin-top: 26px; padding: 22px; overflow-x: auto; }
+.comparison-grid { display: grid; grid-template-columns: minmax(130px, .8fr) repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; min-width: 650px; }
+.comparison-labels, .comparison-column { display: grid; grid-template-rows: 120px repeat(6, minmax(44px, auto)); align-items: stretch; gap: 8px; }
+.comparison-labels strong, .comparison-column > span { display: flex; align-items: center; padding: 8px; border-bottom: 1px solid #d8e4dc; }
+.comparison-column { padding: 10px; border-radius: 14px; background: #f1f7f2; }
+.comparison-column img { width: 100%; height: 120px; object-fit: cover; border-radius: 10px; }
+.comparison-column h3 { margin: 0; }
+.profile-notice { padding: 12px 16px; border-radius: 10px; background: #e9f3ed; }
+.profile-drawer { position: fixed; inset: 0 0 0 auto; z-index: 1001; width: min(420px, 92vw); padding: 34px 24px; overflow-y: auto; background: #f5f8f4; box-shadow: -20px 0 60px #10342833; }
+.profile-drawer > * { margin: 0 0 16px; }
+.profile-backdrop { z-index: 1000; }
+.buyer-plan-results { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 20px 0; }
+.buyer-plan-results dl { display: grid; gap: 8px; }
+.buyer-plan-results dl div { display: flex; justify-content: space-between; gap: 16px; }
+.buyer-plan-results dt { color: #586b60; }
+.buyer-plan-results dd { margin: 0; font-weight: 750; }
+.estimate-bar { height: 10px; overflow: hidden; border-radius: 99px; background: #e2ebe4; }
+.estimate-bar span { display: block; height: 100%; border-radius: inherit; background: #1d7150; }
+@media (max-width: 680px) { .buyer-search-panel, .buyer-search-edit { padding: 16px; } .buyer-card-actions .button { flex: 1 1 auto; } .buyer-comparison { margin-inline: -8px; } }
+.buyer-interest-form { display:grid; gap:12px; margin-top:22px; padding-top:20px; border-top:1px solid #ccdedf; }
+.buyer-interest-form h3 { margin:0; font-size:22px; }
+.buyer-interest-form label { display:grid; gap:7px; }
+.buyer-interest-form input, .buyer-interest-form textarea { min-height:46px; padding:11px; border:1px solid #b8cfc4; border-radius:9px; width:100%; font:inherit; }
+.buyer-interest-form .interest-status { margin:0; color:#125640; }

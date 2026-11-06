@@ -1,0 +1,19 @@
+.farmer-v2 { background: var(--home-sky); color: var(--home-ink); }
+.farmer-v2 .farmer-header { background: var(--home-sky); border-bottom: 1px solid var(--home-line); color: var(--home-ink); }
+.farmer-v2 .farmer-header-inner { display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); gap: 24px; }
+.farmer-v2 .farmer-header .site-brand { justify-self: start; }
+.farmer-v2 .farmer-tabs { margin: 0; justify-content: center; }
+.farmer-v2 .farmer-header-actions { justify-self: end; }
+.farmer-header-actions { display: flex; align-items: center; gap: 10px; flex: none; }
+.farmer-v2 .farmer-profile-trigger { display: inline-flex; width: auto; min-height: 42px; gap: 7px; padding: 9px 12px; border-color: var(--home-line); border-radius: 999px; background: #fff; color: var(--home-ink); font-size: 14px; font-weight: 700; }
+.farmer-v2 .farmer-more summary { min-height: 42px; padding: 9px 12px; border: 1px solid var(--home-line); border-radius: 999px; list-style: none; font-size: 14px; font-weight: 700; }
+.farmer-v2 .farmer-more summary::-webkit-details-marker { display: none; }
+.farmer-v2 .farmer-more > div { background: #fff; border-color: var(--home-line); }
+.farmer-v2 .farmer-tabs a[aria-current=page], .farmer-v2 .farmer-bottom-tabs a[aria-current=page] { color: var(--home-green); background: var(--home-soft); }
+.farmer-v2 .farmer-header .brand-mark { background: var(--home-soft); color: var(--home-green); }
+.farmer-v2 .farmer-header :focus-visible { outline: 3px solid var(--home-green); outline-offset: 3px; }
+
+@media(max-width:1000px) { .farmer-v2 .farmer-header-inner { display: flex; gap: 12px; } .farmer-v2 .farmer-tabs { margin-inline: auto; } .farmer-v2 .farmer-tabs a { padding: 12px 8px; font-size: 14px; } .farmer-v2 .farmer-profile-trigger span { display: none; } }
+@media(max-width:480px) { .farmer-v2 .farmer-header-inner { gap: 8px; } .farmer-v2 .farmer-header .site-brand { gap: 8px; } .farmer-v2 .farmer-header .site-brand strong { font-size: 22px; } .farmer-v2 .farmer-profile-trigger span { display: none; } .farmer-header-actions { margin-left: auto; gap: 7px; } }
+
+

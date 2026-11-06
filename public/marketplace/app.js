@@ -1,10 +1,16 @@
-import { initialData, estimateOffer, availableKg, purchaseCost, storageBreakEven, todayPlus } from "./market.mjs";
-import { offerSummary, offerTerms, passportBody, passportDocument, passportText } from "./lot-tools.mjs";
+import { initialData, estimateOffer, availableKg, storageBreakEven, todayPlus } from "./market.mjs";
+import { offerSummary, offerTerms, passportDocument, passportText } from "./lot-tools.mjs";
+import { potatoDetailsForm, readPotatoDraft, potatoDraftKey } from "./potato-details.mjs";
 import { mountTransport, disposeTransport } from "./transport.mjs";
+import { mountBuyerTransport } from "./buyer-transport.mjs";
 import { districtPlaces } from "./districts.mjs";
 import { prepareDemoForms } from "./demo-forms.mjs";
+import { notebook, mountNotebook } from "./buyer-personal.mjs";
+import { buyerExamples } from "./buyer-examples.mjs";
+import { workspace, mountWorkspace, keepContact, mountWeightConverter, enquiryQuestions } from "./buyer-workspace.mjs";
 
 const storeKey = "alusathi-marketplace-pilot-v1";
+const SALES_FEATURE_ENABLED = false;
 const langKey = "alusathi-marketplace-language";
 const app = document.querySelector("#app");
 let providers = null;
@@ -61,7 +67,7 @@ const money = value => `৳${formatter.format(Number(value) || 0)}`;
 const rate = value => `৳${rateFormatter.format(Number(value) || 0)}`;
 const kg = value => `${formatter.format(Number(value) || 0)} ${t("কেজি", "kg")}`;
 const prettyDate = value => value ? new Date(`${value}T12:00:00`).toLocaleDateString(language === "bn" ? "bn-BD" : "en-BD", { day: "numeric", month: "short", year: "numeric" }) : "—";
-const photoSrc = value => typeof value === "string" && value.length < 1_400_000 && /^data:image\/jpeg;base64,[\w+/=]+$/.test(value) ? value : "";
+const photoSrc = value => typeof value === "string" && value.length < 1_400_000 && (/^data:image\/jpeg;base64,[\w+/=]+$/.test(value) || value === "/marketplace/potato-harvest.png" || /^\/marketplace\/listing-photos\/potato-0[123]\.webp$/.test(value)) ? value : "";
 const uid = () => crypto.randomUUID();
 
 function load() {
@@ -91,18 +97,51 @@ function setNumberFormat() {
 }
 setNumberFormat();
 const role = ["farmer", "buyer"].includes(document.body.dataset.role) ? document.body.dataset.role : "choose";
+const farmerPreview = role === "buyer" && new URLSearchParams(location.search).get("preview") === "farmer";
+const publicPreview = role === "buyer" && new URLSearchParams(location.search).get("preview") === "public";
 let showSamples = role === "farmer" && location.hash === "#samples";
-const visibleListings = () => role !== "farmer" || showSamples ? data.listings : data.listings.filter(item => !item.sample);
+const visibleListings = () => (role !== "farmer" || showSamples ? data.listings : data.listings.filter(item => !item.sample)).filter(item=>!item.archivedAt && !item.hiddenAt);
 const visibleOffers = () => role !== "farmer" || showSamples ? data.offers : data.offers.filter(item => !item.sample && !data.listings.find(lot => lot.id === item.lotId)?.sample);
 const visibleDeals = () => role !== "farmer" || showSamples ? data.deals : data.deals.filter(item => !item.sample);
 const sessionKey = `alusathi-market-demo-${role}`;
 let displayName = role === "farmer" ? "কৃষক" : "ব্যবসায়ী";
-try { if (role !== "choose") { sessionStorage.setItem("alusathi-role", role); sessionStorage.setItem("alusathi-demo", String(role === "farmer")); displayName = sessionStorage.getItem(sessionKey) || displayName; } } catch { /* Page remains usable without session storage. */ }
+try { if (role !== "choose" && !farmerPreview && !publicPreview) { sessionStorage.setItem("alusathi-role", role); sessionStorage.setItem("alusathi-demo", String(role === "farmer")); displayName = sessionStorage.getItem(sessionKey) || displayName; } } catch { /* Page remains usable without session storage. */ }
 const buyerProfileKey = "alusathi-buyer-profile-v1";
 let buyerProfile = {};
 try { buyerProfile = JSON.parse(localStorage.getItem(buyerProfileKey) || "{}") || {}; } catch { buyerProfile = {}; }
-const buyerViews = ["home", "buyer-offers", "purchases", "transport", "notebook", "buyer-detail", "passport"];
-let view = role === "farmer" && ["#transport", "#deals", "#list", "#passport"].includes(location.hash) ? location.hash.slice(1) : role === "buyer" && buyerViews.includes(location.hash.slice(1)) ? location.hash.slice(1) : "home";
+const farmerProfileKey = "alusathi-farmer-profile-v1";
+let farmerProfile = {};
+try { farmerProfile = JSON.parse(localStorage.getItem(farmerProfileKey) || "{}") || {}; } catch { farmerProfile = {}; }
+const buyerSavedKey = "alusathi-buyer-saved-v1";
+const buyerCompareKey = "alusathi-buyer-compare-v1";
+const legacyViews = ["purchases", "buyer-offers", "deals", "offers", "responses"];
+const hiddenInitialView = !SALES_FEATURE_ENABLED && legacyViews.includes(location.hash.slice(1));
+let buyerSaved = readIds(buyerSavedKey);
+let buyerCompared = readIds(buyerCompareKey).slice(0, 4);
+const practiceLots = buyerExamples(todayPlus(0));
+let practiceCompared = practiceLots.map(lot => lot.id);
+const buyerListing = id => data.listings.find(lot => lot.id === id) || practiceLots.find(lot => lot.id === id);
+const planLots = () => {
+  const selected = (catalogueSelection.length ? catalogueSelection : buyerCompared).map(buyerListing).filter(lot => lot && !lot.hiddenAt && !lot.archivedAt && availableKg(lot, data.deals) > 0);
+  return selected.length ? selected : practiceLots.filter(lot => practiceCompared.includes(lot.id));
+};
+let buyerSearch = null;
+let buyerSearchMessage = "";
+let buyerSearchShowAll = false;
+let buyerCataloguePage = 1;
+let buyerCatalogueDistrict = "";
+let buyerCatalogueVariety = "";
+let buyerCatalogueQuantity = 0;
+let catalogueSelection = [];
+let detailLotId = "";
+let detailPhotoIndex = 0;
+let catalogueReturnFocus = "";
+let contactLotId = "";
+let profileOpen = false;
+let compareOpen = false;
+let comparisonQuantity = 200;
+let buyerPlan = readBuyerPlan();
+let view = hiddenInitialView ? "unavailable" : ["#transport", "#deals", "#list", "#passport", "#offers", "#storage"].includes(location.hash) && role === "farmer" ? location.hash.slice(1) : role === "buyer" && ["#transport", "#buyer-plan", "#notebook", "#needs", "#contacts"].includes(location.hash) ? location.hash.slice(1) : location.hash === "#profile" ? "profile" : location.hash === "#saved" ? "saved" : "home";
 let storageInputs = null;
 let quoteOpen = false;
 let selectedLotId = data.listings[0]?.id || "";
@@ -110,76 +149,20 @@ let draftLotId = "";
 let reviewOfferId = "";
 let notice = "";
 let transportOfferId = "";
-let buyerBrief = { variety: "", quantityKg: "", destination: "", district: "", purpose: "", readyDate: "", sort: "ready" };
-try { buyerBrief = { ...buyerBrief, ...(JSON.parse(localStorage.getItem("alusathi-buyer-brief-v1") || "{}") || {}) }; } catch { /* Keep the blank brief. */ }
 
-function lotMatchesBrief(lot) {
-  const quantity = Number(buyerBrief.quantityKg) || 0;
-  const variety = String(buyerBrief.variety || "").trim();
-  const destination = String(buyerBrief.district || buyerBrief.destination || "").trim();
-  const purpose = String(buyerBrief.purpose || "").trim();
-  const readyDate = String(buyerBrief.readyDate || "").trim();
-  return (!quantity || availableKg(lot, data.deals) >= quantity)
-    && (!variety || lot.variety === variety)
-    && (!destination || lot.district === destination)
-    && (!purpose || lot.purpose === purpose)
-    && (!readyDate || lot.readyDate <= readyDate);
-}
-
-function buyerCostLines(offer) {
-  if (offer.buyerCosts && typeof offer.buyerCosts === "object") {
-    return { transport: offer.buyerCosts.transport, loadingSacks: offer.buyerCosts.loadingSacks, taxes: offer.buyerCosts.taxes, marketFees: offer.buyerCosts.marketFees, other: offer.buyerCosts.other };
-  }
-  return { transport: Number(offer.transport) || 0, loadingSacks: Number(offer.handling) || 0, taxes: 0, marketFees: Number(offer.fee) || 0, other: 0 };
-}
-
-function buyerCostState(offer) {
-  const lines = buyerCostLines(offer);
-  const values = Object.values(lines);
-  return { lines, known: values.every(value => value !== null && value !== "" && Number.isFinite(Number(value)) && Number(value) >= 0), total: values.reduce((sum, value) => sum + (Number(value) || 0), 0) };
-}
-
-function buyerCostSummary(offer, lot) {
-  const available = availableKg(lot, data.deals);
-  const offeredKg = Math.min(Number(offer.quantityKg) || 0, available);
-  const acceptedKg = Math.floor(offeredKg * Math.min(100, Math.max(0, Number(offer.acceptedPercent) || 0)) / 100);
-  const costs = buyerCostState(offer);
-  const result = purchaseCost({ acceptedKg, priceKg: offer.priceKg, costs: costs.lines });
-  return { offeredKg, acceptedKg, total: result.total, costs, deliveredPerKg: result.costPerAcceptedKg };
-}
+function readIds(key) { try { const value = JSON.parse(localStorage.getItem(key) || "[]"); return Array.isArray(value) ? value.filter(item => typeof item === "string") : []; } catch { return []; } }
 
 function summaryBlock(offer, quantity, open = false) {
   return `<details class="spoken-summary" ${open ? "open" : ""}><summary>${t("সহজ কথায় এই দর", "This offer in simple words")}</summary><p class="summary-text">${h(offerSummary(offer, quantity, language))}</p></details>`;
 }
 
 function renderPassport() {
-  const lot = selectedLot();
-  if (!lot) return `<section class="section page-shell">${t("আগে আলুর তথ্য দিন।", "Add a potato lot first.")}</section>`;
-  return `<section class="section page-shell passport-page"><div class="passport-actions"><button class="text-arrow" data-view="home">← ${t("তালিকায় ফিরুন", "Back to lots")}</button><button class="button button-outline button-small" data-action="download-passport">${t("ফাইল রাখুন", "Save file")}</button><button class="button button-green button-small" data-action="share-passport">${t("পরিচয়পত্র পাঠান", "Share passport")}</button><button class="text-arrow" data-action="print-passport">${t("ছাপুন / PDF", "Print / PDF")}</button></div>${passportBody(lot, data.offers.filter(offer => offer.lotId === lot.id), language)}</section>`;
-}
-
-function farmerHistoryPrefill() {
-  try {
-    const diary = JSON.parse(localStorage.getItem("alusathi-field-diary-v1") || "[]");
-    const actions = JSON.parse(localStorage.getItem("alusathi-field-actions-v1") || "[]");
-    const dates = [
-      ...(Array.isArray(diary) ? diary.map(item => Date.parse(item?.createdAt || "")) : []),
-      ...(Array.isArray(actions) ? actions.map(item => Date.parse(`${item?.date || ""}T12:00:00`)) : []),
-    ].filter(Number.isFinite);
-    if (!dates.length || Date.now() - Math.min(...dates) < 30 * 86_400_000) return null;
-    const photo = Array.isArray(actions) ? actions.find(item => item?.category === "photo") : null;
-    const district = localStorage.getItem("alusathi-district") || "";
-    return {
-      district: districts.includes(district) ? district : "",
-      variety: varieties.some(([value, bn]) => value === photo?.variety || bn === photo?.variety) ? varieties.find(([value, bn]) => value === photo.variety || bn === photo.variety)[0] : "",
-      notes: [photo?.status, photo?.details].filter(Boolean).join(" · ").slice(0, 300),
-    };
-  } catch { return null; }
+  return potatoDetailsForm({t,h,profile:farmerProfile,district:localStorage.getItem('alusathi-district') || 'Rangpur',varieties,districtOptions,today:todayPlus(0),publish:view === 'list'});
 }
 
 function enhanceLotTools() {
   const form = document.querySelector("#lot-form");
-  if (form) {
+  if (form && !form.closest('.sale-details-page')) {
     form.querySelector(".upload-box strong").textContent = t("সর্বোচ্চ ৩টি ছবি যোগ করুন", "Add up to 3 photos");
     form.querySelector(".upload-box small").textContent = t("ঐচ্ছিক · প্রতিটি সর্বোচ্চ ২ MB · শুধু এই ফোনে", "Optional · up to 2 MB each · stays on this device");
     form.elements.photo.multiple = true;
@@ -206,18 +189,11 @@ function enhanceLotTools() {
     quantity.addEventListener("input", showConversion);
     bagKg.addEventListener("input", showConversion);
     showConversion();
-    const history = farmerHistoryPrefill();
-    if (history) {
-      if (history.district) form.elements.district.value = history.district;
-      if (history.variety) form.elements.variety.value = history.variety;
-      if (history.notes) form.elements.notes.value = history.notes;
-      form.querySelector(".form-intro").insertAdjacentHTML("afterend", `<p class="history-prefill-note">${t("এক মাসের বেশি পুরোনো খাতা থেকে জানা তথ্য বসানো হয়েছে। পরিমাণ ও প্রস্তুতির তারিখ মিলিয়ে নিন।", "Known details were filled from more than one month of notebook history. Check the quantity and ready date.")}</p>`);
-    }
   }
-  if (view === "home") document.querySelectorAll(".lot-card").forEach((card, index) => {
+  if (view === "home" && role === "farmer") document.querySelectorAll(".lot-card").forEach((card, index) => {
     const lot = visibleListings()[index];
     if (!lot) return;
-    card.querySelector(".lot-copy").insertAdjacentHTML("beforeend", `<button class="passport-link" data-action="view-passport" data-id="${h(lot.id)}">${t("আলুর পরিচয়পত্র দেখুন", "View lot passport")} →</button>`);
+    card.querySelector(".lot-copy").insertAdjacentHTML("beforeend", `<button class="passport-link" data-action="view-passport" data-id="${h(lot.id)}">${t("বিক্রির আলুর তথ্য", "Potato details for sale")} →</button>`);
   });
   const review = document.querySelector("#deal-form");
   if (review) {
@@ -256,12 +232,20 @@ function save() {
 }
 
 function setView(next) {
-  const allowed = role === "farmer" ? ["home", "list", "offers", "transport", "storage", "deals", "passport"] : buyerViews;
+  if (role === 'buyer' && next === 'contacts') next = 'home';
+  if (!SALES_FEATURE_ENABLED && legacyViews.includes(next)) next = "unavailable";
+  const allowed = role === "farmer" ? ["home", "list", "offers", "transport", "storage", "deals", "passport", "profile", "unavailable"] : ["home", "transport", "saved", "profile", "buyer-plan", "notebook", "needs", "contacts", "unavailable"];
   if (!displayName || !allowed.includes(next)) return;
-  view = next; reviewOfferId = ""; window.scrollTo({ top: 0, behavior: "smooth" });
+  view = next; reviewOfferId = ""; window.scrollTo({ top: 0, behavior: "smooth" }); render();
   const url = new URL(location.href); url.hash = next === "home" ? "" : next; history.replaceState(null, "", url);
-  render();
 }
+window.addEventListener("hashchange", () => {
+  const next = location.hash.slice(1) || "home";
+  if (role === 'buyer' && next === 'contacts') { setView('home'); return; }
+  const allowed = role === "farmer" ? ["home", "list", "offers", "transport", "storage", "deals", "passport", "profile", "unavailable"] : ["home", "transport", "saved", "profile", "buyer-plan", "notebook", "needs", "contacts", "unavailable"];
+  if (!SALES_FEATURE_ENABLED && legacyViews.includes(next)) { view = "unavailable"; render(); return; }
+  if (allowed.includes(next)) { view = next; render(); }
+});
 function captureFormState() {
   const form = document.querySelector("form");
   if (!form) return null;
@@ -281,38 +265,32 @@ function offerRemainingKg(offer, lot) {
 }
 function districtOptions(selected = "Rangpur") { return districts.map(d => `<option value="${h(d)}" ${selected === d ? "selected" : ""}>${h(language === "bn" ? districtNamesBn[d] : d)}</option>`).join(""); }
 function lotVariety(lot) { return language === "bn" ? varieties.find(([name]) => name === lot.variety)?.[1] || lot.variety : lot.variety; }
-function purposeLabel(value) { return ({ table: t("খাওয়ার", "Food"), seed: t("বীজ", "Seed"), processing: t("প্রক্রিয়াজাত", "Processing") })[value] || t("লেখা নেই", "Not recorded"); }
 function lotNotes(lot) { return lot.sample && language === "bn" ? "হিমাগারে রাখা আলু; মাঝারি ও বড় আকারের মিশ্রণ।" : lot.notes; }
 function photoOrArtwork(lot, className = "lot-photo") {
   const photo = photoSrc(lot.photo);
   return photo ? `<img class="${className}" src="${photo}" alt="${t("আলুর ছবি", "Potato lot photo")}" />` : `<div class="${className} lot-art" aria-hidden="true"><span class="art-leaf leaf-a"></span><span class="art-leaf leaf-b"></span><span class="art-potato potato-a"></span><span class="art-potato potato-b"></span><span class="art-potato potato-c"></span></div>`;
 }
 
-function marketUrl(key) {
-  const page = role === "farmer" ? "./farmer.html" : "./buyer.html";
-  return key === "home" ? page : `${page}#${encodeURIComponent(key)}`;
-}
 function navButton(label, key, symbol) {
-  const attrs = `class="nav-link ${view === key ? "active" : ""}" data-view="${key}" aria-current="${view === key ? "page" : "false"}`;
-  if (role === "farmer") return `<button ${attrs}">${icon(symbol, 18)}<span>${label}</span></button>`;
-  return `<a ${attrs}" href="${marketUrl(key)}">${icon(symbol, 18)}<span>${label}</span></a>`;
+  const active = view === key || (key === "buyer-plan" && view === "saved");
+  return `<button class="nav-link ${active ? "active" : ""}" data-view="${key}" aria-current="${active ? "page" : "false"}">${icon(symbol, 18)}<span>${label}</span></button>`;
 }
 
 function renderShell(content) {
   const farmerNav = [["/farmer", t("আজকের কাজ", "Today"), "leaf"], ["/farmer#photos", t("ছবি", "Photos"), "bag"], ["/selling-preparation", t("বিক্রির আগে", "Before selling"), "truck"], ["/farmer#diary", t("খাতা", "Notebook"), "clock"]].map(([href, label, symbol]) => `<a class="nav-link ${href === "/selling-preparation" ? "active" : ""}" href="${href}" ${href === "/selling-preparation" ? 'aria-current="page"' : ""}>${icon(symbol, 18)}<span>${label}</span></a>`).join("");
-  const buyerNav = [navButton(t("আলুর তালিকা", "Lots"), "home", "bag"), navButton(t("আমার দর", "My offers"), "buyer-offers", "scale"), navButton(t("আমার কেনাকাটা", "My purchases"), "purchases", "shield"), navButton(t("পরিবহন", "Transport"), "transport", "truck"), navButton(t("খাতা", "Notebook"), "notebook", "clock")].join("");
+  const buyerNav = [navButton(t("আলু খুঁজুন", "Find potatoes"), "home", "bag"), navButton(t("আমার চাহিদা", "My requirements"), "needs", "leaf"), navButton(t("খরচ ও লাভ", "Cost & profit"), "buyer-plan", "scale")].join("") + `<details class="buyer-tools-menu"><summary>${t('সরঞ্জাম','Tools')} ▾</summary><div>${navButton(t('খাতা','Notebook'),'notebook','clock')}${navButton(t('গাড়ির জন্য যোগাযোগ','Find a truck service'),'transport','truck')}</div></details>`;
   app.innerHTML = `
     <div class="site-wrap ${role}-portal">
       <header class="topbar">
         <button class="brand" data-view="home" aria-label="AluSathi marketplace home"><span class="brand-mark">${icon("leaf", 23)}</span><span><strong>আলুসাথী<span class="brand-dot">.</span></strong><small>${role === "farmer" ? t("কৃষকের পাতা", "Farmer page") : t("ক্রেতার পাতা", "Buyer page")}</small></span></button>
         <nav class="desktop-nav" aria-label="${t("প্রধান মেনু", "Main navigation")}">${role === "farmer" ? farmerNav : buyerNav}</nav>
-        <div class="header-actions"><span class="account-name" aria-label="${t("বর্তমান পাতা", "Current role")}">${role === "farmer" ? t("কৃষক হিসেবে আছেন", "Farmer page") : t("ব্যবসায়ী হিসেবে আছেন", "Businessman page")}</span><button class="language-btn" data-action="language" aria-label="Change language">${language === "bn" ? "EN" : "বাংলা"}</button><button class="mode-button" data-action="logout">${icon("arrow", 15)}${role === "farmer" ? t("মূল পাতায় ফিরুন", "Main page") : t("বের হন", "Sign out")}</button></div>
+        <div class="header-actions"><button class="account-name" data-action="open-profile" aria-label="${t("প্রোফাইল খুলুন", "Open profile")}">${h(role === "farmer" ? (farmerProfile.name || t("কৃষক", "Farmer")) : (buyerProfile.businessName || t("ব্যবসায়ী", "Buyer")))}</button><button class="language-btn" data-action="language" aria-label="Change language">${language === "bn" ? "EN" : "বাংলা"}</button><button class="mode-button" data-action="logout">${icon("arrow", 15)}${role === "farmer" ? t("মূল পাতায় ফিরুন", "Main page") : t("বের হন", "Sign out")}</button></div>
       </header>
       ${notice ? `<div class="notice" role="status">${h(notice)}<button data-action="dismiss" aria-label="Dismiss">×</button></div>` : ""}
-      <main id="main">${role === "farmer" ? `<div class="page-shell farmer-market-tools"><a href="/selling-preparation">← ${t("বিক্রির আগে", "Before selling")}</a><details><summary>${t("বিক্রির আরও সরঞ্জাম", "More selling tools")}</summary><div>${[navButton(t("আমার আলু", "My potatoes"), "home", "bag"), navButton(t("আলু যোগ করুন", "Add potatoes"), "list", "bag"), navButton(t("দর", "Offers"), "offers", "scale"), navButton(t("গাড়ি", "Transport"), "transport", "truck"), navButton(t("রাখা নথি", "Records"), "deals", "shield")].join("")}</div></details><button class="sample-switch" data-action="toggle-samples" aria-pressed="${showSamples}">${showSamples ? t("নমুনা লুকান", "Hide examples") : t("নমুনা দেখুন", "Show examples")}</button>${showSamples ? `<p class="sample-label">${t("নমুনা তথ্য — আসল ক্রেতার দর নয়", "Example data — not real buyer offers")}</p>` : ""}</div>` : ""}${content}</main>
-      <footer class="footer"><div><strong>আলুসাথী বাজার</strong><p>${t("কৃষকের সিদ্ধান্ত, পরিষ্কার হিসাব।", "Your crop. Clear choices.")}</p></div><div><span>${t("খসড়া এই ব্রাউজারে থাকে", "Drafts stay in this browser")}</span><a class="main-return" href="${role === "farmer" ? "/farmer" : "/"}">${t("মূল অ্যাপে ফিরুন", "Back to AluSathi")}</a><button data-action="reset">${t("আবার শুরু করুন", "Start over")}</button></div></footer>
+      <main id="main">${role === "farmer" ? `<div class="page-shell farmer-market-tools"><a href="/selling-preparation">← ${t("বিক্রির আগে", "Before selling")}</a>${["passport","list"].includes(view) ? "" : `<details><summary>${t("বিক্রির আরও সরঞ্জাম", "More selling tools")}</summary><div>${[navButton(t("আমার আলু", "My potatoes"), "home", "bag"), navButton(t("আলু যোগ করুন", "Add potatoes"), "list", "bag"), navButton(t("গাড়ি", "Transport"), "transport", "truck")].join("")}</div></details>`}</div>` : ""}${content}</main>
+      <footer class="footer"><div><strong>আলুসাথী বাজার</strong><p>${t("কৃষকের সিদ্ধান্ত, পরিষ্কার হিসাব।", "Your crop. Clear choices.")}</p></div><div><span>${t("শুধু এই ব্রাউজারে সেভ হয়", "Saved only in this browser")}</span><a class="main-return" href="${role === "farmer" ? "/farmer" : "/"}">${t("মূল অ্যাপে ফিরুন", "Back to AluSathi")}</a><button data-action="reset">${t("আবার শুরু করুন", "Start over")}</button></div></footer>
       <nav class="mobile-nav" aria-label="${t("মোবাইল মেনু", "Mobile navigation")}">${role === "farmer" ? farmerNav : buyerNav}</nav>
-      ${reviewOfferId ? renderReview() : ""}
+      ${reviewOfferId && SALES_FEATURE_ENABLED ? renderReview() : ""}${detailLotId ? renderBuyerLotDialog() : ""}${contactLotId ? renderFarmerContactDialog() : ""}${profileOpen ? renderProfileDrawer() : ""}
     </div>`;
   document.documentElement.lang = language;
 }
@@ -327,13 +305,17 @@ function renderLotCard(lot) {
   return `<article class="lot-card">${photoOrArtwork(lot)}<div class="lot-copy"><div class="card-topline"><span class="small-label">${lot.sample ? t("উদাহরণ · যাচাই হয়নি", "EXAMPLE · NOT VERIFIED") : t("এই ফোনে সেভ", "SAVED ON THIS DEVICE")}</span><span class="status-pill">${remaining ? t("বিক্রির জন্য আছে", "Available") : t("সবটা চুক্তিতে", "Committed")}</span></div><h3>${h(lotVariety(lot) || t("আলু", "Potatoes"))} <span>· ${kg(lot.quantityKg)}</span></h3><p>${icon("pin", 16)}${h(language === "bn" && lot.sample ? "পীরগঞ্জ" : lot.upazila)}, ${h(language === "bn" ? districtNamesBn[lot.district] || lot.district : lot.district)} <span class="meta-dot">•</span> ${prettyDate(lot.readyDate)}</p><div class="lot-card-bottom"><span>${icon("bag", 16)} ${kg(remaining)} ${t("বাকি", "remaining")}</span><button class="text-arrow" data-action="select-lot" data-id="${h(lot.id)}">${formatter.format(offerCount)} ${t("টি দর দেখুন", "offers")}${icon("arrow", 16)}</button></div></div></article>`;
 }
 
+function renderFarmerListingHero() {
+  return `<section class="inner-hero page-shell"><div><p class="section-kicker">${t("আমার আলুর তালিকা", "MY POTATO LISTINGS")}</p><h1>${t("আলুর তথ্য দেখুন", "Your potato listings")}</h1><p>${t("তালিকায় থাকা আলুর তথ্য দেখুন, বদলান বা নতুন আলুর তথ্য যোগ করুন।", "Review, update, or add information about your potato lots.")}</p></div><button class="button button-green" data-view="list">${icon("plus", 18)}${t("আলু যোগ করুন", "Add potatoes")}</button></section>`;
+}
+
 function renderFarmerHome() {
   const exampleOnly = visibleListings().length > 0 && visibleListings().every(lot => lot.sample);
-  return `${renderHero()}<section class="section page-shell"><div class="section-header"><div><p class="section-kicker">${t("আপনার তালিকা", "YOUR LISTINGS")}</p><h2>${t("আলুর তালিকা", "Potato lots")}</h2><p>${exampleOnly ? t("নিচের আলুর তথ্য উদাহরণ হিসেবে রাখা। নিজের আলুর তথ্যও যোগ করতে পারেন।", "The lot below is an example, not a verified crop. Add your own potatoes too.") : t("আপনার আলুতে চাপ দিয়ে তার দর দেখুন।", "Tap your lot to see its offers.")}</p></div><button class="button button-outline" data-view="list">${icon("plus", 18)}${exampleOnly ? t("আমার আলুর তথ্য দিন", "Add my potatoes") : t("আরও আলু যোগ", "Add another lot")}</button></div><div class="lot-grid">${visibleListings().length ? visibleListings().map(renderLotCard).join("") : `<div class="empty-state">${t("এখনো আলুর তথ্য নেই।", "No lots yet.")}</div>`}</div></section><section class="choice-strip page-shell"><div class="choice-title"><p class="section-kicker">${t("এখন কী করবেন?", "WHAT NEXT?")}</p><h2>${t("দর দেখুন, নাকি কিছুদিন রাখুন?", "Compare offers or wait?")}</h2></div><button class="choice-card" data-view="offers"><span class="choice-icon gold">${icon("scale", 26)}</span><strong>${t("দর তুলনা", "Compare offers")}</strong><small>${t("কত টাকা হাতে পাবেন দেখুন", "See estimated money in hand")}</small>${icon("arrow", 18)}</button><button class="choice-card" data-view="storage"><span class="choice-icon green">${icon("warehouse", 26)}</span><strong>${t("হিমাগারে ফোন করুন", "Call a cold store")}</strong><small>${t("নম্বর ও যোগাযোগের তথ্য দেখুন", "See contacts and call directly")}</small>${icon("arrow", 18)}</button></section>`;
+  return `${renderFarmerListingHero()}<section class="section page-shell"><div class="section-header"><div><p class="section-kicker">${t("আপনার তালিকা", "YOUR LISTINGS")}</p><h2>${t("আলুর তালিকা", "Potato lots")}</h2><p>${exampleOnly ? t("নিজের আলুর তথ্যও যোগ করতে পারেন।", "Add your own lot details here.") : t("তালিকায় আলুর তথ্য দেখুন ও বদলান।", "Review and update your listed potatoes.")}</p></div><button class="button button-outline" data-view="list">${icon("plus", 18)}${exampleOnly ? t("আমার আলুর তথ্য দিন", "Add my potatoes") : t("আরও আলু যোগ", "Add another lot")}</button></div><div class="lot-grid">${visibleListings().length ? visibleListings().map(lot => `<article class="lot-card">${photoOrArtwork(lot)}<div class="lot-copy"><div class="card-topline"><span class="small-label">${t("আমার তালিকা", "MY LISTING")}</span><span class="status-pill">${kg(availableKg(lot, data.deals))}</span></div><h3>${h(lotVariety(lot) || t("আলু", "Potatoes"))}</h3><p>${h(lot.upazila)}, ${h(districtNamesBn[lot.district] && language === "bn" ? districtNamesBn[lot.district] : lot.district)} · ${prettyDate(lot.readyDate)}</p><p>${h(lot.notes || t("অবস্থা লেখা হয়নি", "Condition not provided"))}</p></div></article>`).join("") : `<div class="empty-state">${t("এখনো আলুর তথ্য নেই।", "No lots yet.")}</div>`}</div></section>`;
 }
 
 function renderListForm() {
-  return `<section class="inner-hero page-shell"><div><p class="section-kicker">${t("ধাপ ১ / আলুর তথ্য", "STEP 1 / YOUR POTATOES")}</p><h1>${t("কত আলু বিক্রি করবেন?", "What do you have to sell?")}</h1><p>${t("যা জানেন তাই লিখুন। ওজন নিশ্চিত হলে পরে নতুন তালিকা দিতে পারবেন।", "Enter what you know. This pilot keeps the record on this device only.")}</p></div><div class="inner-hero-mark">${icon("bag", 52)}</div></section><section class="form-layout page-shell lot-form-centered"><form id="lot-form" class="panel form-panel"><div class="form-intro"><span class="step-circle">1</span><div><h2>${t("আমার আলু", "My potato lot")}</h2><p>${t("ঠিকানা নয়—শুধু উপজেলা দেখানো হবে।", "Only your upazila is shown, not your exact address.")}</p></div></div><fieldset class="form-section"><legend>${t("কোথায়?", "Where?")}</legend><div class="form-grid"><label>${t("জেলা", "District")}<select name="district" required>${districtOptions()}</select></label><label>${t("উপজেলা", "Upazila")}<input name="upazila" required minlength="2" maxlength="60" placeholder="${t("যেমন: পীরগঞ্জ", "e.g. Pirganj")}" /></label></div></fieldset><fieldset class="form-section"><legend>${t("কী আলু, কতটা?", "What potatoes and how much?")}</legend><div class="form-grid"><label>${t("আলুর জাত", "Potato variety")}<select name="variety"><option value="">${t("জাত বেছে নিন", "Choose a variety")}</option>${varieties.map(([value, bn]) => `<option value="${value}">${h(t(bn, value))}</option>`).join("")}</select></label><label>${t("মোট পরিমাণ (কেজি)", "Quantity (kg)")}<input name="quantityKg" required type="number" min="1" max="100000" step="1" inputmode="numeric" placeholder="2000" /></label><label>${t("কবে বিক্রির জন্য প্রস্তুত?", "Ready date")}<input name="readyDate" required type="date" min="${todayPlus(0)}" value="${todayPlus(14)}" /></label></div><div class="lot-notes"><div class="notes-heading"><label for="lot-notes">${t("আলুর অবস্থা / আকার সম্পর্কে কিছু বলুন", "Size or condition")}</label><button type="button" class="button button-outline button-small" data-action="dictate-notes" aria-pressed="false">${t("বলুন", "Speak")}</button></div><textarea id="lot-notes" name="notes" rows="2" maxlength="300" placeholder="${t("যেমন: মাঝারি আকার বেশি, কিছু ছোট আছে", "e.g. Mostly medium potatoes, some small ones")}"></textarea><small class="notes-status" role="status">${t("বলতে চাপলে ফোনের ভয়েস সেবা মাইক্রোফোন ব্যবহার করবে। চাইলে লিখুন।", "Speak uses your phone’s voice service and microphone. You can also type.")}</small></div><label class="upload-box">${icon("plus", 21)}<span><strong>${t("একটি ছবি যোগ করুন", "Add one photo")}</strong><small>${t("ঐচ্ছিক · শুধু এই ফোনে থাকবে · সর্বোচ্চ ২ MB", "Optional · stays on this device · up to 2 MB")}</small></span><input name="photo" type="file" accept="image/jpeg,image/png,image/webp" /></label></fieldset><button class="button button-green submit" type="submit">${t("তালিকা রাখুন", "Save lot")}${icon("arrow", 18)}</button></form></section>`;
+  return `<section class="inner-hero page-shell"><div><p class="section-kicker">${t("ধাপ ১ / আলুর তথ্য", "STEP 1 / YOUR POTATOES")}</p><h1>${t("কত আলু বিক্রি করবেন?", "What do you have to sell?")}</h1><p>${t("যা জানেন তাই লিখুন। ওজন নিশ্চিত হলে পরে নতুন তালিকা দিতে পারবেন।", "Enter what you know. This pilot keeps the record on this device only.")}</p></div><div class="inner-hero-mark">${icon("bag", 52)}</div></section><section class="form-layout page-shell lot-form-centered"><form id="lot-form" class="panel form-panel"><div class="form-intro"><span class="step-circle">1</span><div><h2>${t("আমার আলু", "My potato lot")}</h2><p>${t("ঠিকানা নয়—শুধু উপজেলা দেখানো হবে।", "Only your upazila is shown, not your exact address.")}</p></div></div><fieldset class="form-section"><legend>${t("কোথায়?", "Where?")}</legend><div class="form-grid"><label>${t("জেলা", "District")}<select name="district" required>${districtOptions()}</select></label><label>${t("উপজেলা", "Upazila")}<input name="upazila" required minlength="2" maxlength="60" placeholder="${t("যেমন: পীরগঞ্জ", "e.g. Pirganj")}" /></label></div></fieldset><fieldset class="form-section"><legend>${t("কী আলু, কতটা?", "What potatoes and how much?")}</legend><div class="form-grid"><label>${t("আলুর জাত", "Potato variety")}<select name="variety"><option value="">${t("জাত বেছে নিন", "Choose a variety")}</option>${varieties.map(([value, bn]) => `<option value="${value}">${h(t(bn, value))}</option>`).join("")}</select></label><label>${t("মোট পরিমাণ (কেজি)", "Quantity (kg)")}<input name="quantityKg" required type="number" min="1" max="100000" step="1" inputmode="numeric" placeholder="2000" /></label><label>${t("কবে বিক্রির জন্য প্রস্তুত?", "Ready date")}<input name="readyDate" required type="date" min="${todayPlus(0)}" value="${todayPlus(14)}" /></label></div><div class="lot-notes"><div class="notes-heading"><label for="lot-notes">${t("আলুর অবস্থা / আকার সম্পর্কে কিছু বলুন", "Size or condition")}</label><button type="button" class="button button-outline button-small" data-action="dictate-notes" aria-pressed="false">${t("বলুন", "Speak")}</button></div><textarea id="lot-notes" name="notes" rows="2" maxlength="300" placeholder="${t("যেমন: মাঝারি আকার বেশি, কিছু ছোট আছে", "e.g. Mostly medium potatoes, some small ones")}"></textarea><small class="notes-status" role="status">${t("বলতে চাপলে ফোনের ভয়েস সেবা মাইক্রোফোন ব্যবহার করবে। চাইলে লিখুন।", "Speak uses your phone’s voice service and microphone. You can also type.")}</small></div><label class="upload-box">${icon("plus", 21)}<span><strong>${t("একটি ছবি যোগ করুন", "Add one photo")}</strong><small>${t("ঐচ্ছিক · শুধু এই ফোনে থাকবে · সর্বোচ্চ ২ MB", "Optional · stays on this device · up to 2 MB")}</small></span><input name="photo" type="file" accept="image/jpeg,image/png,image/webp" /></label></fieldset><div class="lot-save-actions"><button class="button button-outline submit" type="submit" name="afterSave" value="back">${t("সংরক্ষণ করে ফিরে যান", "Save and go back")}</button><button class="button button-green submit" type="submit" name="afterSave" value="market">${t("সংরক্ষণ করে বাজারে দিন", "Save and go to Sell Potatoes")}${icon("arrow", 18)}</button></div></form></section>`;
 }
 
 function renderOfferCard(offer, lot) {
@@ -343,15 +325,13 @@ function renderOfferCard(offer, lot) {
   const expired = offer.expires < todayPlus(0);
   const names = { "sample-local": t("এলাকার ব্যবসায়ী", "Local trader"), "sample-remote": t("অন্য জেলার পাইকার", "District wholesaler"), "sample-partial": t("আলুর কারখানা", "Potato processor") };
   const perKg = result.acceptedKg ? result.net / result.acceptedKg : 0;
-  const buyerCost = buyerCostSummary(offer, lot);
-  const buyerView = role === "buyer";
   return `<article class="offer-card simple-offer">
     <div class="offer-top"><div><span class="small-label">${offer.sample ? t("উদাহরণ দর · আসল ক্রেতা নয়", "EXAMPLE OFFER · NOT A REAL BUYER") : t("ক্রেতার দেওয়া তথ্য · যাচাই হয়নি", "BUYER DETAILS · NOT VERIFIED")}</span><h3>${h(offer.sample && names[offer.id] ? names[offer.id] : offer.buyer)}</h3><p>${icon("pin", 15)}${h(language === "bn" ? districtNamesBn[offer.district] || offer.district : offer.district)}</p></div><span class="price-badge">${rate(offer.priceKg)}<small>/${t("কেজি", "kg")}</small></span></div>
-    <div class="take-home"><span>${buyerView ? t("ক্রেতার আনুমানিক মোট খরচ", "Estimated buyer cost") : t("সব খরচ বাদে পাবেন", "You receive after costs")}</span><strong>${buyerView ? (buyerCost.total == null ? t("অসম্পূর্ণ", "Incomplete") : money(buyerCost.total)) : money(result.net)}</strong><small>${buyerView ? `${t("গ্রহণ করা", "Accepted")}: ${kg(buyerCost.acceptedKg)} · ${buyerCost.deliveredPerKg == null ? t("সব খরচ জানা নেই", "Some costs are unknown") : `${t("গ্রহণ করা প্রতি কেজির খরচ", "Delivered cost per accepted kg")}: ${rate(buyerCost.deliveredPerKg)}`}` : `${t("বিক্রি হওয়া প্রতি কেজিতে হাতে", "Net per kg actually sold")}: ${rate(perKg)} · ${t("বিক্রি না হওয়া", "Still unsold")}: ${kg(unsold)}`}</small><small>${t("আনুমানিক হিসাব, নিশ্চিত টাকা নয়", "Estimate, not guaranteed payment")}</small></div>
+    <div class="take-home"><span>${t("সব খরচ বাদে পাবেন", "You receive after costs")}</span><strong>${money(result.net)}</strong><small>${t("বিক্রি হওয়া প্রতি কেজিতে হাতে", "Net per kg actually sold")}: ${rate(perKg)} · ${t("বিক্রি না হওয়া", "Still unsold")}: ${kg(unsold)}</small><small>${t("আনুমানিক হিসাব, নিশ্চিত টাকা নয়", "Estimate, not guaranteed payment")}</small></div>
     <div class="offer-quickfacts"><span>${t("আলু নেবেন", "Will buy")}: <strong>${kg(result.acceptedKg)}</strong></span><span>${t("টাকা দেবেন", "Will pay")}: <strong>${offer.paymentDays === 0 ? t("আলু নেওয়ার দিন", "On pickup day") : `${formatter.format(offer.paymentDays)} ${t("দিনের মধ্যে", "days after pickup")}`}</strong></span><span><strong>${offer.pickup === "buyer" ? t("আপনার কাছ থেকে আলু নিয়ে যাবেন", "Buyer collects from you") : t("আপনাকে আলু পৌঁছে দিতে হবে", "You deliver the potatoes")}</strong></span></div>
     ${unsold > 0 ? `<p class="offer-leftover">${kg(unsold)} ${t("আলু থেকে যাবে। সেটুকুর জন্য আরেকজন ক্রেতা লাগবে।", "will remain. You need another buyer for it.")}</p>` : ""}
-    <details class="offer-details"><summary>${buyerView ? t("ক্রেতার খরচ ও শর্ত", "Buyer cost and terms") : t("খরচ ও শর্ত", "Costs and terms")}</summary><div class="offer-breakdown">${buyerView ? `<div><span>${t("আলুর মূল্য", "Potato value")}</span><strong>${money(buyerCost.acceptedKg * offer.priceKg)}</strong></div>${Object.entries(buyerCost.costs.lines).map(([key, value]) => `<div><span>${key === "loadingSacks" ? t("লোড / বস্তা", "Loading / sacks") : key === "marketFees" ? t("বাজার ফি", "Market fees") : key === "taxes" ? t("কর", "Taxes") : key === "other" ? t("অন্যান্য", "Other") : t("পরিবহন", "Transport")}</span><strong>${value == null ? t("জানা নেই", "Unknown") : `+ ${money(value)}`}</strong></div>`).join("")}<div><span>${t("মোট ক্রেতার খরচ", "Total buyer cost")}</span><strong>${buyerCost.total == null ? t("অসম্পূর্ণ", "Incomplete") : money(buyerCost.total)}</strong></div>` : `<div><span>${t("আলু বিক্রির টাকা", "Sale amount")}</span><strong>${money(result.gross)}</strong></div><div><span>${t("ক্রেতার আলাদা খরচ", "Buyer-paid costs")}</span><strong>${offer.buyerCosts ? (buyerCost.total == null ? t("জানা নেই", "Unknown") : money(buyerCost.total - buyerCost.acceptedKg * offer.priceKg)) : t("পুরনো দর: আলাদা তথ্য নেই", "Legacy offer: not recorded")}</strong></div><div><span>${t("আপনার হাতে থাকবে", "You keep")}</span><strong>${money(result.net)}</strong></div>`}</div><p class="offer-terms">${h(offerTerms(offer, language))}</p>${offer.contact && /^(?:\+?88)?01[3-9]\d{8}$/.test(offer.contact.contactPhone) ? `<p class="offer-terms">${t("যোগাযোগ", "Contact")}: ${h(offer.contact.contactPerson)} · <a href="tel:${h(offer.contact.contactPhone)}">${h(offer.contact.contactPhone)}</a><br>${h(offer.contact.buyerUpazila)}, ${h(offer.district)} · ${h(offer.contact.buyerAddress)}</p>` : ""}${summaryBlock(offer, result.offeredKg)}<small>${t("দরটি থাকবে", "Offer valid until")} ${prettyDate(offer.expires)}</small></details>
-    <div class="offer-bottom">${role === "farmer" ? `<button class="button button-green" data-action="review-offer" data-id="${h(offer.id)}" ${expired || remaining <= 0 || result.net <= 0 ? "disabled" : ""}>${expired ? t("দরের সময় শেষ", "Offer expired") : t("এই ক্রেতাকে বেছে নিন", "Choose this buyer")}${icon("arrow", 16)}</button>` : offer.sample ? `<button class="button button-outline button-small" data-action="offer-lot" data-id="${h(lot.id)}">${t("এই ধরনের দর লিখুন", "Edit this scenario")}${icon("arrow", 15)}</button>` : `<span>${t("আপনার রাখা দর", "Your saved offer")}</span>`}</div>
+    <details class="offer-details"><summary>${t("খরচ ও শর্ত", "Costs and terms")}</summary><div class="offer-breakdown"><div><span>${t("আলু বিক্রির টাকা", "Sale amount")}</span><strong>${money(result.gross)}</strong></div><div><span>${t("গাড়িভাড়া", "Transport")}</span><strong>− ${money(offer.transport)}</strong></div><div><span>${t("বস্তা ও শ্রমিক", "Sacks and labour")}</span><strong>− ${money(offer.handling)}</strong></div><div><span>${t("অন্যান্য খরচ", "Other costs")}</span><strong>− ${money(offer.fee)}</strong></div><div><span>${t("আপনার হাতে থাকবে", "You keep")}</span><strong>${money(result.net)}</strong></div></div><p class="offer-terms">${h(offerTerms(offer, language))}</p>${offer.contact && /^(?:\+?88)?01[3-9]\d{8}$/.test(offer.contact.contactPhone) ? `<p class="offer-terms">${t("যোগাযোগ", "Contact")}: ${h(offer.contact.contactPerson)} · <a href="tel:${h(offer.contact.contactPhone)}">${h(offer.contact.contactPhone)}</a><br>${h(offer.contact.buyerUpazila)}, ${h(offer.district)} · ${h(offer.contact.buyerAddress)}</p>` : ""}${summaryBlock(offer, result.offeredKg)}<small>${t("দরটি থাকবে", "Offer valid until")} ${prettyDate(offer.expires)}</small></details>
+    <div class="offer-bottom">${role === "farmer" ? `<button class="button button-green" data-action="review-offer" data-id="${h(offer.id)}" ${expired || remaining <= 0 || result.net <= 0 ? "disabled" : ""}>${expired ? t("দরের সময় শেষ", "Offer expired") : t("এই ক্রেতাকে বেছে নিন", "Choose this buyer")}${icon("arrow", 16)}</button>` : ""}</div>
   </article>`;
 }
 
@@ -362,21 +342,365 @@ function renderOffers() {
 }
 
 function renderBuyerHome() {
-  const matchedLots = data.listings.filter(lot => lotMatchesBrief(lot)).sort((a, b) => buyerBrief.sort === "quantity" ? availableKg(b, data.deals) - availableKg(a, data.deals) : String(a.readyDate).localeCompare(String(b.readyDate)));
-  const offers = data.offers.filter(offer => !offer.sample && ["pending", "counter"].includes(offer.status || "pending")).length;
-  const purchases = data.deals.filter(deal => deal.status !== "paid");
-  const due = purchases.filter(deal => deal.status === "collected" || deal.status === "payment_pending").length;
-  const lot = matchedLots.find(item => item.id === selectedLotId) || matchedLots[0];
-  return `<section class="buyer-workspace page-shell"><header class="buyer-title"><div><p class="section-kicker">${t("ব্যবসায়ীর কাজ", "BUYER WORKSPACE")}</p><h1>${t("আলু কিনুন, পুরো খরচ জানুন।", "Buy potatoes with the full cost clear.")}</h1><p>${t("লট দেখুন, দর দিন, সংগ্রহ ও পাওনা একই জায়গায় রাখুন।", "Browse lots, send terms, then keep collection and payments together.")}</p></div><div class="buyer-market-mark" aria-hidden="true">${icon("scale", 34)}<span>${t("ঢাকার বাজার", "Dhaka market")}</span></div></header>
-  <div class="buyer-summary-strip"><a href="${marketUrl("buyer-offers")}" data-view="buyer-offers"><strong>${formatter.format(offers)}</strong><span>${t("দরে উত্তর দরকার", "offers need attention")}</span></a><a href="${marketUrl("purchases")}" data-view="purchases"><strong>${formatter.format(purchases.length)}</strong><span>${t("আসন্ন সংগ্রহ", "upcoming collections")}</span></a><a href="${marketUrl("purchases")}" data-view="purchases"><strong>${formatter.format(due)}</strong><span>${t("পেমেন্ট বাকি", "payments due")}</span></a></div>
-  <section class="buyer-brief panel"><form id="buyer-brief-form" class="brief-grid"><label>${t("জেলা", "District")}<select name="district"><option value="">${t("যেকোনো জেলা", "Any district")}</option>${districts.map(d => `<option value="${h(d)}" ${buyerBrief.district === d ? "selected" : ""}>${h(language === "bn" ? districtNamesBn[d] || d : d)}</option>`).join("")}</select></label><label>${t("জাত", "Variety")}<select name="variety"><option value="">${t("যেকোনো জাত", "Any variety")}</option>${varieties.map(([value,bn]) => `<option value="${h(value)}" ${buyerBrief.variety === value ? "selected" : ""}>${h(t(bn,value))}</option>`).join("")}</select></label><label>${t("কমপক্ষে কেজি", "Minimum kg")}<input name="quantityKg" type="number" min="0" max="100000" step="1" value="${h(buyerBrief.quantityKg)}" /></label><button class="button button-green brief-submit" type="submit">${t("বাছাই করুন", "Apply")}</button><details class="buyer-more-filter"><summary>${t("আরও বাছাই", "More filters")}</summary><div><label>${t("ব্যবহার", "Purpose")}<select name="purpose"><option value="">${t("সব", "All")}</option><option value="table">${t("খাওয়ার", "Food")}</option><option value="seed">${t("বীজ", "Seed")}</option><option value="processing">${t("প্রক্রিয়াজাত", "Processing")}</option></select></label><label>${t("প্রস্তুত হওয়ার মধ্যে", "Ready by")}<input name="readyDate" type="date" value="${h(buyerBrief.readyDate)}" /></label><label>${t("সাজান", "Sort")}<select name="sort"><option value="ready">${t("প্রস্তুতির তারিখ", "Readiness")}</option><option value="quantity">${t("পরিমাণ", "Quantity")}</option></select></label></div></details></form></section>
-  <section class="buyer-split"><div><div class="section-header buyer-lots-heading"><div><p class="section-kicker">${t("লট", "LOTS")}</p><h2>${t("বিক্রির জন্য আলু", "Potatoes for sale")}</h2></div><span class="brief-status">${formatter.format(matchedLots.length)} ${t("টি লট", "lots")}</span></div><div class="buyer-lot-list">${matchedLots.length ? matchedLots.map(item => `<button class="buyer-lot-row ${lot?.id === item.id ? "selected" : ""}" data-action="open-buyer-lot" data-id="${h(item.id)}">${photoOrArtwork(item, "buyer-lot-photo")}<span><strong>${h(lotVariety(item))}</strong><small>${kg(availableKg(item, data.deals))} · ${h(language === "bn" ? districtNamesBn[item.district] || item.district : item.district)}</small></span><em>${prettyDate(item.readyDate)}</em></button>`).join("") : `<div class="empty-state"><h3>${t("এই বাছাইয়ে লট নেই", "No lots match")}</h3><p>${t("বাছাই বদলে আবার দেখুন।", "Adjust filters and try again.")}</p></div>`}</div></div>${lot ? renderBuyerLotDetail(lot) : ""}</section>${draftLotId ? renderOfferForm() : ""}</section>`;
+  if (!publicPreview && view === 'notebook') return notebook({t,h,money:rate,prettyDate,today:todayPlus(0)});
+  const lots = visibleListings().filter(lot => availableKg(lot, data.deals) > 0);
+  const filtered = lots.filter(lot => (!buyerCatalogueDistrict || lot.district === buyerCatalogueDistrict)
+    && (!buyerCatalogueVariety || lot.variety === buyerCatalogueVariety)
+    && (!buyerCatalogueQuantity || availableKg(lot, data.deals) >= buyerCatalogueQuantity));
+  const searchLots = buyerSearch ? getBuyerPicks(filtered, buyerSearch) : [];
+  const selected = lots.filter(lot => catalogueSelection.includes(lot.id));
+  const cards = items => items.map(lot => {
+    const compared = catalogueSelection.includes(lot.id);
+    const farmer = lot.farmerName || lot.farmer?.name || lot.ownerName || t("আলুচাষি", "Potato farmer");
+    const available = availableKg(lot, data.deals);
+    return `<article class="lot-card buyer-contact-card"><div class="catalogue-card-identity">${catalogueRowPhoto(lot)}<div><h3>${h(lotVariety(lot) || t("আলু", "Potatoes"))}</h3><p class="catalogue-farmer">${h(farmer)}</p><p>${h(cataloguePlace(lot))}</p></div></div><dl class="catalogue-card-facts"><div><dt>${t("দর", "Price")}</dt><dd>${cataloguePriceText(lot)}</dd></div><div><dt>${t("পাওয়া যাবে", "Available")}</dt><dd>${kg(available)}</dd></div><div><dt>${t("কবে নিতে পারবেন", "Ready for collection")}</dt><dd>${catalogueReady(lot)}</dd></div></dl><div class="buyer-card-actions"><button class="button button-outline" data-action="view-lot" data-id="${h(lot.id)}">${(publicPreview ? t("বিস্তারিত দেখুন", "View details") : t("বিস্তারিত", "Details"))}</button>${publicPreview ? "" : `<button class="button button-outline" data-action="catalogue-compare-toggle" data-id="${h(lot.id)}" aria-pressed="${compared}">${compared ? t("তুলনায় আছে", "In comparison") : t("তুলনায় রাখুন", "Add to comparison")}</button><button class="button button-outline" data-action="lot-costs" data-id="${h(lot.id)}">${t("খরচ ও লাভ", "Cost & profit")}</button><button class="button button-green" data-action="contact-lot" data-id="${h(lot.id)}">${t("কৃষকের সঙ্গে কথা বলুন", "Contact farmer")}</button>`}</div></article>`;
+  }).join("");
+  if (publicPreview) return `<section class="section page-shell buyer-discovery"><div class="section-header"><h1>${t("যে আলু পাওয়া যাবে", "Available potatoes")}</h1><a class="button button-green" href="/auth">${t("লগইন করুন", "Log in")}</a></div>${lots.length ? `<div class="lot-grid">${cards(lots)}</div>` : `<p>${t("এখন কোনো লট নেই।", "No lots are available right now.")}</p>`}</section>`;
+  const catalogueLots = buyerSearchShowAll && buyerSearch?.applied ? filterBuyerLots(filtered, buyerSearch) : filtered;
+  const pageCount = Math.max(1, Math.ceil(catalogueLots.length / 6));
+  buyerCataloguePage = Math.min(buyerCataloguePage, pageCount);
+  const pageLots = catalogueLots.slice((buyerCataloguePage - 1) * 6, buyerCataloguePage * 6);
+  const filters = `<form id="buyer-catalogue-filters" data-demo="false" class="buyer-catalogue-filters"><label>${t("জেলা", "District")}<select name="district"><option value="">${t("সব জেলা", "All districts")}</option>${districtOptions(buyerCatalogueDistrict)}</select></label><label>${t("জাত", "Variety")}<select name="variety"><option value="">${t("সব জাত", "All varieties")}</option>${varieties.map(([value, bn]) => `<option value="${h(value)}" ${buyerCatalogueVariety === value ? "selected" : ""}>${h(t(bn, value))}</option>`).join("")}</select></label><label>${t("কত কেজি লাগবে?", "Minimum quantity (kg)")}<input name="minKg" inputmode="decimal" maxlength="12" value="${buyerCatalogueQuantity || ""}"></label><button class="button button-green" type="submit">${t("খুঁজুন", "Search")}</button><button class="text-arrow" type="button" data-action="clear-buyer-filters">${t("ফিল্টার সরান", "Clear filters")}</button><p role="status" class="catalogue-filter-error"></p></form>`;
+  const typedSearch = `<details class="catalogue-written-search" ${buyerSearch ? "open" : ""}><summary>${t("লিখে খুঁজুন", "Need a quantity, place or date? Search in your own words")}</summary><form id="buyer-search-prompt" data-demo="false" class="buyer-search-panel"><label for="catalogue-query">${t("আপনার প্রয়োজন", "Your requirement")}</label><div class="catalogue-query-row"><input id="catalogue-query" name="query" maxlength="240" value="${h(buyerSearch?.query || "")}" placeholder="${t("যেমন: রংপুরে এই সপ্তাহে ৫০০ কেজি আলু", "e.g. 500 kg near Rangpur, ready this week")}" /><button class="button button-green" type="submit">${t("খুঁজুন", "Search")}</button></div>${buyerSearchMessage ? `<p role="status">${h(buyerSearchMessage)}</p>` : ""}</form>${buyerSearch ? `<form id="buyer-search-edit" data-demo="false" class="buyer-search-edit"><strong>${t("তথ্য মিলিয়ে নিন", "Check your search details")}</strong><div class="form-grid"><label>${t("জেলা", "District")}<select name="district"><option value="">${t("জেলা বাছুন", "Select district")}</option>${districtOptions(buyerSearch.district)}</select></label><label>${t("কত কেজি", "Quantity (kg)")}<input name="quantity" type="number" min="1" max="100000" value="${buyerSearch.quantity || ""}" required /></label><label>${t("কবে লাগবে", "Needed by")}<input name="readyDate" type="date" value="${h(buyerSearch.readyDate || "")}" /></label><label>${t("মোট বাজেট (ঐচ্ছিক)", "Total budget (optional)")}<input name="budget" type="number" min="1" max="100000000" value="${buyerSearch.budget || ""}" /></label></div><div class="catalogue-search-confirm"><small>${t("বাজেটে শুধু আলুর দাম ধরা হবে, গাড়িভাড়া নয়।", "Budget covers potatoes only, not transport.")}</small><button class="button button-green" type="submit">${t("মিল দেখুন", "Show matches")}</button></div></form>` : ""}</details>`;
+  const picks = buyerSearch?.applied && !buyerSearchShowAll ? `<section class="buyer-picks"><div class="section-header"><h2>${t("আপনার খোঁজের সঙ্গে মেলে", "Matches your search")}</h2><span>${formatter.format(searchLots.length)} ${t("টি লট", "lots")}</span></div>${searchLots.length ? `<div class="lot-grid">${cards(searchLots, true)}</div><div class="buyer-search-actions"><button class="button button-outline" data-action="buyer-see-all">${t("মিল থাকা সব লট দেখুন", "See all matching lots")}</button><button class="text-arrow" data-action="buyer-expand-area">${buyerSearch.expanded ? t("সব জেলা দেখানো হচ্ছে", "All districts included") : t("অন্য জেলাও দেখুন", "Expand area")}</button></div>` : `<div class="empty-state"><h3>${t("এই শর্তে লট পাওয়া যায়নি", "No lots match these requirements")}</h3><p>${t("পরিমাণ বা সময় বদলান, অথবা অন্য জেলা দেখুন।", "Change quantity or date, or include other districts.")}</p><button class="button button-outline" data-action="buyer-expand-area">${t("অন্য জেলাও দেখুন", "Include other districts")}</button></div>`}</section>` : "";
+  const catalogue = `<section class="buyer-catalogue"><div class="section-header"><h2>${buyerSearchShowAll ? t("মিল থাকা সব লট", "All matching lots") : t("যে আলু পাওয়া যাবে", "Available potatoes")}</h2><span>${formatter.format(catalogueLots.length)} ${t("টি লট", "lots")}</span></div>${catalogueLots.length ? `<div class="lot-grid">${cards(pageLots)}</div>${pageCount > 1 ? `<nav class="catalogue-pagination" aria-label="${t("তালিকার পৃষ্ঠা", "Catalogue pages")}"><button class="button button-outline" data-action="catalogue-page" data-page="${buyerCataloguePage - 1}" ${buyerCataloguePage === 1 ? "disabled" : ""}>${t("আগের", "Previous")}</button><span>${formatter.format(buyerCataloguePage)} / ${formatter.format(pageCount)}</span><button class="button button-outline" data-action="catalogue-page" data-page="${buyerCataloguePage + 1}" ${buyerCataloguePage === pageCount ? "disabled" : ""}>${t("পরের", "Next")}</button></nav>` : ""}` : `<div class="empty-state"><h3>${t("এই খোঁজে কোনো লট পাওয়া যায়নি", "No lots match these filters")}</h3><button class="button button-outline" data-action="clear-buyer-filters">${t("বাছাই মুছুন", "Clear filters")}</button></div>`}</section>`;
+  return `<section class="section page-shell buyer-discovery"><div class="catalogue-hero"><div class="catalogue-hero-copy"><h1>${t("আলু খুঁজুন", "Find potatoes")}</h1><p>${t("আলু বাছুন, কৃষকের সঙ্গে কথা বলুন।", "Choose a lot and talk to the farmer.")}</p></div></div>${filters}${typedSearch}${picks}${catalogue}<div id="catalogue-shortlist">${catalogueShortlist(selected)}</div></section>`;
+}
+const cataloguePlace = lot => [lot.upazila, language === "bn" ? districtNamesBn[lot.district] || lot.district : lot.district].filter(Boolean).join(", ");
+const catalogueReady = lot => lot.readyDate && lot.readyDate <= todayPlus(0) ? t("এখনই নিতে পারবেন", "Ready now") : prettyDate(lot.readyDate);
+
+function catalogueShortlist(lots) {
+  return `<span class="sr-only" role="status">${lots.length ? `${formatter.format(lots.length)} ${t("টি লট তুলনায় আছে", "lots selected")}` : t("তুলনায় কোনো লট নেই", "No lots selected")}</span>${lots.length ? `<aside class="catalogue-shortlist-tray" aria-label="${t("তুলনার লট", "Comparison shortlist")}"><div class="catalogue-shortlist-items">${lots.map(lot => `<button type="button" data-action="catalogue-compare-toggle" data-id="${h(lot.id)}" aria-label="${h(t("তুলনা থেকে সরান", "Remove from comparison") + ": " + lotVariety(lot))}">${h(lotVariety(lot))} <span aria-hidden="true">×</span></button>`).join("")}</div>${lots.length === 1 ? `<span>${t("আর ১টি লট বাছুন", "Choose one more lot")}</span>` : ""}<button class="button button-green" data-action="catalogue-compare-open" ${lots.length < 2 ? "disabled" : ""}>${t("পাশাপাশি দেখুন", "Compare side by side")}</button></aside>` : ""}`;
 }
 
-function renderBuyerLotDetail(lot) {
-  const remaining = availableKg(lot, data.deals);
-  const contact = lot.contactPhone && /^(?:\+?88)?01[3-9]\d{8}$/.test(lot.contactPhone) ? `<a class="text-arrow" href="tel:${h(lot.contactPhone)}">${t("ফোন করুন", "Call farmer")}</a>` : "";
-  return `<aside class="buyer-lot-detail panel"><div class="detail-head">${photoOrArtwork(lot, "buyer-detail-photo")}<div><span class="small-label">${t("কৃষকের দেওয়া তথ্য", "FARMER-ENTERED")}</span><h2>${h(lotVariety(lot))}</h2><p>${h(lot.upazila || "—")}, ${h(language === "bn" ? districtNamesBn[lot.district] || lot.district : lot.district)}</p></div></div><dl class="buyer-detail-facts"><div><dt>${t("বাকি", "Remaining")}</dt><dd>${kg(remaining)}</dd></div><div><dt>${t("প্রস্তুত", "Ready")}</dt><dd>${prettyDate(lot.readyDate)}</dd></div><div><dt>${t("ব্যবহার", "Purpose")}</dt><dd>${purposeLabel(lot.purpose)}</dd></div><div><dt>${t("চাওয়া দর", "Asking price")}</dt><dd>${lot.askingPrice ? `${rate(lot.askingPrice)}/${t("কেজি", "kg")}` : t("দর প্রস্তাব করুন", "Make an offer")}</dd></div></dl><p class="buyer-detail-notes">${h(lotNotes(lot) || t("কৃষক বাড়তি বিবরণ দেননি।", "The farmer did not add a description."))}</p><div class="buyer-detail-actions"><button class="button button-green" data-action="offer-lot" data-id="${h(lot.id)}">${t("দর দিন", "Make offer")}${icon("arrow", 16)}</button>${contact}<button class="text-arrow" data-action="view-passport" data-id="${h(lot.id)}">${t("পরিচয়পত্র", "View passport")}</button></div><p class="detail-caution">${t("ছবি ও তথ্য কৃষক দিয়েছেন; আলুসাথী এগুলো স্বাধীনভাবে যাচাই করে না।", "Photos and details come from the farmer; AluSathi does not independently verify them.")}</p></aside>`;
+function openCatalogueComparison() {
+  const lots = catalogueSelection.map(buyerListing).filter(lot => lot && !lot.archivedAt && !lot.hiddenAt && availableKg(lot, data.deals) > 0);
+  if (lots.length < 2) return;
+  const dialog = document.createElement("dialog");
+  dialog.className = "catalogue-comparison";
+  dialog.setAttribute("aria-labelledby", "catalogue-comparison-title");
+  const facts = [
+    [t("কৃষক", "Farmer"), lot => h(lot.farmerName || lot.farmer?.name || lot.ownerName || t("আলুচাষি", "Potato farmer"))],
+    [t("এলাকা", "Location"), lot => h(cataloguePlace(lot))],
+    [t("দর", "Price"), priceText],
+    [t("পাওয়া যাবে", "Available"), lot => kg(availableKg(lot, data.deals))],
+    [t("কবে নিতে পারবেন", "Ready for collection"), catalogueReady],
+    [t("আলুর অবস্থা", "Condition"), lot => h(lotNotes(lot) || t("জানানো হয়নি", "Not provided"))],
+    [t("কৃষকের সঙ্গে কথা বলুন", "Contact farmer"), lot => `<button class="button button-green" data-action="contact-lot" data-id="${h(lot.id)}">${t("যোগাযোগ", "Contact")}</button>`],
+  ];
+  dialog.innerHTML = `<header><h2 id="catalogue-comparison-title">${t("পাশাপাশি দেখুন", "Compare side by side")}</h2><form method="dialog"><button class="button button-outline" autofocus>${t("বন্ধ করুন", "Close")}</button></form></header><div class="catalogue-comparison-table"><table class="liked-comparison-table"><thead><tr><th scope="col">${t("আলুর তথ্য", "Lot facts")}</th>${lots.map(lot => `<th scope="col">${h(lotVariety(lot))}</th>`).join("")}</tr></thead><tbody>${facts.map(([label, value]) => `<tr><th scope="row">${label}</th>${lots.map(lot => `<td>${value(lot)}</td>`).join("")}</tr>`).join("")}</tbody></table></div><p class="catalogue-comparison-next"><button class="button button-green" data-action="catalogue-costs">${t("খরচ ও লাভ দেখুন", "Compare costs and profit")}</button></p>`;
+  dialog.addEventListener("close", () => dialog.remove(), { once: true });
+  document.body.append(dialog);
+  dialog.showModal();
+}
+
+function priceText(lot) {
+  const asking = Number(lot.askingPriceKg ?? lot.priceKg ?? lot.askingPrice);
+  return Number.isFinite(asking) && asking > 0 ? `${rate(asking)} / ${t("কেজি", "kg")}` : t("দর দেওয়া নেই", "Price not provided");
+}
+
+function cataloguePriceText(lot) {
+  const asking = Number(lot.askingPriceKg ?? lot.priceKg ?? lot.askingPrice);
+  return Number.isFinite(asking) && asking > 0
+    ? priceText(lot)
+    : t(`পুরো লটের দাম ${money(5000)} থেকে`, `Whole lot from ${money(5000)}`);
+}
+
+function getBuyerPicks(lots, brief) {
+  return filterBuyerLots(lots, brief).slice(0, 5);
+}
+
+function filterBuyerLots(lots, brief) {
+  const matched = lots.filter(lot => {
+    if (!brief.expanded && brief.district && lot.district !== brief.district) return false;
+    if (brief.quantity && availableKg(lot, data.deals) < brief.quantity) return false;
+    if (brief.readyDate && lot.readyDate > brief.readyDate) return false;
+    const price = Number(lot.askingPriceKg ?? lot.priceKg ?? lot.askingPrice);
+    if (brief.budget && (!Number.isFinite(price) || price * brief.quantity > brief.budget)) return false;
+    return true;
+  });
+  return matched.sort((a, b) => Number(a.askingPriceKg ?? a.priceKg ?? a.askingPrice ?? Infinity) - Number(b.askingPriceKg ?? b.priceKg ?? b.askingPrice ?? Infinity) || a.readyDate.localeCompare(b.readyDate) || a.id.localeCompare(b.id));
+}
+
+function parseBuyerQuery(query) {
+  const western = String(query).replace(/[০-৯]/g, digit => "০১২৩৪৫৬৭৮৯".indexOf(digit));
+  const quantity = western.match(/(\d+(?:\.\d+)?)\s*(?:kg|kgs|কেজি)/i)?.[1];
+  const district = districts.find(name => name !== "Other" && new RegExp(name, "i").test(western)) || Object.entries(districtNamesBn).find(([name, bn]) => name !== "Other" && western.includes(bn))?.[0] || "";
+  const budget = western.match(/(?:budget|max(?:imum)?|সর্বোচ্চ|বাজেট)\D{0,16}(\d{2,})/i)?.[1] || "";
+  let readyDate = "";
+  if (/this week|এই সপ্তাহ/i.test(western)) {
+    const parts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Dhaka", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date()).map(part => [part.type, part.value]));
+    const dhakaToday = new Date(`${parts.year}-${parts.month}-${parts.day}T00:00:00Z`);
+    const daysToSunday = (7 - dhakaToday.getUTCDay()) % 7;
+    dhakaToday.setUTCDate(dhakaToday.getUTCDate() + daysToSunday);
+    readyDate = dhakaToday.toISOString().slice(0, 10);
+  } else readyDate = western.match(/\b(20\d{2}-\d{2}-\d{2})\b/)?.[1] || "";
+  return { quantity: quantity ? Number(quantity) : "", district, readyDate, budget: budget ? Number(budget) : "", expanded: false, applied: false };
+}
+
+function renderUnavailable() { return `<section class="section page-shell"><div class="empty-state"><h1>${t("এই অংশটি এখন বন্ধ আছে", "This section is currently unavailable")}</h1></div></section>`; }
+
+function renderBuyerProfilePage() {
+  const field = (key,bn,en,max=100) => `<label>${t(bn,en)}<input name="${key}" maxlength="${max}" ${['phone','whatsapp'].includes(key)?'inputmode="tel"':''} value="${h(buyerProfile[key] || '')}"></label>`;
+  return `<section class="section page-shell buyer-personal buyer-profile"><header class="personal-heading"><div><p class="section-kicker">${t('আপনার পরিচয়','YOUR DETAILS')}</p><h1>${t('ব্যবসায়ীর প্রোফাইল','Business profile')}</h1><p>${t('যে তথ্য দিতে চান, একবারই লিখুন।','All fields are optional. Enter them once, not repeatedly.')}</p></div><span class="personal-avatar" aria-hidden="true">${h((buyerProfile.businessName || buyerProfile.contactPerson || 'B').slice(0,1))}</span></header><div class="personal-profile-layout"><form id="buyer-profile-form" class="personal-profile-form"><fieldset><legend>${t('ব্যবসা ও এলাকা','Business and location')}</legend><div class="personal-fields">${field('businessName','ব্যবসার নাম','Business name')}${field('contactPerson','আপনার নাম','Contact person',80)}<label>${t('জেলা','District')}<select name="district">${districtOptions(buyerProfile.district || '')}</select></label>${field('upazila','উপজেলা','Upazila',80)}</div></fieldset><fieldset><legend>${t('যোগাযোগ','Contact details')}</legend><div class="personal-fields">${field('phone','ফোন','Phone',25)}${field('whatsapp','WhatsApp','WhatsApp',25)}</div></fieldset><fieldset><legend>${t('আপনার পছন্দ','Preferences')}</legend><div class="personal-fields"><label>${t('আলু কোথায় নেবেন','Destination district')}<select name="destinationDistrict">${districtOptions(buyerProfile.destinationDistrict || 'Dhaka')}</select></label><label>${t('ভাষা','Language')}<select name="preferredLanguage"><option value="bn" ${buyerProfile.preferredLanguage!=='en'?'selected':''}>বাংলা</option><option value="en" ${buyerProfile.preferredLanguage==='en'?'selected':''}>English</option></select></label></div></fieldset><p data-profile-error role="alert"></p><button class="button button-green" type="submit">${t('সেভ করুন','Save profile')}</button><p class="personal-footnote">${t('এই ব্রাউজারেই সেভ হয়। অন্য ডিভাইসে দেখা যাবে না।','Saved in this browser only, not shared across devices.')}</p></form><aside class="personal-shortcuts"><h2>${t('আপনার কাজ','Your workspace')}</h2><button class="button button-outline" data-view="saved">${t('পছন্দের লট ও তুলনা','Liked lots and comparison')}</button><button class="button button-outline" data-view="buyer-plan">${t('লাভ ও সংগ্রহ','Cost and collection')}</button><button class="button button-outline" data-view="notebook">${t('খাতা','Notebook')}</button><p>${t('আলুসাথীতে কৃষক খুঁজুন, সরাসরি কথা বলুন। কেনাবেচা আপনাদের মধ্যে।','Find farmers here and contact them directly. Buying and selling stay between you.')}</p></aside></div></section>`;
+}
+
+function renderFarmerProfilePage() {
+  const p = farmerProfile;
+  return `<section class="section page-shell profile-page"><p class="section-kicker">${t("প্রোফাইল", "PROFILE")}</p><h1>${t("কৃষকের তথ্য", "Farmer profile")}</h1><p>${t("সব তথ্য ঐচ্ছিক। এই ব্রাউজারেই রাখা হবে।", "All fields are optional. Details stay in this browser.")}</p>${notice ? `<p class="profile-notice" role="status">${h(notice)}</p>` : ""}<form id="farmer-profile-form" class="panel form-grid"><label>${t("নাম", "Name")}<input name="name" maxlength="100" value="${h(p.name || "")}" /></label><label>${t("জেলা", "District")}<select name="district">${districtOptions(p.district || "")}</select></label><label>${t("উপজেলা", "Upazila")}<input name="upazila" maxlength="80" value="${h(p.upazila || "")}" /></label><label>${t("গ্রাম (ঐচ্ছিক)", "Village (optional)")}<input name="village" maxlength="80" value="${h(p.village || "")}" /></label><label>${t("ফোন (ঐচ্ছিক)", "Phone (optional)")}<input name="phone" inputmode="tel" maxlength="25" value="${h(p.phone || "")}" /></label><label>${t("WhatsApp (ঐচ্ছিক)", "WhatsApp (optional)")}<input name="whatsapp" inputmode="tel" maxlength="25" value="${h(p.whatsapp || "")}" /></label><label>${t("জমির পরিমাণ", "Cultivated land")}<input name="land" type="number" min="0" step="0.01" value="${h(p.land || "")}" /></label><label>${t("জমির একক", "Land unit")}<select name="landUnit"><option value="acre" ${p.landUnit === "acre" ? "selected" : ""}>${t("একর", "Acres")}</option><option value="decimal" ${p.landUnit === "decimal" ? "selected" : ""}>${t("শতাংশ", "Decimals")}</option><option value="bigha" ${p.landUnit === "bigha" ? "selected" : ""}>${t("বিঘা", "Bigha")}</option></select></label><label>${t("নিজস্ব / ইজারা", "Owned / leased")}<select name="tenure"><option value="">—</option><option value="owned" ${p.tenure === "owned" ? "selected" : ""}>${t("নিজস্ব", "Owned")}</option><option value="leased" ${p.tenure === "leased" ? "selected" : ""}>${t("ইজারা", "Leased")}</option><option value="mixed" ${p.tenure === "mixed" ? "selected" : ""}>${t("দুই ধরনের", "Both")}</option></select></label><label>${t("ভাষা", "Language")}<select name="preferredLanguage"><option value="bn" ${p.preferredLanguage !== "en" ? "selected" : ""}>বাংলা</option><option value="en" ${p.preferredLanguage === "en" ? "selected" : ""}>English</option></select></label><label class="profile-sharing"><input type="checkbox" name="contactSharingEnabled" value="true" ${p.contactSharingEnabled ? "checked" : ""} />${t("আমার দেওয়া যোগাযোগের তথ্য লটের সঙ্গে দেখান", "Show my contact details with my lots")}</label><button class="button button-green" type="submit">${t("সংরক্ষণ করুন", "Save profile")}</button></form><div class="profile-shortcuts"><a class="button button-outline" href="/farmer#market">${t("আমার তালিকা", "My listings")}</a></div></section>`;
+}
+
+function renderProfileDrawer() {
+  const profile = role === "farmer" ? farmerProfile : buyerProfile;
+  const name = role === "farmer" ? (profile.name || t("কৃষক", "Farmer")) : (profile.businessName || profile.contactPerson || t("ব্যবসায়ী", "Buyer"));
+  return `<div class="modal-backdrop profile-backdrop" data-action="close-profile"><aside class="profile-drawer" role="dialog" aria-modal="true" aria-label="${t("প্রোফাইল", "Profile")}"><button class="modal-close" data-action="close-profile" aria-label="Close">×</button><p class="section-kicker">${t("প্রোফাইল", "PROFILE")}</p><h2>${h(name)}</h2><p>${h(profile.district || profile.destinationDistrict || t("জেলা যোগ করা হয়নি", "District not set"))}</p><button class="button button-green" data-action="profile-page">${t("প্রোফাইল দেখুন", "View profile")}</button>${role === "buyer" ? `<button class="button button-outline" data-view="saved">${t("পছন্দের লট ও তুলনা", "Liked lots and comparison")}</button>` : `<a class="button button-outline" href="/farmer#market">${t("আমার তালিকা", "My listings")}</a>`}</aside></div>`;
+}
+
+function comparisonTotal(lot, quantity) {
+  if (!quantity) return `<span class="liked-warning">${t("সঠিক কেজি দিন", "Enter a valid quantity")}</span>`;
+  if (availableKg(lot, data.deals) < quantity) return `<span class="liked-warning">${t("এই পরিমাণ নেই", "Not enough available")}</span>`;
+  const price = Number(lot.askingPriceKg ?? lot.priceKg ?? lot.askingPrice);
+  return Number.isFinite(price) && price > 0 ? `<strong>${money(price * quantity)}</strong>` : t("দর দেওয়া নেই", "Price not provided");
+}
+
+function renderSavedLots() {
+  const available = lot => lot && !lot.hiddenAt && !lot.archivedAt && availableKg(lot, data.deals) > 0;
+  const farmer = lot => lot.practice ? t("তুলনার জন্য দেওয়া আলু", "Example for comparison") : lot.farmerName || lot.farmer?.name || lot.ownerName || t("আলুচাষি", "Potato farmer");
+  const place = lot => [lot.upazila, language === "bn" ? districtNamesBn[lot.district] || lot.district : lot.district].filter(Boolean).join(", ");
+  const ready = lot => lot.readyDate && lot.readyDate <= todayPlus(0) ? t("এখনই প্রস্তুত", "Ready now") : prettyDate(lot.readyDate);
+  const actions = lot => lot.practice ? `<button class="button button-outline" data-action="view-lot" data-id="${h(lot.id)}">${t("বিস্তারিত", "Details")}</button><button class="button button-green" data-view="buyer-plan">${t("লাভের হিসাব দেখুন", "Explore profit")}</button>` : `<button class="button button-outline" data-action="view-lot" data-id="${h(lot.id)}">${t("বিস্তারিত", "Details")}</button><button class="button button-green" data-action="contact-lot" data-id="${h(lot.id)}">${t("যোগাযোগ", "Contact")}</button>`;
+  const saved = buyerSaved.length ? buyerSaved.map(id => buyerListing(id) || { id }) : practiceLots;
+  const compared = (buyerSaved.length ? buyerCompared : practiceCompared).map(buyerListing).filter(available);
+  if (compareOpen && compared.length >= 2) {
+    const rows = [
+      [t("কৃষক", "Farmer"), lot => h(farmer(lot))],
+      [t("জায়গা", "Location"), lot => h(place(lot))],
+      [t("পাওয়া যাবে", "Available"), lot => kg(availableKg(lot, data.deals))],
+      [t("নিতে পারবেন", "Ready for collection"), ready],
+      [t("দর / কেজি", "Asking price / kg"), priceText],
+      [t("এই পরিমাণের মোট", "Total for this quantity"), lot => `<span data-comparison-total="${h(lot.id)}">${comparisonTotal(lot, comparisonQuantity)}</span>`],
+      [t("আলুর অবস্থা", "Condition"), lot => h(lotNotes(lot) || t("তথ্য দেওয়া হয়নি", "Not provided"))],
+      [t("আরও দেখুন", "Next step"), lot => `<div class="liked-table-actions">${actions(lot)}</div>`]
+    ];
+    return `<section class="section page-shell liked-page liked-comparison-page"><div class="section-header"><div><p class="section-kicker">${t("পছন্দের লট", "LIKED LOTS")}</p><h1>${t("পাশাপাশি তুলনা করুন", "Compare side by side")}</h1></div><button class="button button-outline" data-action="close-comparison">← ${t("পছন্দের লটে ফিরুন", "Back to liked lots")}</button></div><div class="liked-quantity-strip"><label for="comparison-quantity">${t("কত কেজি তুলনা করবেন?", "How many kilograms?")}<input id="comparison-quantity" name="comparisonQuantity" inputmode="decimal" value="${comparisonQuantity || ""}" maxlength="12" /></label><p>${t("সব লটে একই পরিমাণের দাম দেখুন। মোটে শুধু আলুর দাম, গাড়িভাড়া নয়।", "Compare the same quantity across lots. Totals include potatoes only, not transport.")}</p></div><table class="liked-comparison-table"><caption class="sr-only">${t("বাছাই করা আলুর লটের তুলনা", "Comparison of selected potato lots")}</caption><colgroup><col class="liked-row-label" />${compared.map(() => "<col />").join("")}</colgroup><thead><tr><th scope="col">${t("আলুর তথ্য", "Lot facts")}</th>${compared.map(lot => `<th scope="col"><div>${cataloguePhoto(lot)}<h2>${h(lotVariety(lot))}</h2></div></th>`).join("")}</tr></thead><tbody>${rows.map(([label, value], index) => `<tr ${index === 5 ? 'class="liked-total-row"' : ""}><th scope="row">${label}</th>${compared.map(lot => `<td>${value(lot)}</td>`).join("")}</tr>`).join("")}</tbody></table><p class="liked-footnote">${t("তথ্য কৃষকের দেওয়া। সিদ্ধান্ত নেওয়ার আগে সরাসরি কথা বলে মিলিয়ে নিন।", "Facts are supplied by farmers. Confirm details with them before deciding.")}</p></section>`;
+  }
+  return `<div class="buyer-purchases-banner"><img src="/marketplace/banners/buyer-purchases-street-v1/banner.png" alt="${t("বাজারের দোকানে আলুর মান নিয়ে কথা বলছেন কৃষক ও ব্যবসায়ী।", "A farmer and buyer discussing potatoes at a market shop.")}" /><svg viewBox="0 0 2172 304" preserveAspectRatio="none" aria-hidden="true"><g class="buyer-purchases-birds"><g class="bird bird-one"><path d="M0 10 Q11 -2 22 10 M22 10 Q34 -2 46 10"/><path d="M58 20 Q66 12 74 20 M74 20 Q82 12 90 20"/></g><g class="bird bird-two"><path d="M0 10 Q11 -2 22 10 M22 10 Q34 -2 46 10"/></g><g class="bird bird-three"><path d="M0 10 Q11 -2 22 10 M22 10 Q34 -2 46 10"/></g></g></svg></div><section class="section page-shell liked-page"><div class="section-header"><div><p class="section-kicker">${t("আপনার পছন্দ", "YOUR LIKED LOTS")}</p><h1>${t("পছন্দের লট ও তুলনা", "Liked lots and comparison")}</h1><p>${t("পাশাপাশি দেখতে ২–৪টি লটে টিক দিন।", "Tick 2–4 lots to compare side by side.")}</p></div><button class="button button-outline" data-view="home">${t("আরও আলু দেখুন", "Browse potatoes")} →</button></div>${saved.length ? `<div class="liked-selection-bar"><strong>${formatter.format(compared.length)} / ${formatter.format(4)} ${t("টি বাছাই", "selected")}</strong><span>${formatter.format(saved.length)} ${t("টি পছন্দের লট", "liked lots")}</span><button class="button button-green" data-action="compare-selected" ${compared.length < 2 ? "disabled" : ""}>${t("পাশাপাশি তুলনা করুন", "Compare side by side")}</button></div><p class="liked-selection-status" role="status"></p><ul class="liked-library">${saved.map(lot => {
+    const active = available(lot);
+    return `<li class="liked-row ${active ? "" : "liked-unavailable"}"><label class="liked-select"><input type="checkbox" data-action="compare-lot" data-id="${h(lot.id)}" ${buyerCompared.includes(lot.id) && active ? "checked" : ""} ${active ? "" : "disabled"} aria-label="${h(`${t("তুলনায় রাখুন", "Compare")} · ${lotVariety(lot) || t("পুরোনো লট", "Older lot")} · ${farmer(lot)}`)}" /></label>${lot.variety ? cataloguePhoto(lot) : `<span class="liked-missing-photo" aria-hidden="true">${icon("bag", 28)}</span>`}<div class="liked-identity"><h2>${h(lot.variety ? lotVariety(lot) : t("পুরোনো লট", "Older lot"))}</h2><strong>${h(lot.variety ? farmer(lot) : "")}</strong><p>${h(place(lot))}</p></div><div class="liked-availability">${active ? `<strong>${kg(availableKg(lot, data.deals))}</strong><small>${ready(lot)}</small>` : `<strong>${t("এখন পাওয়া যাচ্ছে না", "Currently unavailable")}</strong>`}</div><div class="liked-price">${lot.variety ? priceText(lot) : "—"}</div><div class="liked-row-actions">${active ? actions(lot) : ""}<button class="liked-remove" data-action="save-lot" data-id="${h(lot.id)}" aria-label="${h(`${t("পছন্দ থেকে সরান", "Remove from liked lots")} · ${lotVariety(lot) || lot.id}`)}">×</button></div></li>`;
+  }).join("")}</ul>` : `<div class="empty-state"><h2>${t("এখনো কোনো লট পছন্দে রাখেননি", "No liked lots yet")}</h2><p>${t("আলুর তালিকায় ♡ চাপলে লট এখানে থাকবে।", "Press ♡ on a catalogue lot to keep it here.")}</p><button class="button button-green" data-view="home">${t("আলুর তালিকা দেখুন", "Browse potatoes")}</button></div>`}</section>`;
+}
+function readBuyerPlan() {
+  const defaults = { quantity: "", budget: "50000", totalCost: "50000", other: "", unloading: "", resale: "", quoteMode: "itemized", tolls: "", packing: "", marketFees: "", weighing: "", storage: "", loss: "5", commissionMode: "off", commission: "" };
+  try {
+    const saved = JSON.parse(localStorage.getItem("alusathi-buyer-plan-v1") || "{}");
+    const text = (value, fallback = "") => typeof value === "string" && value.length <= 16 ? value : fallback;
+    return {
+      inputs: Object.fromEntries(Object.entries(defaults).map(([key, value]) => [key, text(saved.inputs?.[key], value)])),
+      fares: Object.fromEntries([...data.listings, ...practiceLots].map(lot => [lot.id, text(saved.fares?.[lot.id])])),
+      prices: Object.fromEntries([...data.listings, ...practiceLots].map(lot => [lot.id, text(saved.prices?.[lot.id])])),
+      checks: Object.fromEntries([...data.listings, ...practiceLots].map(lot => [lot.id, Array.isArray(saved.checks?.[lot.id]) ? [...new Set(saved.checks[lot.id].filter(value => ["weight", "deductions", "transport", "receipts"].includes(value)))] : []])),
+      checklistLot: typeof saved.checklistLot === "string" ? saved.checklistLot : ""
+    };
+  } catch { return { inputs: defaults, fares: {}, prices: {}, checks: {}, checklistLot: "" }; }
+}
+
+function saveBuyerPlan() {
+  const status = document.querySelector("#buyer-plan-save-status");
+  try { localStorage.setItem("alusathi-buyer-plan-v1", JSON.stringify(buyerPlan)); if (status) status.textContent = ""; }
+  catch { if (status) status.textContent = t("সেভ হয়নি। পাতা রিফ্রেশ করলে এই পরিবর্তন থাকবে না।", "Not saved. These changes will be lost on refresh."); }
+}
+
+function planNumber(value, optional = false) {
+  const raw = String(value ?? "").trim().replace(/[০-৯]/g, digit => String("০১২৩৪৫৬৭৮৯".indexOf(digit)));
+  if (!raw) return optional ? 0 : null;
+  if (!/^\d+(?:\.\d{1,3})?$/.test(raw)) return null;
+  const number = Number(raw);
+  return Number.isFinite(number) && number <= 100000000 ? number : null;
+}
+
+function renderPotatoPriceHistory(container) {
+  const months = t("জানু ফেব্রু মার্চ এপ্রি মে জুন জুলাই আগ সেপ্ট অক্টো নভে ডিসে", "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec").split(" ");
+  const markets = [
+    [t("ঢাকা", "Dhaka"), [35, 35.5, 28, 28, 28, 28, 27, 27, 18, 19, 16, 16]],
+    [t("রংপুর", "Rangpur"), [28, 27.5, 28, 27.5, 28, 28, 25, 25, 20, 20, 16, 16.1]],
+    [t("চট্টগ্রাম", "Chattogram"), [35, 34, 28, 28, 28, 28, 25, 25, 20, 19, 16, 16]],
+    [t("রাজশাহী", "Rajshahi"), [31.4, 29.5, 20.4, 20.5, 20.5, 20.5, 22, 22, 20, 20, 16.8, 16.8]],
+    [t("খুলনা", "Khulna"), [32.5, 31, 22.5, 25, 23.5, 23.2, 19, 19.2, 19, 18.8, 15, 16]],
+    [t("সিলেট", "Sylhet"), [32, 32, 22, 22, 22.2, 22.2, 22.2, 22.2, 20, 20, 16.2, 16.5]],
+  ];
+  const format = new Intl.NumberFormat(language === "bn" ? "bn-BD" : "en");
+  const x = i => 61 + i * 62;
+  const y = price => 252 - price * 4.75;
+  const title = t("আলুর পাইকারি দর · ২০২৫", "Wholesale potato prices · 2025");
+  const source = "https://objectstorage.ap-dcc-gazipur-1.oraclecloud15.com/n/axvjbnqprylg/b/V2Ministry/o/office-bbs/";
+  const renderSeries = ([name, values]) => `
+    <div class="plan-price-stage">
+      <svg class="plan-price-plot" viewBox="0 0 780 285" role="group" aria-label="${name} · ${title}">
+        ${[0, 10, 20, 30, 40].map(price => `<line x1="49" x2="753" y1="${y(price)}" y2="${y(price)}" stroke="var(--home-line)"/><text x="38" y="${y(price) + 5}" text-anchor="end">${format.format(price)}</text>`).join("")}
+        ${months.map((_, i) => `<path d="M${x(i)} 62V252" stroke="var(--home-line)"/>`).join("")}
+        <path d="M49 57V252H755" fill="none" stroke="var(--home-muted)" stroke-width="2"/>
+        <polyline class="plan-price-line" pathLength="1" points="${values.map((price, i) => `${x(i)},${y(price)}`).join(" ")}"/>
+        ${months.map((month, i) => {
+          const label = `${month} · ৳${format.format(values[i])}/${t("কেজি", "kg")}`;
+          return `<g class="plan-price-month" tabindex="0" role="img" aria-label="${label}">
+            <rect class="plan-price-hit" x="${x(i) - 25}" y="59" width="50" height="193"/>
+            <circle class="plan-price-point" cx="${x(i)}" cy="${y(values[i])}" r="5" style="animation-delay:${i * 45}ms"/>
+            <text x="${x(i)}" y="274" text-anchor="middle">${month}</text>
+            <g class="plan-price-tooltip" aria-hidden="true"><rect x="279" y="6" width="222" height="34" rx="17"/><text x="390" y="28" text-anchor="middle">${label}</text></g>
+          </g>`;
+        }).join("")}
+      </svg>
+    </div>
+    <details><summary>${t("মাসের দর দেখুন", "View monthly prices")}</summary>
+      <table><caption>${t("মাসের গড় পাইকারি দর (৳/কেজি)", "Monthly wholesale averages (৳/kg)")}</caption>
+      <thead><tr><th scope="col">${t("মাস", "Month")}</th><th scope="col">${name}</th></tr></thead>
+      <tbody>${months.map((month, i) => `<tr><th scope="row">${month}</th><td>${format.format(values[i])}</td></tr>`).join("")}</tbody></table>
+    </details>`;
+  container.insertAdjacentHTML("afterend", `<section class="plan-chart-panel plan-price-history" aria-labelledby="plan-price-title">
+    <h2 id="plan-price-title">${title}</h2>
+    <p>${t("বিভাগীয় শহরের মাসের গড় দর (৳/কেজি)। এগুলো আগের বাজারদর, এখনকার দর নয়।", "Monthly wholesale averages by divisional city (৳/kg). Historical prices, not current quotes.")}</p>
+    <label class="plan-price-select">${t("বিভাগীয় শহর", "Divisional city")}
+      <select>${markets.map(([name], i) => `<option value="${i}">${name}</option>`).join("")}</select>
+    </label>
+    <div class="plan-price-series">${renderSeries(markets[0])}</div>
+    <p>${t("সূত্র: বাংলাদেশ পরিসংখ্যান ব্যুরো, টেবিল ৩.১", "Source: Bangladesh Bureau of Statistics, Table 3.1")} · <a href="${source}2024/12/5f334e11020f42259d9dc80df2ddb392.pdf">${t("জানুয়ারি–জুন", "Jan–Jun")}</a> · <a href="${source}2026/3/41334f24-b49c-413e-8201-3fe480c44ee3.pdf">${t("জুলাই–ডিসেম্বর", "Jul–Dec")}</a></p>
+  </section>`);
+  const chart = container.nextElementSibling;
+  chart.querySelector("select").addEventListener("change", event => {
+    const market = markets[Number(event.target.value)];
+    if (market) chart.querySelector(".plan-price-series").innerHTML = renderSeries(market);
+  });
+}
+
+let costLotId = "";
+
+function renderBuyerPlan() {
+  const lot = buyerListing(costLotId);
+  const asking = Number(lot?.askingPriceKg ?? lot?.priceKg ?? lot?.askingPrice);
+  const costField = (name, bn, en, value = "") => `<label>${t(bn,en)}<input name="${name}" inputmode="decimal" maxlength="16" value="${h(value)}"></label>`;
+  return `<section class="section page-shell buyer-plan-page">
+    <div class="section-header"><div><h1>${t("খরচ ও লাভ", "Cost & profit")}</h1>
+    <p>${t("কত কেজি বিক্রি করবেন আর কত দামে, তা দিয়ে হিসাব করুন।", "Enter how many kilos you’ll sell and your resale price.")}</p></div></div>
+    ${lot ? `<p class="plan-selected-lot"><strong>${h(lotVariety(lot))}</strong> · ${h(cataloguePlace(lot))} · ${kg(availableKg(lot, data.deals))} ${t("পাওয়া যাবে", "available")}</p>` : ""}
+    <form id="buyer-plan-form" class="plan-inputs">
+      <label>${t("কত কেজি বিক্রি করবেন?", "How many kg will you sell?")}<input name="quantity" inputmode="decimal" maxlength="16" value="${h(buyerPlan.inputs.quantity)}"></label>
+      <label>${t("বিক্রির দাম / কেজি (৳)", "Resale price per kg (৳)")}<input name="resale" inputmode="decimal" maxlength="16" value="${h(buyerPlan.inputs.resale)}"></label>
+      <details class="plan-optional plan-budget-editor"><summary><span id="plan-estimated-budget"></span><span>${t("এডিট করুন", "Edit")}</span></summary>
+      ${costField("totalCost","মোট খরচ (৳)","Total cost (৳)",buyerPlan.inputs.totalCost)}
+      <details class="plan-cost-breakdown"><summary>${t("বিস্তারিত দেখুন", "View breakdown")}</summary>
+        <p>${t("এখানে কেনা ও বিক্রির কেজি একই ধরে হিসাব হবে। কোনো ফি আগে ধরা থাকলে আবার লিখবেন না।", "Uses the same quantity for buying and selling. Don’t enter fees already included elsewhere.")}</p>
+        <div class="plan-cost-fields">
+          ${costField("buyPrice","আলু কেনার দাম / কেজি (৳)","Buying price per kg (৳)",asking > 0 && Number.isFinite(asking) ? asking : "")}
+          ${costField("transportCost","গাড়িভাড়া (৳)","Transport (৳)")}
+          ${costField("laborCost","ওঠানো-নামানো (৳)","Loading and unloading (৳)")}
+          ${costField("weighingCost","ওজন মাপার খরচ (৳)","Weighing fee (৳)")}
+          ${costField("packingCost","বস্তা ও বাছাই (৳)","Packaging and sorting (৳)")}
+          ${costField("marketCost","বাজারের ফি (৳)","Market fees (৳)")}
+          ${costField("storageCost","আলু রাখার খরচ (৳)","Storage (৳)")}
+          ${costField("otherCost","অন্য খরচ (৳)","Other costs (৳)")}
+        </div>
+        <button type="button" class="button button-outline" data-action="apply-lot-costs">${t("মোট খরচে বসান", "Use this total")}</button>
+        <p id="plan-breakdown-status" role="status"></p>
+      </details></details>
+      <button type="submit" class="button button-green plan-calculate">${t("হিসাব করুন", "Calculate")}</button>
+    </form>
+    <p id="buyer-plan-validation" role="status"></p>
+    <div id="buyer-plan-results" aria-live="polite"></div>
+    <p id="buyer-plan-save-status" role="status"></p>
+  </section>`;
+}
+
+function updateBuyerPlan(calculate = false) {
+  const form = document.querySelector("#buyer-plan-form");
+  if (!form) return;
+  const { quantity, resale, totalCost } = buyerPlan.inputs;
+  const kgToSell = planNumber(quantity), price = planNumber(resale), cost = planNumber(totalCost);
+  const status = document.querySelector("#buyer-plan-validation");
+  const result = document.querySelector("#buyer-plan-results");
+  document.querySelector("#plan-estimated-budget").textContent = `${t("আনুমানিক মোট খরচ", "Estimated total cost")}: ${cost === null ? "—" : rate(cost)}`;
+  status.textContent = "";
+  result.replaceChildren();
+  if (!calculate) return;
+  if (form.dataset.breakdownStale) {
+    status.textContent = t("বিস্তারিত থেকে মোট খরচ আবার বসান, অথবা মোট খরচ নিজে লিখুন।", "Apply the updated breakdown or enter the total cost directly.");
+    return;
+  }
+  if (!(kgToSell > 0) || kgToSell > 1000000 || price === null || cost === null) {
+    status.textContent = t("সঠিক কেজি, বিক্রির দাম ও মোট খরচ লিখুন।", "Enter valid kilos, resale price, and total cost.");
+    return;
+  }
+  const revenue = Math.round(kgToSell * price * 100) / 100;
+  const profit = Math.round((revenue - cost) * 100) / 100;
+  const breakEven = Math.ceil(cost * 100 / kgToSell - 1e-8) / 100;
+  result.innerHTML = `<section class="plan-chart-panel plan-simple-result">
+    <h2 class="${profit < 0 ? "plan-loss" : "plan-profit"}">${profit === 0 ? t("লাভ–লোকসান নেই", "Break-even") : `${rate(Math.abs(profit))} ${profit < 0 ? t("আনুমানিক লোকসান", "estimated loss") : t("আনুমানিক লাভ", "estimated profit")}`}</h2>
+    <p>${t("বিক্রির টাকা", "Sales revenue")}: ${rate(revenue)} · ${t("খরচ তুলতে প্রতি কেজি", "Break-even per kg")}: ${rate(breakEven)}</p>
+  </section>`;
+}
+
+function closeCatalogueDialog() {
+  detailLotId = ""; contactLotId = ""; render();
+  if (catalogueReturnFocus) document.querySelector(catalogueReturnFocus)?.focus({ preventScroll: true });
+}
+
+function cataloguePhotos(lot) {
+  return [...new Set([...(Array.isArray(lot.photos) ? lot.photos.map(photo => typeof photo === "string" ? photo : photo?.src) : []), lot.photo].map(photoSrc).filter(Boolean))];
+}
+
+function catalogueRowPhoto(lot) {
+  const originals = cataloguePhotos(lot).slice(0, 3);
+  const references = [1, 2, 3].map(n => `/marketplace/listing-photos/potato-0${n}.webp`);
+  const photos = [...originals, ...references.filter(src => !originals.includes(src))].slice(0, 3);
+  return `<div class="catalogue-row-gallery" data-index="0"><div class="catalogue-row-gallery-window"><div class="catalogue-row-gallery-track">${photos.map((src, i) => `<div class="catalogue-row-gallery-slide" aria-hidden="${i !== 0}"><img class="lot-photo" src="${h(src)}" alt="${t("আলুর ছবি", "Potato photo")}" loading="lazy"></div>`).join("")}</div><button type="button" class="catalogue-row-prev" data-action="catalogue-row-photo" data-step="-1" aria-label="${t("আগের ছবি", "Previous photo")}">‹</button><button type="button" class="catalogue-row-next" data-action="catalogue-row-photo" data-step="1" aria-label="${t("পরের ছবি", "Next photo")}">›</button></div><div class="catalogue-row-dots">${photos.map((_, i) => `<button type="button" data-action="catalogue-row-photo" data-slide="${i}" aria-pressed="${i === 0}" aria-label="${t("ছবি", "Photo")} ${formatter.format(i + 1)}"></button>`).join("")}</div></div>`;
+}
+
+function cataloguePhoto(lot) {
+  const src = cataloguePhotos(lot)[0];
+  return src ? `<img class="lot-photo" src="${h(src)}" alt="${h(lotVariety(lot))}" loading="lazy" />` : photoOrArtwork(lot);
+}
+
+function lotContact(lot) {
+  const name = lot.farmerName || lot.farmer?.name || lot.ownerName || "";
+  const ownProfile = Boolean(name && name === farmerProfile.name);
+  const sharing = lot.contactSharingEnabled ?? lot.farmer?.contactSharingEnabled ?? (ownProfile && farmerProfile.contactSharingEnabled);
+  const number = value => {
+    const raw = String(value || "").replace(/[\s()-]/g, "");
+    const digits = /^01[3-9]\d{8}$/.test(raw) ? `+88${raw}` : raw;
+    return /^\+?[0-9]{8,15}$/.test(digits) ? digits : "";
+  };
+  return sharing ? {
+    phone: number(lot.farmerPhone || lot.farmer?.phone || lot.contactPhone || (ownProfile ? farmerProfile.phone : "")),
+    whatsapp: number(lot.farmerWhatsapp || lot.farmer?.whatsapp || (ownProfile ? farmerProfile.whatsapp : ""))
+  } : { phone: "", whatsapp: "" };
+}
+
+function contactChannels(lot) {
+  const contact = lotContact(lot);
+  return contact.phone || contact.whatsapp ? `<div class="catalogue-contact-channels">${contact.phone ? `<a class="button button-outline" href="tel:${h(contact.phone)}">${t("ফোন করুন", "Call farmer")}<small>${h(contact.phone)}</small></a>` : ""}${contact.whatsapp ? `<a class="button button-green" href="https://wa.me/${h(contact.whatsapp.replace(/^\+/, ""))}" target="_blank" rel="noopener noreferrer">WhatsApp ↗</a>` : ""}</div>` : `<div class="catalogue-contact-missing"><strong>${t("যোগাযোগের নম্বর দেওয়া নেই", "Contact number not provided")}</strong><p>${t("এই লটে এখন সরাসরি যোগাযোগ করা যাচ্ছে না। অন্য লট দেখতে পারেন।", "This lot has no shared contact channel yet. You can browse other lots.")}</p></div>`;
+}
+
+function renderBuyerLotDialog() {
+  const lot = buyerListing(detailLotId);
+  if (!lot) return "";
+  const photos = cataloguePhotos(lot);
+  const gallery = photos.length ? photos : ["/marketplace/potato-harvest.png"];
+  detailPhotoIndex = Math.min(detailPhotoIndex, gallery.length - 1);
+  const farmer = lot.practice ? t("তুলনার জন্য দেওয়া আলু", "Example for comparison") : lot.farmerName || lot.farmer?.name || lot.ownerName || t("আলুচাষি", "Potato farmer");
+  const available = availableKg(lot, data.deals);
+  const asking = Number(lot.askingPriceKg ?? lot.priceKg ?? lot.askingPrice);
+  return `<div class="modal-backdrop" data-action="close-lot"><section class="modal buyer-lot-modal catalogue-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="buyer-lot-title"><button class="modal-close" data-action="close-lot" aria-label="${t("বন্ধ করুন", "Close")}">×</button><div class="catalogue-detail-gallery"><img src="${h(gallery[detailPhotoIndex])}" alt="${h(lotVariety(lot))} · ${t("ছবি", "Photo")} ${formatter.format(detailPhotoIndex + 1)}" />${gallery.length > 1 ? `<div class="catalogue-gallery-controls"><button class="button button-outline" data-action="lot-photo" data-step="-1" aria-label="${t("আগের ছবি", "Previous photo")}">←</button><span aria-live="polite">${formatter.format(detailPhotoIndex + 1)} / ${formatter.format(gallery.length)}</span><button class="button button-outline" data-action="lot-photo" data-step="1" aria-label="${t("পরের ছবি", "Next photo")}">→</button></div>` : ""}</div><div class="catalogue-detail-copy"><p class="section-kicker">${t("আলুর বিস্তারিত", "LOT DETAILS")}</p><h2 id="buyer-lot-title">${h(lotVariety(lot))}</h2><p>${h(farmer)} · ${h(lot.upazila || "")}${lot.upazila ? ", " : ""}${h(language === "bn" ? districtNamesBn[lot.district] || lot.district : lot.district)}</p><div class="catalogue-detail-price"><strong>${priceText(lot)}</strong>${Number.isFinite(asking) && asking > 0 ? `<span>${t("পুরো লট", "Whole lot")}: ${money(asking * available)}</span>` : ""}</div><dl><div><dt>${t("পাওয়া যাবে", "Available")}</dt><dd>${kg(available)}</dd></div><div><dt>${t("নিতে পারবেন", "Ready date")}</dt><dd>${prettyDate(lot.readyDate)}</dd></div><div class="catalogue-condition"><dt>${t("আলুর অবস্থা", "Condition")}</dt><dd>${h(lotNotes(lot) || t("তথ্য দেওয়া হয়নি", "Not provided"))}</dd></div></dl>${publicPreview ? "" : `<button class="button button-green" data-action="contact-lot" data-id="${h(lot.id)}">${t("কৃষকের সঙ্গে যোগাযোগ করুন", "Contact farmer")}</button>`}</div></section></div>`;
+}
+
+function renderFarmerContactDialog() {
+  const lot = data.listings.find(item => item.id === contactLotId);
+  if (!lot) return "";
+  const farmer = lot.farmerName || lot.farmer?.name || lot.ownerName || t("আলুচাষি", "Potato farmer");
+  return `<div class="modal-backdrop" data-action="close-contact"><section class="modal buyer-contact-modal catalogue-contact-dialog" role="dialog" aria-modal="true" aria-labelledby="buyer-contact-title"><button class="modal-close" data-action="close-contact" aria-label="${t("বন্ধ করুন", "Close")}">×</button><p class="section-kicker">${t("কৃষকের সঙ্গে যোগাযোগ", "CONTACT THE FARMER")}</p><div class="catalogue-contact-identity">${cataloguePhoto(lot)}<div><h2 id="buyer-contact-title">${h(farmer)}</h2><p>${h(lotVariety(lot))} · ${kg(availableKg(lot, data.deals))}</p><p>${h(lot.upazila || "")} · ${h(language === "bn" ? districtNamesBn[lot.district] || lot.district : lot.district)}</p></div></div>${contactChannels(lot)}<p class="catalogue-contact-note">${t("দাম, আলুর অবস্থা আর কবে নেবেন, কৃষকের সঙ্গে কথা বলে ঠিক করুন। কেনাবেচা আলুসাথীতে হয় না।", "Discuss price, condition and collection directly. Buying and selling happen outside AluSathi.")}</p></section></div>`;
+}
+function readInterests() {
+  const rows=JSON.parse(localStorage.getItem("alusathi-buyer-interest-v1") || "[]");
+  if (!Array.isArray(rows)) throw new Error("Unreadable interest history");
+  return rows;
 }
 
 function renderBuyerProfile() {
@@ -387,39 +711,12 @@ function renderOfferForm() {
   const lot = data.listings.find(item => item.id === draftLotId);
   if (!lot) return "";
   const remaining = availableKg(lot, data.deals);
-  const cost = (name, bn, en) => `<label>${t(bn, en)}<input name="cost_${name}" type="number" min="0" max="1000000" step="1" inputmode="numeric" placeholder="${t("অজানা", "Unknown")}" /><span class="cost-confirm"><input name="known_${name}" type="checkbox" value="yes" /> ${t("খরচ নেই", "No charge")}</span></label>`;
-  return `<form id="offer-form" class="panel offer-form"><input type="hidden" name="lotId" value="${h(lot.id)}" /><div class="section-header"><div><p class="section-kicker">${t("এই আলুর জন্য দর", "OFFER FOR THIS LOT")}</p><h2>${h(lot.variety)} · ${kg(remaining)}</h2></div><button type="button" class="text-arrow" data-action="close-offer">${t("বন্ধ করুন", "Close")}</button></div><fieldset class="form-section"><legend>${t("১ · দর ও পরিমাণ", "1 · Price and quantity")}</legend><div class="form-grid"><label>${t("আপনার ব্যবসার নাম", "Business name")}<input name="buyer" required minlength="2" maxlength="80" placeholder="${t("ক্রেতা", "Buyer")}" /></label><label>${t("ক্রেতার জেলা", "Buyer district")}<select name="district">${districtOptions("Bogura")}</select></label><label>${t("যত কেজি নিতে চান", "Quantity you can buy (kg)")}<input name="quantityKg" required type="number" min="1" max="${remaining}" step="1" inputmode="numeric" value="${Math.min(remaining, 1000)}" /></label><label>${t("দর (টাকা/কেজি)", "Price (BDT/kg)")}<input name="priceKg" required type="number" min="1" max="10000" step="0.01" inputmode="decimal" placeholder="25" /></label></div></fieldset><fieldset class="form-section"><legend>${t("২ · নেওয়া ও টাকা", "2 · Pickup and payment")}</legend><div class="form-grid"><label>${t("আনুমানিক কত % আলু নেবেন?", "How much of the lot will you take? (%)")}<input name="acceptedPercent" required type="number" min="1" max="100" step="1" inputmode="numeric" value="100" /></label><label>${t("কে আলু নিয়ে যাবেন?", "Who collects?")}<select name="pickup"><option value="buyer">${t("ক্রেতা", "Buyer")}</option><option value="farmer">${t("কৃষক পাঠাবেন", "Farmer delivers")}</option></select></label><label>${t("চাইবার তারিখ", "Requested pickup date")}<input name="pickupDate" type="date" min="${todayPlus(0)}" /></label><label>${t("টাকা দেওয়ার মাধ্যম", "Payment method")}<select name="paymentMethod"><option value="cash">${t("নগদ", "Cash")}</option><option value="mfs">${t("মোবাইল ওয়ালেট", "Mobile wallet")}</option><option value="bank">${t("ব্যাংক", "Bank")}</option></select></label><label>${t("টাকা কত দিনে দেবেন?", "Payment within how many days?")}<input name="paymentDays" required type="number" min="0" max="30" step="1" inputmode="numeric" value="0" /></label></div></fieldset><details class="offer-disclosure"><summary>${t("আরও শর্ত ও খরচ", "More terms and costs")}</summary><fieldset class="form-section"><legend>${t("আপনার আলাদা খরচ", "Your separate costs")}</legend><p class="form-note">${t("দরদাতার কাছ থেকে পাওয়া কোট লিখুন। ফাঁকা মানে জানা নেই; কেবল নিশ্চিত হলে ‘খরচ নেই’ টিক দিন।", "Enter quoted buyer costs. Blank means unknown; tick ‘No charge’ only when confirmed.")}</p><div class="form-grid cost-grid">${cost("transport", "পরিবহন", "Transport")}${cost("loadingSacks", "লোড / বস্তা", "Loading / sacks")}${cost("taxes", "কর", "Taxes")}${cost("marketFees", "বাজার ফি", "Market fees")}${cost("other", "অন্যান্য", "Other")}</div><div id="buyer-purchase-estimate" class="buyer-purchase-estimate" aria-live="polite">${t("সব খরচ জানা হলে মোট দেখাবে।", "Total appears when every cost is known.")}</div><label>${t("দরের শেষ দিন", "Offer expires")}<input name="expires" required type="date" min="${todayPlus(0)}" value="${todayPlus(2)}" /></label><label>${t("গ্রেড, ওজন ও কাটতির নিয়ম", "Grade, weighing and deduction terms")}<textarea name="terms" required maxlength="400" rows="3" placeholder="${t("যেমন: মাঝারি আলু; ওজনের সময় কাটতি হলে ছবি দেবেন", "e.g. Medium potatoes; show photos for any rejection at weighing")}"></textarea></label></fieldset></details><p class="form-warning">${t("আলুসাথী টাকা পাঠায় না বা স্টক যাচাই করে না।", "AluSathi does not transfer money or verify stock.")}</p><button class="button button-green submit" type="submit">${t("দর পাঠান", "Send offer")}${icon("arrow", 18)}</button></form>`;
+  return `<form id="offer-form" class="panel offer-form"><input type="hidden" name="lotId" value="${h(lot.id)}" /><div class="section-header"><div><p class="section-kicker">${t("এই আলুর জন্য দর", "OFFER FOR THIS LOT")}</p><h2>${h(lot.variety)} · ${kg(remaining)}</h2></div><button type="button" class="text-arrow" data-action="close-offer">${t("বন্ধ করুন", "Close")}</button></div><fieldset class="form-section"><legend>${t("১ · দর ও পরিমাণ", "1 · Price and quantity")}</legend><div class="form-grid"><label>${t("আপনার ব্যবসার নাম", "Business name")}<input name="buyer" required minlength="2" maxlength="80" placeholder="${t("ক্রেতা", "Buyer")}" /></label><label>${t("ক্রেতার জেলা", "Buyer district")}<select name="district">${districtOptions("Bogura")}</select></label><label>${t("যত কেজি নিতে চান", "Quantity you can buy (kg)")}<input name="quantityKg" required type="number" min="1" max="${remaining}" step="1" inputmode="numeric" value="${Math.min(remaining, 1000)}" /></label><label>${t("দর (টাকা/কেজি)", "Price (BDT/kg)")}<input name="priceKg" required type="number" min="1" max="10000" step="0.01" inputmode="decimal" placeholder="25" /></label></div></fieldset><fieldset class="form-section"><legend>${t("২ · নেওয়া ও টাকা", "2 · Pickup and payment")}</legend><div class="form-grid"><label>${t("আনুমানিক কত % আলু নেবেন?", "How much of the lot will you take? (%)")}<input name="acceptedPercent" required type="number" min="1" max="100" step="1" inputmode="numeric" value="100" /></label><label>${t("কে আলু নিয়ে যাবেন?", "Who collects?")}<select name="pickup"><option value="buyer">${t("ক্রেতা", "Buyer")}</option><option value="farmer">${t("কৃষক পাঠাবেন", "Farmer delivers")}</option></select></label><label>${t("টাকা কত দিনে দেবেন?", "Payment within how many days?")}<input name="paymentDays" required type="number" min="0" max="30" step="1" inputmode="numeric" value="0" /></label></div></fieldset><fieldset class="form-section"><legend>${t("৩ · খরচ ও শর্ত", "3 · Costs and terms")}</legend><div class="form-grid"><label>${t("কৃষকের গাড়িভাড়া (মোট টাকা)", "Farmer transport cost (total BDT)")}<input name="transport" required type="number" min="0" max="1000000" step="1" inputmode="numeric" value="0" /></label><label>${t("ওঠানো / প্যাকেট খরচ (মোট টাকা)", "Handling / sacks (total BDT)")}<input name="handling" required type="number" min="0" max="1000000" step="1" inputmode="numeric" value="0" /></label><label>${t("অন্যান্য ফি (মোট টাকা)", "Other fees (total BDT)")}<input name="fee" required type="number" min="0" max="1000000" step="1" inputmode="numeric" value="0" /></label><label>${t("দরের শেষ দিন", "Offer expires")}<input name="expires" required type="date" min="${todayPlus(0)}" value="${todayPlus(7)}" /></label></div><label>${t("গ্রেড, ওজন ও কাটতির নিয়ম", "Grade, weighing and deduction terms")}<textarea name="terms" required maxlength="400" rows="3" placeholder="${t("যেমন: মাঝারি আলু, ওজন তোলার সময়; কাটতি হলে ছবি দিতে হবে", "e.g. Medium potatoes; weigh at pickup; show photos for any rejection")}"></textarea></label></fieldset><p class="form-warning">${t("আপনার দর শুধু এই ব্রাউজারে থাকবে; পরিচয় যাচাই হয় না।", "Your offer stays in this browser; identity is not verified.")}</p><button class="button button-green submit" type="submit">${t("দর রাখুন", "Save offer")}${icon("arrow", 18)}</button></form>`;
 }
 
 function renderBuyerOffers() {
   const offers = data.offers.filter(offer => !offer.sample);
-  return `<section class="buyer-page page-shell"><header class="compact-page-head"><div><p class="section-kicker">${t("আমার দর", "MY OFFERS")}</p><h1>${t("দর ও উত্তর", "Offers and responses")}</h1><p>${t("প্রতিটি দরের বর্তমান শর্ত ও পরের কাজ এখানে দেখুন।", "See the latest terms and next action for every offer.")}</p></div><a href="${marketUrl("home")}" class="button button-green" data-view="home">${t("আলুর তালিকা", "Browse lots")}</a></header><div class="offer-grid buyer-offer-grid">${offers.length ? offers.map(offer => { const lot = data.listings.find(item => item.id === offer.lotId); return lot ? renderBuyerOfferRow(offer, lot) : ""; }).join("") : `<div class="empty-state"><h2>${t("এখনো কোনো দর নেই", "No offers yet")}</h2><p>${t("একটি লট খুলে দর ও সংগ্রহের শর্ত লিখুন।", "Open a lot to enter price and collection terms.")}</p><a class="button button-green" href="${marketUrl("home")}" data-view="home">${t("লট দেখুন", "See lots")}</a></div>`}</div></section>`;
-}
-
-function buyerOfferStatus(offer) {
-  const status = offer.status || "pending";
-  return ({ draft: t("খসড়া", "Draft"), pending: t("কৃষকের উত্তরের অপেক্ষা", "Awaiting farmer"), counter: t("পাল্টা দর এসেছে", "Counteroffer"), agreed: t("সম্মতি হয়েছে", "Agreed"), rejected: t("গ্রহণ হয়নি", "Rejected"), withdrawn: t("তুলে নেওয়া", "Withdrawn"), expired: t("সময় শেষ", "Expired") })[status] || t("অপেক্ষমাণ", "Pending");
-}
-function renderBuyerOfferRow(offer, lot) {
-  const summary = buyerCostSummary(offer, lot);
-  const expired = offer.expires && offer.expires < todayPlus(0);
-  const latest = expired && offer.status === "pending" ? "expired" : offer.status || "pending";
-  return `<article class="buyer-offer-row"><div><span class="status-pill">${buyerOfferStatus({ ...offer, status: latest })}</span><h2>${h(lotVariety(lot))} · ${kg(offer.quantityKg)}</h2><p>${t("ব্যবসা", "Business")}: ${h(offer.buyer)} · ${h(language === "bn" ? districtNamesBn[lot.district] || lot.district : lot.district)} · ${t("সংগ্রহ", "Pickup")}: ${prettyDate(offer.pickupDate)}</p></div><div><span>${t("দর", "Price")}</span><strong>${rate(offer.priceKg)}/${t("কেজি", "kg")}</strong></div><div><span>${t("আনুমানিক মোট খরচ", "Estimated total")}</span><strong>${summary.total === null ? t("অসম্পূর্ণ", "Incomplete") : money(summary.total)}</strong><small>${summary.total === null ? t("সব খরচ জানা নেই", "Some costs are unknown") : `${rate(summary.deliveredPerKg)}/${t("গ্রহণ কেজি", "accepted kg")}`}</small></div><div class="buyer-offer-actions">${latest === "pending" ? `<button class="text-arrow" data-action="edit-offer" data-id="${h(offer.id)}">${t("বদলান", "Edit")}</button><button class="text-arrow" data-action="withdraw-offer" data-id="${h(offer.id)}">${t("তুলে নিন", "Withdraw")}</button>` : ""}<a class="text-arrow" href="${marketUrl("purchases")}" data-view="purchases">${t("বিস্তারিত", "Details")}</a></div></article>`;
-}
-
-function renderBuyerPurchases() {
-  const deals = data.deals.filter(deal => !deal.sample);
-  return `<section class="buyer-page page-shell"><header class="compact-page-head"><div><p class="section-kicker">${t("আমার কেনাকাটা", "MY PURCHASES")}</p><h1>${t("সংগ্রহ, ওজন ও টাকা", "Collection, weight, and payments")}</h1><p>${t("কৃষক নিশ্চিত না করা পর্যন্ত ওজন ও টাকার হিসাব চূড়ান্ত নয়।", "Weight and payment remain unconfirmed until the farmer confirms them.")}</p></div></header><div class="deals-list">${deals.length ? deals.map(renderDealCard).join("") : `<div class="empty-state"><h2>${t("এখনো কোনো কেনাকাটা হয়নি", "No agreed purchases yet")}</h2><p>${t("কৃষক দর মেনে নিলে কেনাকাটার রেকর্ড এখানে আসবে।", "An agreed offer will appear here.")}</p></div>`}</div></section>`;
-}
-
-function renderBuyerNotebook() {
-  const rows = data.deals.filter(deal => !deal.sample).map(deal => {
-    const accepted = deal.actualAcceptedKg ?? deal.quantityKg;
-    const payment = purchaseCost({ acceptedKg: accepted, priceKg: deal.offer.priceKg, costs: buyerCostLines(deal.offer) });
-    const confirmed = Number(deal.confirmedPaidAmount) || 0;
-    return `<tr><td>${prettyDate(deal.createdAt?.slice(0, 10))}</td><td>${h(deal.offer.buyer)} · ${h(deal.variety)}</td><td>${kg(accepted)}</td><td>${money(payment.potatoPayment)}</td><td>${payment.total === null ? t("জানা নেই", "Unknown") : money(payment.total - payment.potatoPayment)}</td><td>${money(confirmed)}</td><td>${payment.total === null ? "—" : money(Math.max(0, payment.total - confirmed))}</td><td>${dealStatus(deal)}</td></tr>`;
-  }).join("");
-  return `<section class="buyer-page page-shell"><header class="compact-page-head"><div><p class="section-kicker">${t("খাতা", "NOTEBOOK")}</p><h1>${t("কেনাকাটার হিসাব", "Purchase notebook")}</h1><p>${t("আনুমানিক, জানানো ও নিশ্চিত অঙ্ক আলাদা করে রাখা হয়।", "Estimated, reported, and confirmed figures stay separate.")}</p></div><button class="button button-outline" data-action="print-buyer-notebook">${t("ছাপুন", "Print")}</button></header><div class="notebook-tabs"><button class="active">${t("কেনাকাটা", "Purchases")}</button><button disabled>${t("খরচ", "Expenses")}</button><button disabled>${t("বাকি টাকা", "Outstanding")}</button></div><div class="notebook-table-wrap"><table><thead><tr><th>${t("তারিখ", "Date")}</th><th>${t("লট", "Lot")}</th><th>${t("গ্রহণ", "Accepted")}</th><th>${t("আলুর মূল্য", "Potato payment")}</th><th>${t("আলাদা খরচ", "Extra costs")}</th><th>${t("নিশ্চিত পরিশোধ", "Confirmed paid")}</th><th>${t("বাকি", "Outstanding")}</th><th>${t("অবস্থা", "Status")}</th></tr></thead><tbody>${rows || `<tr><td colspan="8">${t("চুক্তি হলে হিসাব এখানে আসবে।", "Agreed purchases will appear here.")}</td></tr>`}</tbody></table></div><p class="notebook-note">${t("পুনর্বিক্রির আয় লেখা না হলে লাভ দেখানো হয় না।", "Profit is not shown until resale income is recorded.")}</p></section>`;
+  return `<section class="inner-hero page-shell"><div><p class="section-kicker">${t("ক্রেতার বোর্ড", "BUYER BOARD")}</p><h1>${t("আপনার দেওয়া দর", "Offers entered here")}</h1><p>${t("সব দর শুধু এই ব্রাউজারে থাকে।", "All offers stay in this browser.")}</p></div><div class="inner-hero-mark">${icon("scale", 52)}</div></section><section class="section page-shell"><div class="offer-grid">${offers.length ? offers.map(offer => { const lot = data.listings.find(item => item.id === offer.lotId); return lot ? renderOfferCard(offer, lot) : ""; }).join("") : `<div class="empty-state"><h2>${t("এখনো দর দেননি", "No offers entered yet")}</h2><button class="button button-green" data-view="home">${t("আলুর তালিকা দেখুন", "Browse lots")}</button></div>`}</div></section>`;
 }
 
 function renderReview() {
@@ -430,7 +727,7 @@ function renderReview() {
   const quantity = offerRemainingKg(offer, lot);
   const result = estimateOffer(offer, quantity);
   if (!quantity) return `<div class="modal-backdrop" data-action="close-review"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="review-title"><button class="modal-close" data-action="close-review" aria-label="Close">×</button><h2 id="review-title">${t("এই দর আর নেওয়া যাবে না", "This offer is no longer available")}</h2><p>${t("এই ক্রেতার চাওয়া পরিমাণ বা জমির বাকি আলু অন্য চুক্তিতে চলে গেছে।", "The buyer's requested amount or the farmer's remaining potatoes are already committed.")}</p><div class="modal-actions"><button type="button" class="button button-green" data-action="close-review">${t("ফিরে যান", "Go back")}</button></div></div></div>`;
-  return `<div class="modal-backdrop" data-action="close-review"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="review-title"><button class="modal-close" data-action="close-review" aria-label="Close">×</button><p class="section-kicker">${t("চুক্তির আগে মিলিয়ে নিন", "CHECK BEFORE AGREEING")}</p><h2 id="review-title">${t("এই শর্তে বিক্রি করবেন?", "Agree to these terms?")}</h2><p>${t("এটি এখানে রাখা নথি; এর মাধ্যমে টাকা দেওয়া হয় না।", "This is a record saved here; it does not send a payment.")}</p><form id="deal-form"><input type="hidden" name="offerId" value="${h(offer.id)}" /><label>${t("এই দর থেকে কত কেজি বিক্রি করবেন?", "How many kilograms from this offer?")}<input name="quantityKg" required type="number" min="1" max="${quantity}" value="${quantity}" step="1" inputmode="numeric" /></label><div class="form-grid deal-terms-input"><label>${t("চাইবার তারিখ", "Requested pickup date")}<input name="pickupDate" type="date" min="${todayPlus(0)}" value="${h(offer.pickupDate || "")}" /></label><label>${t("টাকা দেওয়ার মাধ্যম", "Payment method")}<select name="paymentMethod"><option value="cash" ${offer.paymentMethod === "cash" ? "selected" : ""}>${t("নগদ", "Cash")}</option><option value="mfs" ${offer.paymentMethod === "mfs" ? "selected" : ""}>${t("মোবাইল ওয়ালেট", "Mobile wallet")}</option><option value="bank" ${offer.paymentMethod === "bank" ? "selected" : ""}>${t("ব্যাংক", "Bank")}</option></select></label></div><div class="deal-summary"><div><span>${t("ক্রেতা", "Buyer")}</span><strong>${h(offer.buyer)} ${offer.sample ? `(${t("আগে থেকে রাখা", "starting offer")})` : ""}</strong></div><div><span>${t("দর", "Price")}</span><strong>${rate(offer.priceKg)}/${t("কেজি", "kg")}</strong></div><div><span>${t("বর্তমান আনুমানিক হাতে", "Current estimated take-home")}</span><strong data-preview-net>${money(result.net)}</strong></div><div><span>${t("ওজন ও কাটতির নিয়ম", "Weight or deduction terms")}</span><strong>${h(offer.terms)}</strong></div><div><span>${t("টাকা পাওয়ার সময়", "Payment timing")}</span><strong>${offer.paymentDays === 0 ? t("সেদিন", "Same day") : `${offer.paymentDays} ${t("দিন", "days")}`}</strong></div></div><div class="modal-actions"><button type="button" class="button button-outline" data-action="close-review">${t("আরও দেখি", "Keep looking")}</button><button type="submit" class="button button-green">${t("চুক্তির নথি রাখুন", "Save deal record")}</button></div></form></div></div>`;
+  return `<div class="modal-backdrop" data-action="close-review"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="review-title"><button class="modal-close" data-action="close-review" aria-label="Close">×</button><p class="section-kicker">${t("চুক্তির আগে মিলিয়ে নিন", "CHECK BEFORE AGREEING")}</p><h2 id="review-title">${t("এই শর্তে বিক্রি করবেন?", "Agree to these terms?")}</h2><p>${t("এটি এখানে রাখা নথি; এর মাধ্যমে টাকা দেওয়া হয় না।", "This is a record saved here; it does not send a payment.")}</p><form id="deal-form"><input type="hidden" name="offerId" value="${h(offer.id)}" /><label>${t("এই দর থেকে কত কেজি বিক্রি করবেন?", "How many kilograms from this offer?")}<input name="quantityKg" required type="number" min="1" max="${quantity}" value="${quantity}" step="1" inputmode="numeric" /></label><div class="deal-summary"><div><span>${t("ক্রেতা", "Buyer")}</span><strong>${h(offer.buyer)} ${offer.sample ? `(${t("আগে থেকে রাখা", "starting offer")})` : ""}</strong></div><div><span>${t("দর", "Price")}</span><strong>${rate(offer.priceKg)}/${t("কেজি", "kg")}</strong></div><div><span>${t("বর্তমান আনুমানিক হাতে", "Current estimated take-home")}</span><strong data-preview-net>${money(result.net)}</strong></div><div><span>${t("ওজন ও কাটতির নিয়ম", "Weight and deduction terms")}</span><strong>${h(offer.terms)}</strong></div><div><span>${t("টাকা পাওয়ার সময়", "Payment timing")}</span><strong>${offer.paymentDays === 0 ? t("সেদিন", "Same day") : `${offer.paymentDays} ${t("দিন", "days")}`}</strong></div></div><div class="modal-actions"><button type="button" class="button button-outline" data-action="close-review">${t("আরও দেখি", "Keep looking")}</button><button type="submit" class="button button-green">${t("চুক্তির নথি রাখুন", "Save deal record")}</button></div></form></div></div>`;
 }
 
 function updateReviewPreview(form) {
@@ -445,33 +742,19 @@ function updateReviewPreview(form) {
 }
 
 function dealStatus(deal) {
-  return ({ agreed: t("চুক্তি হয়েছে", "Agreed"), pickup_pending: t("ওজন নিশ্চিতের অপেক্ষা", "Weight awaiting farmer"), collected: t("তোলা হয়েছে", "Collected"), payment_pending: t("টাকা নিশ্চিতের অপেক্ষা", "Payment awaiting farmer"), paid: t("টাকা পাওয়া গেছে", "Paid"), disputed: t("পার্থক্য আছে", "Difference recorded") })[deal.status] || "—";
-}
-
-function potatoPaymentDue(deal) {
-  const acceptedKg = deal.actualAcceptedKg ?? deal.quantityKg;
-  return purchaseCost({ acceptedKg, priceKg: deal.offer.priceKg, costs: buyerCostLines(deal.offer) }).potatoPayment;
-}
-function confirmedPayments(deal) {
-  return (deal.paymentReports || []).filter(item => item.status === "confirmed").reduce((sum, item) => sum + Number(item.amount || 0), 0);
-}
-function pendingPayment(deal) {
-  return [...(deal.paymentReports || [])].reverse().find(item => item.status === "reported") || null;
+  return ({ agreed: t("চুক্তি হয়েছে", "Agreed"), pickup_pending: t("ওজন নিশ্চিতের অপেক্ষা", "Weight awaiting farmer"), collected: t("তোলা হয়েছে", "Collected"), payment_pending: t("টাকা নিশ্চিতের অপেক্ষা", "Payment awaiting farmer"), paid: t("টাকা পাওয়া গেছে", "Paid") })[deal.status] || "—";
 }
 
 function renderDealCard(deal) {
   const offer = deal.offer;
   const estimate = estimateOffer(offer, deal.quantityKg);
+  const actualNet = deal.actualAcceptedKg != null ? deal.actualAcceptedKg * offer.priceKg - estimate.costs : estimate.net;
   let action = "";
   if (deal.status === "agreed" && role === "buyer") action = `<form class="inline-form" data-form="pickup" data-id="${h(deal.id)}"><label>${t("মাপা ওজন (কেজি)", "Accepted weight (kg)")}<input name="actualAcceptedKg" type="number" min="1" max="${deal.quantityKg}" value="${deal.quantityKg}" required /></label><label>${t("ওজন / কাটতির কথা", "Weight or rejection note")}<input name="pickupNote" maxlength="180" placeholder="${t("যেমন: ১০ কেজি বাদ", "e.g. 10 kg rejected")}" /></label><button class="button button-green button-small">${t("ওজন পাঠান", "Submit weight")}</button></form>`;
   if (deal.status === "pickup_pending" && role === "farmer") action = `<div class="action-box"><p>${t("ক্রেতা বলছেন গ্রহণ করেছেন", "Buyer reports accepted")}: <strong>${kg(deal.actualAcceptedKg)}</strong>. ${h(deal.pickupNote || "")}</p><button class="button button-green button-small" data-action="confirm-pickup" data-id="${h(deal.id)}">${t("ওজন মেনে নিন", "Approve weight")}</button><button class="text-arrow" data-action="dispute" data-id="${h(deal.id)}">${t("মিলছে না—সহায়তা চাই", "Dispute this")}</button></div>`;
-  const potatoDue = potatoPaymentDue(deal);
-  const confirmed = confirmedPayments(deal);
-  const balance = Math.max(0, potatoDue - confirmed);
-  if (deal.status === "collected" && role === "buyer") action = `<form class="inline-form" data-form="payment" data-id="${h(deal.id)}"><p>${t("কৃষকের নিশ্চিত পাওনা", "Confirmed amount due to farmer")}: <strong>${money(balance)}</strong></p><label>${t("পাঠানো টাকার পরিমাণ", "Amount sent (BDT)")}<input name="paymentAmount" type="number" min="1" max="${balance}" value="${balance}" required /></label><label>${t("লেনদেন নম্বর / রসিদ", "Payment reference")}<input name="paymentRef" maxlength="80" required /></label><button class="button button-green button-small">${t("পেমেন্ট জানান", "Report payment")}</button></form>`;
-  if (deal.status === "payment_pending" && role === "farmer") { const report = pendingPayment(deal); action = report ? `<div class="action-box"><p>${t("ক্রেতা পেমেন্টের কথা লিখেছেন", "Buyer has reported a payment")}: <strong>${money(report.amount)}</strong> · ${t("নিশ্চিত পাওয়া", "Confirmed received")}: <strong>${money(confirmed)}</strong> · ${t("বাকি", "Remaining")}: <strong>${money(balance)}</strong> · ${t("রেফারেন্স", "Reference")}: ${h(report.reference)}. ${t("নিজের হিসাবে টাকা দেখে তারপর নিশ্চিত করুন।", "Check your own account before confirming.")}</p><button class="button button-green button-small" data-action="confirm-payment" data-id="${h(deal.id)}">${t("টাকা পেয়েছি", "I received the money")}</button><button class="text-arrow" data-action="dispute" data-id="${h(deal.id)}">${t("পাইনি—সমস্যা লিখুন", "Not received")}</button></div>` : ""; }
-  const costs = buyerCostState(offer);
-  return `<article class="deal-card"><div class="deal-card-header"><div><span class="small-label">${t("চুক্তির নথি", "DEAL RECORD")}</span><h3>${h(offer.buyer)} <span>· ${h(deal.variety)}</span></h3></div><span class="status-pill ${deal.status === "paid" ? "status-paid" : ""}">${dealStatus(deal)}</span></div><div class="deal-facts"><div><span>${t("চুক্তির পরিমাণ", "Agreed quantity")}</span><strong>${kg(deal.quantityKg)}</strong></div><div><span>${t("দর", "Price")}</span><strong>${rate(offer.priceKg)}/${t("কেজি", "kg")}</strong></div><div><span>${t("হাতে আসার হিসাব", "Estimated take-home")}</span><strong>${money(estimate.net)}</strong></div><div><span>${t("আসল গ্রহণ", "Accepted at pickup")}</span><strong>${deal.actualAcceptedKg == null ? t("এখনো নয়", "Not yet") : kg(deal.actualAcceptedKg)}</strong></div></div><p class="deal-terms">${icon("shield", 18)}${h(offer.terms)} · ${t("ক্রেতার আলাদা খরচ", "Buyer costs")}: ${costs.known ? money(costs.total) : t("জানা নেই", "Unknown")} · ${t("তোলা", "Pickup")}: ${h(deal.pickupDate ? prettyDate(deal.pickupDate) : t("তারিখ নেই", "Not set"))} · ${t("টাকা", "Payment")}: ${h(deal.paymentMethod || offer.paymentMethod || "cash")}</p>${action}${deal.status === "paid" ? `<p class="paid-note">${icon("check", 18)}${t("কৃষক টাকা পেয়েছেন বলে লিখেছেন; টাকা যাচাই করা হয়নি।", "Farmer marked payment received; the payment was not verified.")}</p>` : ""}<div class="deal-card-footer"><span>${t("চুক্তির নম্বর", "Deal ID")}: ${h(deal.id.slice(0, 8))}</span><button class="text-arrow" data-action="print-deal" data-id="${h(deal.id)}">${t("চুক্তি ছাপুন", "Print deal card")}${icon("arrow", 15)}</button></div></article>`;
+  if (deal.status === "collected" && role === "buyer") { const due = Math.max(0, actualNet); const paid = Math.max(0, Number(deal.paidAmount) || 0); const balance = Math.max(0, due - paid); action = `<form class="inline-form" data-form="payment" data-id="${h(deal.id)}"><p>${t("বাকি টাকা", "Remaining balance")}: <strong>${money(balance)}</strong></p><label>${t("পাঠানো টাকার পরিমাণ", "Amount sent (BDT)")}<input name="paymentAmount" type="number" min="1" max="${balance}" value="${balance}" required /></label><label>${t("লেনদেন নম্বর / রসিদ", "Payment reference")}<input name="paymentRef" maxlength="80" required /></label><button class="button button-green button-small">${t("টাকার কথা রাখুন", "Record payment")}</button></form>`; }
+  if (deal.status === "payment_pending" && role === "farmer") action = `<div class="action-box"><p>${t("ক্রেতা পাঠানোর কথা লিখেছেন", "Buyer claims to have sent")}: <strong>${money(deal.paymentAmount)}</strong> · ${t("মোট পাওয়া", "Total recorded")}: <strong>${money(deal.paidAmount)}</strong> · ${t("বাকি", "Remaining")}: <strong>${money(deal.remainingBalance)}</strong> · ${t("রেফারেন্স", "Reference")}: ${h(deal.paymentRef)}. ${t("নিজের হিসাবে টাকা দেখে তারপর নিশ্চিত করুন।", "Check your own account before confirming.")}</p><button class="button button-green button-small" data-action="confirm-payment" data-id="${h(deal.id)}">${t("টাকা পেয়েছি", "I received the money")}</button><button class="text-arrow" data-action="dispute" data-id="${h(deal.id)}">${t("পাইনি—সমস্যা লিখুন", "Not received")}</button></div>`;
+  return `<article class="deal-card"><div class="deal-card-header"><div><span class="small-label">${deal.sample ? t("চুক্তির নথি", "DEAL RECORD") : t("চুক্তির নথি", "DEAL RECORD")}</span><h3>${h(offer.buyer)} <span>· ${h(deal.variety)}</span></h3></div><span class="status-pill ${deal.status === "paid" ? "status-paid" : ""}">${dealStatus(deal)}</span></div><div class="deal-facts"><div><span>${t("চুক্তির পরিমাণ", "Agreed quantity")}</span><strong>${kg(deal.quantityKg)}</strong></div><div><span>${t("দর", "Price")}</span><strong>${rate(offer.priceKg)}/${t("কেজি", "kg")}</strong></div><div><span>${t("হাতে আসার হিসাব", "Estimated take-home")}</span><strong>${money(estimate.net)}</strong></div><div><span>${t("আসল গ্রহণ", "Accepted at pickup")}</span><strong>${deal.actualAcceptedKg == null ? t("এখনো নয়", "Not yet") : kg(deal.actualAcceptedKg)}</strong></div></div><p class="deal-terms">${icon("shield", 18)}${h(offer.terms)} ${t("· গাড়িভাড়া", "· Transport")}: ${money(offer.transport)} · ${t("অন্য খরচ", "Other costs")}: ${money(offer.handling + offer.fee)} · ${t("টাকা", "Payment")}: ${offer.paymentDays} ${t("দিনে", "days")}</p>${action}${deal.status === "paid" ? `<p class="paid-note">${icon("check", 18)}${t("কৃষক টাকা পেয়েছেন বলে লিখেছেন; টাকা যাচাই করা হয়নি।", "Farmer marked payment received; the payment was not verified.")}</p>` : ""}<div class="deal-card-footer"><span>${t("চুক্তির নম্বর", "Deal ID")}: ${h(deal.id.slice(0, 8))}</span><button class="text-arrow" data-action="print-deal" data-id="${h(deal.id)}">${t("চুক্তি ছাপুন", "Print deal card")}${icon("arrow", 15)}</button></div></article>`;
 }
 
 function renderDeals() {
@@ -491,7 +774,7 @@ function renderServices(kind) {
 }
 
 function prepareDemo() {
-  if (role !== "farmer" || !showSamples) return;
+  if (role === "farmer" && !showSamples) return;
   prepareDemoForms(app, {
     displayName: role === 'farmer' ? t('কৃষক', 'Farmer') : t('ক্রেতা', 'Buyer'),
     upazila: 'Pirganj', variety: 'Diamant', quantityKg: 2000, priceKg: 25,
@@ -504,21 +787,133 @@ function prepareDemo() {
 }
 
 function render() {
+  if (role === 'buyer' && view === 'contacts') { view = 'home'; history.replaceState(null, '', location.pathname + location.search); }
+  if (role === "farmer" && view === "list") { location.replace("/farmer#market"); return; }
   stopNotesVoice();
   disposeTransport();
   document.documentElement.lang = language;
+  if (publicPreview) {
+    document.body.classList.add("buyer-portal");
+    app.innerHTML = `<main>${renderBuyerHome()}</main>${detailLotId ? renderBuyerLotDialog() : ""}`;
+    if (detailLotId) app.querySelector("main").inert = true;
+    return;
+  }
+  if (farmerPreview) {
+    const lot = data.listings.find(item => !item.archivedAt && !item.hiddenAt && item.id === new URLSearchParams(location.search).get("lot"));
+    const photos = lot ? (Array.isArray(lot.photos) ? lot.photos.map(p => photoSrc(p?.src)).filter(Boolean).slice(0,3) : [photoSrc(lot.photo)].filter(Boolean)) : [];
+    app.innerHTML = `<main class="section page-shell"><a class="button button-outline" href="/farmer#market">← ${t("কৃষকের পাতায় ফিরুন", "Back to farmer page")}</a><section class="panel" style="margin-top:24px"><p class="section-kicker">${t("ক্রেতা যেমন দেখবেন", "BUYER VIEW · READ ONLY")}</p>${lot ? `<h1>${h(lot.variety === "Potatoes" ? t("আলু", "Potatoes") : lot.variety)}</h1><p>${h(lot.farmerName)} · ${h(lot.upazila)} ${h(language === "bn" ? districtNamesBn[lot.district] || lot.district : lot.district)}</p><div class="sale-details-photos">${photos.map(src=>`<img src="${h(src)}" alt="${t("আলুর ছবি", "Potato photo")}"/>`).join("")}</div><dl><div><dt>${t("পরিমাণ", "Quantity")}</dt><dd>${kg(lot.quantityKg)}</dd></div><div><dt>${t("চাওয়া দাম", "Asking price")}</dt><dd>${rate(lot.askingPriceKg)} / ${t("কেজি", "kg")}</dd></div><div><dt>${t("মোট চাওয়া টাকা", "Asking total")}</dt><dd>${money(lot.quantityKg * lot.askingPriceKg)}</dd></div><div><dt>${t("কবে থেকে নিতে পারবেন", "Ready date")}</dt><dd>${prettyDate(lot.readyDate)}</dd></div><div><dt>${t("আলুর অবস্থা", "Condition")}</dt><dd>${h(lot.notes || t("তথ্য দেওয়া হয়নি", "Not provided"))}</dd></div></dl>` : `<h1>${t("তালিকাটি পাওয়া যায়নি", "Listing not found")}</h1>`}</section></main>`;
+    return;
+  }
   if (role === "choose") { let selected = ""; try { selected = sessionStorage.getItem("alusathi-role") || ""; } catch { /* Role choice is available at /auth. */ } location.replace(selected === "buyer" ? "./buyer.html" : selected === "farmer" ? "./farmer.html" : "../auth"); return; }
   if (view === "storage") quoteOpen = document.querySelector(".quote-disclosure")?.open ?? quoteOpen;
-  const content = role === "buyer" && view === "purchases" ? renderBuyerPurchases() : role === "buyer" && view === "notebook" ? renderBuyerNotebook() : view === "transport" ? '<section class="section page-shell" id="transport-root"></section>' : view === "passport" ? renderPassport() : view === "list" ? renderListForm() : view === "offers" ? renderOffers() : view === "deals" ? renderDeals() : view === "storage" ? renderStorage() : view === "buyer-offers" ? renderBuyerOffers() : role === "buyer" ? renderBuyerHome() : renderFarmerHome();
+  const sourcingContext = {t,h,kg,money:rate,prettyDate,districtOptions,today:todayPlus(0),findLot:buyerListing,validDistrict:name=>districts.includes(name)&&name!=='Other',districtName:name=>language==='bn'?districtNamesBn[name]||name:name,findMatches:row=>{buyerSearch={query:'',district:row.district,quantity:row.quantity,readyDate:row.readyDate,budget:row.budget,applied:true,expanded:false};buyerSearchShowAll=false;buyerCatalogueDistrict='';buyerCatalogueVariety='';setView('home');document.querySelector('.buyer-picks')?.scrollIntoView({block:'start'});}};
+  const content = role === 'buyer' && ['needs','contacts'].includes(view) ? workspace(view,sourcingContext) : view === "unavailable" ? renderUnavailable() : view === "profile" ? role === "buyer" ? renderBuyerProfilePage() : renderFarmerProfilePage() : view === "saved" && role === "buyer" ? renderSavedLots() : view === "buyer-plan" && role === "buyer" ? renderBuyerPlan() : view === "transport" ? '<section class="section page-shell" id="transport-root"></section>' : view === "passport" || view === "list" ? renderPassport() : view === "offers" && role === "farmer" ? SALES_FEATURE_ENABLED ? renderOffers() : renderUnavailable() : view === "deals" || view === "buyer-offers" ? SALES_FEATURE_ENABLED ? view === "deals" ? renderDeals() : renderBuyerOffers() : renderUnavailable() : view === "storage" ? renderStorage() : role === "buyer" ? renderBuyerHome() : renderFarmerHome();
   renderShell(content);
-  document.querySelector("#offer-form .section-header")?.insertAdjacentHTML("afterend", renderBuyerProfile());
+  if (role === 'buyer' && view === 'saved' && compareOpen) document.querySelector('.liked-quantity-strip')?.insertAdjacentHTML('beforeend', `<button class="button button-outline" data-action="compare-costs">${t('এই পরিমাণে খরচ দেখুন','Compare delivered costs for this quantity')}</button>`);
+  if(role==='buyer') document.querySelector('.footer > div > p').textContent=t('কৃষকের সঙ্গে পরিচয়, সিদ্ধান্ত আপনার।','Connect with farmers. Decide for yourself.');
+  sourcingContext.profile = buyerProfile;
+  if(role==='buyer' && ['needs','contacts'].includes(view)) mountWorkspace(view,sourcingContext);
+  if(role==='buyer' && view==='needs') {
+    const form = document.querySelector('#buyer-need-form');
+    form.querySelector('.sourcing-fields').insertAdjacentHTML('afterend', `<details class="need-text"><summary>${t('এক লাইনে লিখুন','Fill in a requirement from text')}</summary><label>${t('আপনার চাহিদা','Your requirement')}<textarea maxlength="240" rows="2"></textarea></label><button type="button" class="button button-outline">${t('তথ্য বসান','Fill in fields')}</button></details>`);
+    const helper = form.querySelector('.need-text');
+    helper.querySelector('button').onclick = () => {
+      const parsed = parseBuyerQuery(helper.querySelector('textarea').value);
+      for (const field of ['quantity','district','readyDate','budget']) form.elements[field].value = parsed[field] || '';
+      if(parsed.budget) form.querySelector('.need-options').open = true;
+      form.querySelector('.sourcing-status').textContent = t('ঘরগুলো দেখে ঠিক করুন। এখনও সেভ হয়নি।','Review the fields and fill in anything missing. Nothing saved yet.');
+      form.elements.quantity.focus();
+    };
+  }
+  if(role==='buyer' && contactLotId && !buyerListing(contactLotId)?.practice) {
+    const lot=buyerListing(contactLotId),dialog=document.querySelector('.catalogue-contact-dialog');
+    const enquiry=t(`আপনার ${lotVariety(lot)} আলু দেখেছি। ${buyerSearch?.quantity ? kg(buyerSearch.quantity)+' ' : ''}আলু নিতে চাই। এখন কতটা আছে, বর্তমান দর কত এবং কবে নেওয়া যাবে?`,`I saw your ${lotVariety(lot)} potatoes. I am interested${buyerSearch?.quantity ? ' in '+buyerSearch.quantity+' kg' : ''}. How much is available, what is the current price, and when can it be collected?`);
+    const draft = `${enquiry}\n${enquiryQuestions(lot, t, lotNotes(lot))}`.trim();
+    dialog?.insertAdjacentHTML('beforeend', `<details class="contact-enquiry"><summary>${t('কথা শুরু করার বার্তা','Message to start a conversation')}</summary><textarea maxlength="800" aria-label="${t('পাঠানোর বার্তা','Enquiry message')}">${h(draft)}</textarea><button class="button button-outline" data-action="copy-enquiry">${t('বার্তা কপি করুন','Copy message')}</button></details><button type="button" class="button button-outline" data-action="keep-contact-note">${t('খাতায় যোগাযোগ রাখুন','Keep contact in notebook')}</button><span class="enquiry-status" role="status"></span>`);
+    const whatsapp=dialog?.querySelector('a[href^="https://wa.me/"]');
+    if(whatsapp){
+      const field=dialog.querySelector('textarea');
+      const update=()=>{const url=new URL(whatsapp.href);url.searchParams.set('text',field.value);whatsapp.href=url.href;};
+      field.addEventListener('input',update);update();
+    }
+  }
+  if (role === 'buyer' && view === 'notebook') {
+    mountNotebook({t,h,money:rate,prettyDate,today:todayPlus(0)});
+    app.querySelector('main')?.insertAdjacentHTML('beforeend', `<details class="page-shell contact-enquiry"><summary>${t('কৃষকের সঙ্গে কথার নোট','Farmer follow-up notes')}</summary>${workspace('contacts',sourcingContext)}</details>`);
+    mountWorkspace('contacts',sourcingContext);
+  }
+  if (role === 'buyer' && view === 'profile') {
+    document.querySelector('#buyer-profile-form').dataset.demo='false';
+    document.querySelector('.buyer-personal').classList.remove('buyer-profile');
+    document.querySelector('.buyer-personal').classList.add('buyer-profile-page');
+    const district = document.querySelector('#buyer-profile-form [name=district]');
+    district.insertAdjacentHTML('afterbegin', `<option value="">${t('জেলা বাছুন (ঐচ্ছিক)','Choose district (optional)')}</option>`);
+    district.value = districts.includes(buyerProfile.district) ? buyerProfile.district : '';
+  }
+  if (role === 'buyer' && profileOpen) {
+    document.querySelector('.profile-drawer').insertAdjacentHTML('beforeend', `<button class="button button-outline" data-action="open-notebook">${t('খাতা','Notebook')}</button>`);
+    document.querySelector('.profile-drawer .modal-close')?.focus();
+  }
+  if (detailLotId) {
+    const lot = buyerListing(detailLotId);
+    const use = {table:t('খাওয়ার আলু','Food potatoes'),seed:t('বীজ আলু','Seed potatoes'),processing:t('চিপস বা কারখানার জন্য','Processing')};
+    const facts = [[t('আলু রাখার জায়গা','Storage'),lot?.storageDescription],[t('ফসল তোলার তারিখ','Harvest date'),lot?.harvestDate ? prettyDate(lot.harvestDate) : ''],[t('ব্যবহার','Intended use'),use[lot?.purpose]],[t('যে দেশে ফলানো হয়েছে','Country grown in'),lot?.country],[t('বস্তার চিহ্ন','Bag mark'),lot?.batchCode],[t('প্যাক করার মাস','Packing month'),lot?.packedMonth]];
+    document.querySelector('.buyer-lot-modal dl')?.insertAdjacentHTML('beforeend',facts.filter(([,value])=>value).map(([label,value])=>`<div><dt>${label}</dt><dd>${h(value)}</dd></div>`).join(''));
+  }
+  if (role === "buyer" && ["home", "buyer-plan"].includes(view)) {
+    const banner = document.createElement("iframe");
+    banner.className = view === "home" ? "buyer-market-banner" : "buyer-offers-banner";
+    banner.src = view === "home" ? "/marketplace/banners/buyer-market-living-v1/banner.html" : "/marketplace/banners/buyer-offers-calculating-v1/banner.html";
+    banner.title = view === "home" ? t("আলুর বাজারে মান যাচাই করছেন এক ক্রেতা", "A buyer checking potatoes at a market") : t("আলুর বাজারে দর হিসাব করছেন এক ব্যবসায়ী", "A buyer calculating an offer in the potato market");
+    banner.loading = "eager";
+    if (view === "home") {
+      banner.tabIndex = -1;
+      document.querySelector(".catalogue-hero")?.prepend(banner);
+    } else document.querySelector(".buyer-plan-page")?.before(banner);
+  }
+  if (role === "buyer" && ["saved", "buyer-plan"].includes(view)) {
+    document.querySelector('.buyer-plan-page > .section-header, .liked-page > .section-header')?.insertAdjacentHTML('afterend', `<nav class="buyer-cost-nav" aria-label="${t('খরচ ও লাভের বিভাগ','Cost and profit sections')}">${[['buyer-plan',t('খরচের হিসাব','Cost calculator')],['saved',t('পছন্দ ও তুলনা','Saved & compare')]].map(([key,label])=>`<button type="button" class="button ${view===key?'button-green':'button-outline'}" data-view="${key}" aria-current="${view===key?'page':'false'}">${label}</button>`).join('')}</nav>`);
+    const planResults = view === "buyer-plan" && document.querySelector("#buyer-plan-results, .buyer-plan-page > .empty-state");
+    if (planResults) renderPotatoPriceHistory(planResults);
+    const showingPractice = view === 'saved' ? !buyerSaved.length : planLots().some(lot => lot.practice);
+    document.body.classList.toggle('buyer-practice', showingPractice);
+    if (showingPractice && view === 'buyer-plan') {
+      document.querySelector('.buyer-plan-page .section-header')?.insertAdjacentHTML('afterend', `<p class="practice-note">${t('আলুর তালিকা থেকে লট তুলনায় রাখুন, অথবা নিজের দাম বসিয়ে হিসাব করুন। ওপরের দরগুলো কৃষকের দেওয়া নয়।', 'Select lots in the catalogue or enter your own prices. The starting prices are assumptions, not quotes from farmers.')}</p>`);
+    }
+    if (showingPractice && view === 'saved') {
+      const page = document.querySelector(view === 'saved' ? '.liked-page' : '.buyer-plan-page');
+      page?.querySelector('.section-header')?.insertAdjacentHTML('afterend', `<aside class="practice-note"><strong>${t('তুলনার উদাহরণ', 'Comparison examples')}</strong><span>${t('৩টি আলুর তথ্য দিয়ে শুরু করুন। দাম ও কেজি বদলে দেখুন—এগুলো আপনার পছন্দের তালিকা বা আসল বিক্রির বিজ্ঞাপন নয়।', 'Start with three example lots. Change prices and quantities; these are not your saved favourites or live sale listings.')}</span></aside>`);
+      if (view === 'saved') {
+        document.querySelectorAll('.liked-select input').forEach(box => { box.checked = practiceCompared.includes(box.dataset.id); });
+        document.querySelectorAll('.liked-remove').forEach(button => button.remove());
+        const count = document.querySelector('.liked-selection-bar span');
+        if (count) count.textContent = t('৩টি আলুর তথ্য', '3 example lots');
+      }
+    }
+    if (view === 'saved' && !compareOpen) document.querySelector('.liked-selection-bar')?.insertAdjacentHTML('beforeend', `<button class="button button-outline" data-view="buyer-plan">${t('লাভের হিসাব দেখুন', 'Explore profit')} →</button>`);
+  } else document.body.classList.remove('buyer-practice');
+  if (buyerListing(detailLotId)?.practice) {
+    const contact = document.querySelector('.buyer-lot-modal [data-action="contact-lot"]');
+    if (contact) { contact.dataset.view = 'buyer-plan'; contact.removeAttribute('data-action'); contact.textContent = t('লাভের হিসাব দেখুন', 'Explore profit'); }
+  }
+  if (role === "buyer" && view === "buyer-plan") {
+    mountWeightConverter(document.querySelector('.buyer-plan-page'), t);
+    updateBuyerPlan();
+  }
+  if (role === 'buyer' && view === 'buyer-plan') document.querySelector('.buyer-plan-page h1').textContent=t('খরচ ও লাভ','Cost & profit');
   if (buyerProfile.businessName && document.querySelector("#offer-form [name=buyer]")) document.querySelector("#offer-form [name=buyer]").value = buyerProfile.businessName;
   enhanceLotTools();
   if (view === "transport") {
     const lot = selectedLot();
-    mountTransport(document.querySelector("#transport-root"), { language, lot, lots: visibleListings(), remaining: lot ? availableKg(lot, data.deals) : 0, offers: { selectedId: transportOfferId, items: visibleOffers().filter(offer => offer.lotId === lot?.id) }, prepareDemo });
+    if (role === "buyer") {
+      const params = new URL(location.href).searchParams;
+      const requestedLot = params.get("transportLot");
+      const linkedLot = requestedLot ? data.listings.find(item => item.id === requestedLot) : null;
+      const requestedKg = Number(params.get("transportKg"));
+      mountBuyerTransport(document.querySelector("#transport-root"), { language, lot: linkedLot, quantityKg: requestedKg > 0 ? requestedKg : linkedLot ? availableKg(linkedLot, data.deals) : 0 });
+    } else mountTransport(document.querySelector("#transport-root"), { language, lot, lots: visibleListings(), remaining: lot ? availableKg(lot, data.deals) : 0, offers: { selectedId: transportOfferId, items: visibleOffers().filter(offer => offer.lotId === lot?.id) }, prepareDemo });
   }
-  if (role === "farmer" && view === "home") document.querySelector(".choice-strip").insertAdjacentHTML("beforeend", `<button class="choice-card transport-home-link" data-view="transport"><span class="choice-icon green">${icon("truck", 26)}</span><strong>${t("গাড়ির হিসাব", "Plan transport")}</strong><small>${t("পথ, গাড়ির দর ও ভাগের খরচ", "Route, quotes and shared costs")}</small>${icon("arrow", 18)}</button>`);
+  if (role === "farmer" && view === "home") document.querySelector(".choice-strip")?.insertAdjacentHTML("beforeend", `<button class="choice-card transport-home-link" data-view="transport"><span class="choice-icon green">${icon("truck", 26)}</span><strong>${t("গাড়ির হিসাব", "Plan transport")}</strong><small>${t("পথ, গাড়ির দর ও ভাগের খরচ", "Route, quotes and shared costs")}</small>${icon("arrow", 18)}</button>`);
   if (role === "farmer" && view === "offers") document.querySelectorAll(".offer-card").forEach((card, index) => {
     const offer = visibleOffers().filter(item => item.lotId === selectedLot()?.id)[index];
     if (offer) card.querySelector(".offer-bottom").insertAdjacentHTML("beforebegin", `<button class="text-arrow transport-offer-link" data-action="plan-transport" data-id="${h(offer.id)}">${icon("truck", 18)}${t("এই দরে গাড়ির খরচ দেখুন", "Plan transport for this offer")}</button>`);
@@ -528,7 +923,7 @@ function render() {
     for (const [key, value] of Object.entries(storageInputs)) form.elements[key].value = value;
     showStorageResult(form, storageInputs);
   }
-  prepareDemo();
+  if (view !== "transport" || role !== "buyer") prepareDemo();
 }
 
 fetch("./providers.json")
@@ -563,13 +958,127 @@ function getDeal(id) { return data.deals.find(deal => deal.id === id); }
 
 document.addEventListener("click", event => {
   const viewButton = event.target.closest("[data-view]");
-  if (viewButton) {
-    if (viewButton.tagName === "A" && (event.ctrlKey || event.metaKey || event.shiftKey || event.button === 1)) return;
-    event.preventDefault(); setView(viewButton.dataset.view); return;
-  }
+  if (viewButton) { if(role==='buyer') profileOpen=false; setView(viewButton.dataset.view); return; }
   const button = event.target.closest("[data-action]");
   if (!button) return;
   const action = button.dataset.action;
+  if (publicPreview && !["view-lot", "close-lot", "lot-photo", "catalogue-row-photo"].includes(action)) return;
+  if(action==='copy-enquiry') {const field=document.querySelector('.contact-enquiry textarea'),status=document.querySelector('.enquiry-status');if(field){navigator.clipboard?.writeText(field.value).then(()=>{status.textContent=t('কপি হয়েছে।','Copied.');}).catch(()=>{field.focus();field.select();status.textContent=t('লেখা সিলেক্ট করা আছে। Ctrl+C চাপুন।','Text selected. Press Ctrl+C.');});if(!navigator.clipboard){field.focus();field.select();status.textContent=t('Ctrl+C চাপুন।','Press Ctrl+C.');}}return;}
+  if (action === 'open-notebook' && role === 'buyer') {profileOpen=false;setView('notebook');return;}
+  if (action === "open-profile") { profileOpen = true; render(); return; }
+  if (action === "close-profile") { if (button === event.target || button.classList.contains("modal-close")) { profileOpen = false; render(); if(role==='buyer')document.querySelector('[data-action=open-profile]')?.focus(); } return; }
+  if (action === "profile-page") { profileOpen = false; setView("profile"); return; }
+  if (action === "keep-contact-note") {
+    const status = button.parentElement.querySelector('.enquiry-status');
+    try { if (keepContact(buyerListing(contactLotId))) status.textContent = t('খাতায় রাখা হয়েছে।','Saved in your notebook.'); }
+    catch { status.textContent = t('সেভ হয়নি। আবার চেষ্টা করুন।','Could not save. Try again.'); }
+    return;
+  }
+  if (action === "compare-costs") {
+    buyerPlan.inputs.quantity = String(comparisonQuantity || '');
+    saveBuyerPlan();
+    setView('buyer-plan');
+    return;
+  }
+  if (action === "catalogue-compare-open") { openCatalogueComparison(); return; }
+  if (action === "catalogue-costs") { costLotId = ""; button.closest("dialog").close(); setView("buyer-plan"); return; }
+  if (action === "lot-costs" && role === "buyer") {
+    const lot = buyerListing(button.dataset.id);
+    if (!lot) return;
+    costLotId = lot.id;
+    const available = availableKg(lot, data.deals);
+    buyerPlan.inputs.quantity = available > 0 ? String(Math.min(200, available)) : "";
+    setView("buyer-plan");
+    return;
+  }
+  if (action === "apply-lot-costs" && role === "buyer") {
+    const form = button.closest("#buyer-plan-form");
+    const status = form.querySelector("#plan-breakdown-status");
+    const quantity = planNumber(form.elements.quantity.value);
+    const price = planNumber(form.elements.buyPrice.value);
+    const fees = ["transportCost", "laborCost", "weighingCost", "packingCost", "marketCost", "storageCost", "otherCost"].map(key => planNumber(form.elements[key].value, true));
+    const total = Math.round((quantity * price + fees.reduce((sum, fee) => sum + fee, 0)) * 100) / 100;
+    if (!(quantity > 0) || quantity > 1000000 || price === null || fees.includes(null) || total > 100000000) {
+      status.textContent = t("কেজি, কেনার দাম আর খরচ মিলিয়ে দেখুন।", "Check quantity, buying price and costs.");
+      return;
+    }
+    form.elements.totalCost.value = String(total);
+    form.elements.totalCost.dispatchEvent(new Event("input", { bubbles: true }));
+    form.dataset.breakdownApplied = "true";
+    status.textContent = t("মোট খরচ বসানো হয়েছে। লাভ দেখতে হিসাব করুন চাপুন।", "Total updated. Press Calculate to see profit or loss.");
+    return;
+  }
+  if (action === "catalogue-compare-toggle") {
+    const id = button.dataset.id, selected = catalogueSelection.includes(id);
+    const shortlist = document.querySelector("#catalogue-shortlist");
+    if (!selected && catalogueSelection.length >= 4) {
+      shortlist.querySelector('[role="status"]').textContent = t("চারটি লট বাছা আছে। আগে একটি সরান।", "Four lots selected. Remove one before adding another.");
+      shortlist.querySelector('[role="status"]').classList.remove("sr-only");
+      return;
+    }
+    catalogueSelection = selected ? catalogueSelection.filter(value => value !== id) : [...catalogueSelection, id];
+    const toggles = document.querySelectorAll(`.buyer-contact-card [data-action="catalogue-compare-toggle"][data-id="${CSS.escape(id)}"]`);
+    toggles.forEach(toggle => {
+      toggle.setAttribute("aria-pressed", String(!selected));
+      toggle.textContent = selected ? t("তুলনায় রাখুন", "Add to comparison") : t("তুলনায় আছে", "In comparison");
+    });
+    const removedFromTray = shortlist.contains(button);
+    shortlist.innerHTML = catalogueShortlist(catalogueSelection.map(buyerListing).filter(Boolean));
+    if (removedFromTray) (toggles[0] || shortlist.querySelector("button") || document.querySelector("#buyer-catalogue-filters select"))?.focus({ preventScroll: true });
+    return;
+  }
+  if (action === "view-lot" || action === "contact-lot") {
+    const comparison = button.closest(".catalogue-comparison");
+    comparison?.close();
+    if (!detailLotId && !contactLotId) catalogueReturnFocus = comparison ? '[data-action="catalogue-compare-open"]' : `[data-action="${action}"][data-id="${CSS.escape(button.dataset.id)}"]`;
+    detailPhotoIndex = 0;
+    detailLotId = action === "view-lot" ? button.dataset.id : "";
+    contactLotId = action === "contact-lot" ? button.dataset.id : "";
+    render(); document.querySelector('.catalogue-detail-dialog .modal-close, .catalogue-contact-dialog .modal-close')?.focus(); return;
+  }
+  if (action === "catalogue-row-photo") {
+    const gallery = button.closest(".catalogue-row-gallery");
+    const index = button.dataset.slide === undefined
+      ? (Number(gallery.dataset.index) + Number(button.dataset.step) + 3) % 3
+      : Number(button.dataset.slide);
+    gallery.dataset.index = index;
+    gallery.querySelectorAll(".catalogue-row-gallery-slide").forEach((slide, i) => slide.setAttribute("aria-hidden", String(i !== index)));
+    gallery.querySelectorAll("[data-slide]").forEach((dot, i) => dot.setAttribute("aria-pressed", String(i === index)));
+    return;
+  }
+  if (action === "lot-photo") {
+    const lot = buyerListing(detailLotId);
+    const photos = lot ? cataloguePhotos(lot) : [];
+    if (!photos.length) return;
+    detailPhotoIndex = (detailPhotoIndex + Number(button.dataset.step) + photos.length) % photos.length;
+    const image = document.querySelector('.catalogue-detail-gallery img');
+    image.src = photos[detailPhotoIndex];
+    image.alt = `${lotVariety(lot)} · ${t("ছবি", "Photo")} ${formatter.format(detailPhotoIndex + 1)}`;
+    document.querySelector('.catalogue-gallery-controls span').textContent = `${formatter.format(detailPhotoIndex + 1)} / ${formatter.format(photos.length)}`;
+    return;
+  }
+  if (action === "withdraw-interest") {
+    try { localStorage.setItem("alusathi-buyer-interest-v1", JSON.stringify(readInterests().map(row=>row?.lotId===button.dataset.id && row.status==="active" ? {...row,status:"withdrawn",updatedAt:new Date().toISOString()} : row))); render(); }
+    catch { const status=document.querySelector('.interest-status'); if(status)status.textContent=t("আগ্রহ সরানো যায়নি। আবার চেষ্টা করুন।","Could not withdraw interest. Please retry."); }
+    return;
+  }
+  if (action === "close-lot" || action === "close-contact") { if (button === event.target || button.classList.contains("modal-close")) closeCatalogueDialog(); return; }
+  if (action === "save-lot") {
+    const id = button.dataset.id;
+    const previousSaved = buyerSaved;
+    const previousCompared = buyerCompared;
+    buyerSaved = buyerSaved.includes(id) ? buyerSaved.filter(value => value !== id) : [...buyerSaved, id];
+    if (!buyerSaved.includes(id)) buyerCompared = buyerCompared.filter(value => value !== id);
+    try { localStorage.setItem(buyerSavedKey, JSON.stringify(buyerSaved)); localStorage.setItem(buyerCompareKey, JSON.stringify(buyerCompared)); }
+    catch { buyerSaved = previousSaved; buyerCompared = previousCompared; notice = t("পছন্দের তালিকা সেভ হয়নি।", "Could not save liked lots."); }
+    render(); return;
+  }
+  if (action === "buyer-see-all") { buyerSearch.expanded = false; buyerSearch.applied = true; buyerSearchShowAll = true; buyerCataloguePage = 1; render(); document.querySelector(".buyer-catalogue")?.scrollIntoView({ behavior: "smooth" }); return; }
+  if (action === "buyer-expand-area") { if (buyerSearch) { buyerSearch.expanded = true; buyerSearch.applied = true; buyerSearchShowAll = false; render(); } return; }
+  if (action === "clear-buyer-filters") { buyerCatalogueDistrict = ""; buyerCatalogueVariety = ""; buyerCatalogueQuantity = 0; buyerSearch = null; buyerSearchShowAll = false; buyerSearchMessage = ""; buyerCataloguePage = 1; render(); return; }
+  if (action === "catalogue-page") { buyerCataloguePage = Math.max(1, Number(button.dataset.page) || 1); render(); document.querySelector(".buyer-catalogue")?.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
+  if (action === "compare-selected") { const selected = buyerSaved.length ? buyerCompared : practiceCompared; if (selected.length >= 2 && selected.length <= 4) { compareOpen = true; render(); window.scrollTo({top:0, behavior:"instant"}); document.querySelector('#comparison-quantity')?.focus({preventScroll:true}); } return; }
+  if (action === "close-comparison") { compareOpen = false; render(); document.querySelector('[data-action=compare-selected]')?.focus({preventScroll:true}); return; }
   if (action === "toggle-samples") { showSamples = !showSamples; selectedLotId = visibleListings()[0]?.id || ""; transportOfferId = ""; reviewOfferId = ""; render(); return; }
   if (action === "plan-transport") { transportOfferId = button.dataset.id; setView("transport"); return; }
   if (action === "dictate-notes") { dictateNotes(button); return; }
@@ -578,41 +1087,61 @@ document.addEventListener("click", event => {
   if (action === "language") { const formState = captureFormState(); language = language === "bn" ? "en" : "bn"; setNumberFormat(); localStorage.setItem(langKey, language); localStorage.setItem("alusathi-lang", language); render(); restoreFormState(formState); }
   if (action === "logout") { try { sessionStorage.removeItem(sessionKey); sessionStorage.removeItem("alusathi-role"); sessionStorage.setItem("alusathi-demo", "false"); } catch { /* Session can still end by leaving this page. */ } location.assign("/"); }
   if (action === "dismiss") { notice = ""; render(); }
-  if (action === "reset" && confirm(t("এই ব্রাউজারের রাখা তথ্য মুছে আবার শুরু করবেন?", "Clear saved data in this browser and start over?"))) { data = initialData(); buyerProfile = {}; buyerBrief = { variety: "", quantityKg: "", destination: "", purpose: "" }; try { localStorage.removeItem(buyerProfileKey); localStorage.removeItem("alusathi-buyer-brief-v1"); } catch { /* Data remains editable in memory. */ } selectedLotId = data.listings[0].id; storageInputs = null; quoteOpen = false; save(); setView("home"); }
+  if (action === "reset" && confirm(t("এই ব্রাউজারের রাখা তথ্য মুছে আবার শুরু করবেন?", "Clear saved data in this browser and start over?"))) { data = initialData(); buyerProfile = {}; try { localStorage.removeItem(buyerProfileKey); } catch { /* Data remains editable in memory. */ } selectedLotId = data.listings[0].id; storageInputs = null; quoteOpen = false; save(); setView("home"); }
   if (action === "select-lot") { selectedLotId = button.dataset.id; setView("offers"); }
-  if (action === "open-buyer-lot") { selectedLotId = button.dataset.id; draftLotId = ""; render(); return; }
-  if (action === "offer-lot") { draftLotId = button.dataset.id; if (role === "buyer") setView("home"); else { render(); document.querySelector("#offer-form")?.scrollIntoView({ behavior: "smooth", block: "start" }); } }
-  if (action === "edit-offer") { const offer = data.offers.find(item => item.id === button.dataset.id); if (offer && offer.status === "pending") { draftLotId = offer.lotId; selectedLotId = offer.lotId; setView("home"); } return; }
-  if (action === "withdraw-offer") { const offer = data.offers.find(item => item.id === button.dataset.id); if (offer && offer.status === "pending") { offer.status = "withdrawn"; offer.updatedAt = new Date().toISOString(); save(); notice = t("দরটি তুলে নেওয়া হয়েছে।", "Offer withdrawn."); render(); } return; }
+  if (action === "offer-lot") { if (SALES_FEATURE_ENABLED) { draftLotId = button.dataset.id; render(); document.querySelector("#offer-form")?.scrollIntoView({ behavior: "smooth", block: "start" }); } }
   if (action === "close-offer") { draftLotId = ""; render(); }
   if (action === "review-offer") { reviewOfferId = button.dataset.id; render(); document.querySelector(".modal input[name=quantityKg]")?.focus(); }
   if (action === "close-review" && (button === event.target || button.closest(".modal-close") || button.tagName === "BUTTON")) { reviewOfferId = ""; render(); }
   if (action === "confirm-pickup") { const deal = getDeal(button.dataset.id); if (deal?.status === "pickup_pending") { deal.status = "collected"; save(); render(); } }
-  if (action === "confirm-payment") { const deal = getDeal(button.dataset.id); const report = deal && pendingPayment(deal); if (deal?.status === "payment_pending" && report && confirm(t("নিজের হিসাবে টাকা পেয়েছেন? পেয়ে থাকলে তবেই নিশ্চিত করুন।", "Have you checked your own account and received the money?"))) { report.status = "confirmed"; report.confirmedAt = new Date().toISOString(); deal.status = confirmedPayments(deal) >= potatoPaymentDue(deal) ? "paid" : "collected"; save(); render(); } }
-  if (action === "dispute") { const deal = getDeal(button.dataset.id); const issue = deal && prompt(t("কী মিলছে না?", "What does not match?")); if (deal && issue?.trim()) { deal.disagreements ??= []; deal.disagreements.push({ id: uid(), text: issue.trim().slice(0, 300), reportedBy: role, createdAt: new Date().toISOString(), resolved: false }); deal.status = "disputed"; save(); notice = t("পার্থক্য নথিতে রাখা হয়েছে। দুই পক্ষ মিলিয়ে সমাধান করুন।", "The difference was saved. Resolve it together before completing the purchase."); render(); } }
+  if (action === "confirm-payment") { const deal = getDeal(button.dataset.id); if (deal?.status === "payment_pending" && Number(deal.paymentAmount) > 0 && confirm(t("নিজের হিসাবে টাকা পেয়েছেন? পেয়ে থাকলে তবেই নিশ্চিত করুন।", "Have you checked your own account and received the money?"))) { deal.status = Number(deal.remainingBalance) > 0 ? "collected" : "paid"; save(); render(); } }
+  if (action === "dispute") { notice = t("এখানে বিরোধ মেটানোর সেবা নেই।", "Dispute support is not available here."); render(); }
   if (action === "print-deal") printDeal(button.dataset.id);
-  if (action === "print-buyer-notebook") { window.print(); }
-});
-
-window.addEventListener("hashchange", () => {
-  const next = location.hash.slice(1) || "home";
-  if (role === "buyer" && buyerViews.includes(next) && next !== view) { view = next; render(); }
 });
 
 document.addEventListener("change", event => {
-  if (event.target.id === "lot-switch") { selectedLotId = event.target.value; transportOfferId = ""; render(); }
-  if (event.target.form?.id === "offer-form") event.target.dispatchEvent(new Event("input", { bubbles: true }));
+  if (event.target.id === "lot-switch") { selectedLotId = event.target.value; transportOfferId = ""; render(); return; }
+  const checkbox = event.target.closest?.('[data-action="compare-lot"]');
+  if (!checkbox) return;
+  const id = checkbox.dataset.id;
+  if (practiceLots.some(lot => lot.id === id)) {
+    practiceCompared = checkbox.checked ? [...new Set([...practiceCompared, id])] : practiceCompared.filter(value => value !== id);
+    render(); return;
+  }
+  buyerCompared = buyerCompared.filter(key => data.listings.some(lot => lot.id === key && !lot.archivedAt && !lot.hiddenAt && availableKg(lot, data.deals) > 0));
+  if (checkbox.checked && !buyerCompared.includes(id) && buyerCompared.length >= 4) {
+    checkbox.checked = false;
+    const message = t("সর্বোচ্চ ৪টি লট তুলনা করা যাবে। আগে একটি টিক সরান।", "Compare up to four lots. Untick one first.");
+    const status = document.querySelector('.liked-selection-status');
+    if (status) status.textContent = message; else notice = message;
+    return;
+  }
+  buyerCompared = checkbox.checked ? [...buyerCompared, id] : buyerCompared.filter(value => value !== id);
+  try { localStorage.setItem(buyerCompareKey, JSON.stringify(buyerCompared)); } catch { notice = t("তুলনার তালিকা সেভ হয়নি।", "Could not save comparison selection."); }
+  render();
 });
 
 document.addEventListener("input", event => {
-  if (event.target.form?.id === "offer-form") {
-    const form = event.target.form, box = form.querySelector("#buyer-purchase-estimate");
-    if (box) {
-      const quantity = Number(form.elements.quantityKg.value) || 0, accepted = Math.floor(quantity * (Number(form.elements.acceptedPercent.value) || 0) / 100), price = Number(form.elements.priceKg.value) || 0;
-      const costs = Object.fromEntries(["transport", "loadingSacks", "taxes", "marketFees", "other"].map(key => [key, form.elements[`known_${key}`].checked ? 0 : (form.elements[`cost_${key}`].value === "" ? null : Number(form.elements[`cost_${key}`].value))]));
-      const estimate = purchaseCost({ acceptedKg: accepted, priceKg: price, costs });
-      box.textContent = estimate.total !== null && accepted > 0 && price > 0 ? `${t("গ্রহণ", "Accepted")}: ${kg(accepted)} · ${t("মোট", "Total")}: ${money(estimate.total)} · ${t("প্রতি কেজি", "Per accepted kg")}: ${rate(estimate.costPerAcceptedKg)}` : t("সব খরচ জানা হলে মোট দেখাবে।", "Total appears when every cost is known.");
+  if (event.target.closest('#buyer-plan-form')) {
+    const form = event.target.closest("#buyer-plan-form");
+    if (event.target.name === "totalCost") {
+      delete form.dataset.breakdownApplied;
+      delete form.dataset.breakdownStale;
+    } else if (form.dataset.breakdownApplied && (event.target.name === "quantity" || event.target.closest(".plan-cost-breakdown"))) {
+      form.dataset.breakdownStale = "true";
     }
+    form.querySelector("#plan-breakdown-status").textContent = "";
+    if (["quantity", "resale", "totalCost"].includes(event.target.name)) buyerPlan.inputs[event.target.name] = event.target.value;
+    updateBuyerPlan(); saveBuyerPlan(); return;
+  }
+  if (event.target.name === "comparisonQuantity") {
+    const value = event.target.value.trim().replace(/[০-৯]/g, digit => String("০১২৩৪৫৬৭৮৯".indexOf(digit)));
+    comparisonQuantity = /^\d+(?:\.\d{1,3})?$/.test(value) ? validNumber(value, .001, 1000000) || 0 : 0;
+    document.querySelectorAll('[data-comparison-total]').forEach(cell => {
+      const lot = buyerListing(cell.dataset.comparisonTotal);
+      if (lot) cell.innerHTML = comparisonTotal(lot, comparisonQuantity);
+    });
+    return;
   }
   if (event.target.name !== "quantityKg" || event.target.form?.id !== "deal-form") return;
   updateReviewPreview(event.target.form);
@@ -622,6 +1151,30 @@ document.addEventListener("change", event => {
   if (event.target.name === "quantityKg" && event.target.form?.id === "deal-form") updateReviewPreview(event.target.form);
 });
 document.addEventListener("keydown", event => {
+  if(event.key==='Escape' && !profileOpen && !detailLotId && !contactLotId) { const menu=document.querySelector('.desktop-nav .buyer-tools-menu[open]');if(menu){menu.open=false;menu.querySelector('summary').focus();return;} }
+  if (profileOpen && role === 'buyer') {
+    const drawer = document.querySelector('.profile-drawer');
+    if (event.key === 'Escape') { event.preventDefault(); profileOpen=false; render(); document.querySelector('[data-action=open-profile]')?.focus(); return; }
+    if (event.key === 'Tab' && drawer) {
+      const controls = [...drawer.querySelectorAll('button,a[href],input,select')];
+      const first=controls[0],last=controls[controls.length-1];
+      if (!drawer.contains(document.activeElement) || (event.shiftKey && document.activeElement===first)) {event.preventDefault();(event.shiftKey?last:first)?.focus();}
+      else if(!event.shiftKey && document.activeElement===last) {event.preventDefault();first?.focus();}
+    }
+    return;
+  }
+  if (detailLotId || contactLotId) {
+    const dialog = document.querySelector('.catalogue-detail-dialog, .catalogue-contact-dialog');
+    if (!dialog) return;
+    if (event.key === "Escape") { event.preventDefault(); closeCatalogueDialog(); return; }
+    if (event.key === "Tab") {
+      const controls = [...dialog.querySelectorAll('button:not(:disabled), a[href], input, select, textarea')];
+      const first = controls[0], last = controls[controls.length - 1];
+      if (!dialog.contains(document.activeElement) || (event.shiftKey && document.activeElement === first)) { event.preventDefault(); (event.shiftKey ? last : first)?.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    }
+    return;
+  }
   if (!reviewOfferId) return;
   const dialog = document.querySelector('[role="dialog"]');
   if (!dialog) return;
@@ -636,21 +1189,135 @@ document.addEventListener("keydown", event => {
 window.addEventListener("pagehide", () => { stopNotesVoice(); disposeTransport(); });
 
 document.addEventListener("submit", async event => {
+  if (event.target.id === "buyer-plan-form") {
+    event.preventDefault();
+    updateBuyerPlan(true);
+    return;
+  }
   const form = event.target;
   if (!(form instanceof HTMLFormElement)) return;
+  if (form.method === "dialog") return;
   event.preventDefault();
   const values = formValues(form);
   if (!displayName) return;
-  if (form.id === "buyer-brief-form") {
-    const quantityKg = validNumber(values.quantityKg || 0, 0, 100000);
-    if (quantityKg === null) { notice = t("পরিমাণ ঠিক করে দিন।", "Check the quantity."); render(); return; }
-    buyerBrief = { variety: varieties.some(([value]) => value === values.variety) ? values.variety : "", quantityKg: quantityKg || "", district: districts.includes(values.district) ? values.district : "", destination: districts.includes(values.district) ? values.district : "", purpose: ["table", "seed", "processing"].includes(values.purpose) ? values.purpose : "", readyDate: /^\d{4}-\d{2}-\d{2}$/.test(values.readyDate || "") ? values.readyDate : "", sort: values.sort === "quantity" ? "quantity" : "ready" };
-    try { localStorage.setItem("alusathi-buyer-brief-v1", JSON.stringify(buyerBrief)); } catch { /* Filtering still works for this session. */ }
-    render();
-    document.querySelector("#buyer-brief-form")?.elements.variety?.focus();
+  if (form.id === "buyer-interest-form") {
+    if (form.dataset.saving === "true") return;
+    const status=form.querySelector('.interest-status');
+    const value=String(values.quantityKg).trim().replace(/[০-৯]/g,d=>String("০১২৩৪৫৬৭৮৯".indexOf(d)));
+    let lot; try {const latest=JSON.parse(localStorage.getItem(storeKey));lot=latest?.listings?.find(item=>item.id===values.lotId && !item.archivedAt && !item.hiddenAt);} catch {status.textContent=t("তালিকা পড়া যায়নি। লেখা আছে—আবার চেষ্টা করুন।","Could not read the listing. Your entries remain; please retry.");return;}
+    const quantity=/^\d+(?:\.\d{1,2})?$/.test(value) ? validNumber(value, .01, 100000) : null;
+    if (!lot || !quantity || quantity>availableKg(lot,data.deals)) { status.textContent=t("উপলভ্য পরিমাণের মধ্যে সঠিক কেজি লিখুন।","Enter a valid quantity within the available amount.");return; }
+    form.dataset.saving="true";
+    try {
+      const rows=readInterests(), previous=rows.find(row=>row?.lotId===lot.id && row.status==="active");
+      const profile=JSON.parse(localStorage.getItem(buyerProfileKey) || "{}");
+      const safeText=value=>typeof value==="string" ? value.slice(0,100) : "";
+      const safeNumber=value=>{const n=safeText(value).replace(/[\s()-]/g,"");return /^\+?[0-9]{8,15}$/.test(n) ? n : ""};
+      const price=Number(lot.askingPriceKg ?? lot.priceKg);
+      const row={id:previous?.id || uid(),lotId:lot.id,status:"active",quantityKg:quantity,askingPriceKg:Number.isFinite(price)&&price>0&&price<=10000?price:null,note:String(values.note || "").trim().slice(0,200),buyer:{businessName:safeText(profile?.businessName),contactPerson:safeText(profile?.contactPerson),district:safeText(profile?.district),phone:safeNumber(profile?.phone),whatsapp:safeNumber(profile?.whatsapp)},createdAt:previous?.createdAt || new Date().toISOString(),updatedAt:new Date().toISOString()};
+      localStorage.setItem("alusathi-buyer-interest-v1",JSON.stringify(previous ? rows.map(old=>old?.id===previous.id?row:old) : [row,...rows]));
+      render();
+    } catch { status.textContent=t("আগ্রহ রাখা যায়নি। লেখা আছে—আবার চেষ্টা করুন।","Could not save interest. Your entries remain; please retry."); }
+    finally {form.dataset.saving="false";}
     return;
   }
+  if (form.id === "buyer-search-prompt") {
+    buyerSearch = parseBuyerQuery(values.query || "");
+    buyerSearch.query = String(values.query || "").slice(0, 240);
+    const missing = [];
+    if (!buyerSearch.quantity) missing.push(t("পরিমাণ", "quantity"));
+    if (!buyerSearch.district) missing.push(t("জেলা", "district"));
+    buyerSearchMessage = missing.length ? `${t("চাহিদা পুরো বোঝা যায়নি। নিচের ঘরগুলো পূরণ করুন: ", "Some details were not found. Complete these fields: ")}${missing.join(t(" ও ", " and "))}.` : "";
+    buyerSearchShowAll = false;
+    render();
+    document.querySelector("#buyer-search-edit [name=quantity]")?.focus();
+    return;
+  }
+  if (form.id === "buyer-search-edit") {
+    const quantity = validNumber(values.quantity, 1, 100000);
+    const budget = values.budget === "" ? "" : validNumber(values.budget, 1, 100000000);
+    if (!quantity || !districts.includes(values.district) || (values.budget !== "" && budget === null) || (values.readyDate && !/^\d{4}-\d{2}-\d{2}$/.test(values.readyDate))) { buyerSearchMessage = t("পরিমাণ, জেলা, তারিখ বা বাজেট ঠিক করে দিন।", "Check the quantity, district, date, or budget."); return render(); }
+    buyerSearch = { ...buyerSearch, quantity, district: values.district, readyDate: values.readyDate, budget, applied: true };
+    buyerSearchMessage = ""; buyerSearchShowAll = false; render(); return;
+  }
+  if (form.id === "buyer-catalogue-filters") {
+    const raw = String(values.minKg || "").trim().replace(/[০-৯]/g, digit => String("০১২৩৪৫৬৭৮৯".indexOf(digit)));
+    const quantity = raw ? (/^\d+(?:\.\d{1,3})?$/.test(raw) ? validNumber(raw, 0.001, 1000000) : null) : 0;
+    if (quantity === null) {
+      form.querySelector(".catalogue-filter-error").textContent = t("কত কেজি লাগবে, ঠিক করে লিখুন।", "Enter a valid quantity in kilograms.");
+      form.elements.minKg.focus();
+      return;
+    }
+    buyerCatalogueQuantity = quantity;
+    buyerCatalogueDistrict = districts.includes(values.district) ? values.district : "";
+    buyerCatalogueVariety = varieties.some(([value]) => value === values.variety) ? values.variety : "";
+    buyerCataloguePage = 1;
+    render(); return;
+  }
+  if (form.id === "buyer-profile-form" || form.id === "farmer-profile-form") {
+    const isBuyer = form.id === "buyer-profile-form";
+    const keys = isBuyer ? ["businessName", "contactPerson", "district", "upazila", "phone", "whatsapp", "destinationDistrict", "preferredLanguage"] : ["name", "district", "upazila", "village", "phone", "whatsapp", "land", "landUnit", "tenure", "preferredLanguage", "contactSharingEnabled"];
+    const profile = {...(isBuyer ? buyerProfile : farmerProfile), ...Object.fromEntries(keys.map(key => [key, String(values[key] || "").trim().slice(0, key === "phone" || key === "whatsapp" ? 25 : 100)]))};
+    const profileError = form.querySelector('[data-profile-error]');
+    if (isBuyer) {
+      const validPhone = value => !value || /^\+?[\d\s()-]+$/.test(value.replace(/[০-৯]/g,d=>'০১২৩৪৫৬৭৮৯'.indexOf(d)));
+      const digits = value => value.replace(/[০-৯]/g,d=>'০১২৩৪৫৬৭৮৯'.indexOf(d)).replace(/\D/g,'');
+      if (['phone','whatsapp'].some(k => profile[k] && (!validPhone(profile[k]) || digits(profile[k]).length < 7 || digits(profile[k]).length > 15)) || (profile.district && !districts.includes(profile.district)) || !districts.includes(profile.destinationDistrict) || !['bn','en'].includes(profile.preferredLanguage)) { profileError.textContent=t('ফোন নম্বর ও জেলা মিলিয়ে দিন।','Check your phone numbers and district.'); return; }
+    }
+    if (!isBuyer) profile.contactSharingEnabled = form.elements.contactSharingEnabled.checked;
+    if (profile.land && validNumber(profile.land, 0, 100000) === null) { notice = t("জমির পরিমাণ ঠিক করে দিন।", "Enter a valid land area."); render(); return; }
+    try {
+      localStorage.setItem(isBuyer ? buyerProfileKey : farmerProfileKey, JSON.stringify(profile));
+      if (isBuyer) buyerProfile = profile; else farmerProfile = profile;
+      notice = t("প্রোফাইল সংরক্ষণ হয়েছে।", "Profile saved.");
+    } catch { if (isBuyer) {profileError.textContent=t('সেভ হয়নি। আপনার লেখা আছে—আবার চেষ্টা করুন।','Could not save. Your edits are still here; try again.');return;} notice = t("সংরক্ষণ করা যায়নি। জায়গা খালি করে আবার চেষ্টা করুন।", "Could not save. Free browser storage and try again."); }
+    render(); return;
+  }
   if (form.id === "lot-form") {
+    if (form.closest('.sale-details-page')) {
+      if (form.dataset.saving === 'true' || !form.reportValidity()) return;
+      const amount = validNumber(values.quantityKg, 1, 100000);
+      const price = validNumber(values.askingPriceKg, .01, 10000);
+      const validDate = value => /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0,10) === value;
+      const errorBox = form.querySelector('[data-sale-error]');
+      if (!amount || !price || !districts.includes(values.district) || !String(values.upazila).trim() || !validDate(values.readyDate) || values.readyDate < todayPlus(0) || (values.harvestDate && (!validDate(values.harvestDate) || values.harvestDate > todayPlus(0)))) {
+        errorBox.hidden = false; errorBox.textContent = t('পরিমাণ, দাম, এলাকা ও তারিখ মিলিয়ে দিন।','Check quantity, price, area and dates.'); return;
+      }
+      form.dataset.saving = 'true';
+      const buttons = [...form.querySelectorAll('button[type=submit]')]; buttons.forEach(b=>b.disabled=true);
+      try {
+        const files = [...form.elements.photo.files];
+        if (files.length > 3) throw new Error(t('সর্বোচ্চ ৩টি ছবি দিন।','Choose up to 3 photos.'));
+        const photos = files.length ? [] : readPotatoDraft().photos;
+        for (const file of files) photos.push({src:await compressPhoto(file),addedAt:new Date().toISOString()});
+        const details = {district:values.district,upazila:String(values.upazila).trim().slice(0,60),variety:varieties.some(([key])=>key===values.variety)?values.variety:'Potatoes',quantityKg:amount,askingPriceKg:price,priceKg:price,readyDate:values.readyDate,harvestDate:values.harvestDate || '',purpose:['table','seed','processing'].includes(values.purpose)?values.purpose:'unknown',notes:String(values.notes || '').trim().slice(0,300),storageDescription:String(values.storageDescription || '').trim().slice(0,200),photos,photo:photos[0]?.src || ''};
+        localStorage.setItem(potatoDraftKey,JSON.stringify(details));
+        if (view === 'passport') {
+          if (event.submitter?.value === 'back') { location.href='/selling-preparation'; return; }
+          notice=t('তথ্য রাখা হয়েছে। মিলিয়ে বাজারে ছাড়ুন।','Details saved. Review and publish when ready.'); setView('list'); return;
+        }
+        let preparation = { checks: [], checkedOn: '' };
+        try {
+          const entry = JSON.parse(localStorage.getItem('alusathi-selling-prep-v1') || '{}')?.draft;
+          const allowed = ['sort','bag','weight','label','photos','example','scales','terms'];
+          preparation = { checks: Array.isArray(entry?.checks) ? entry.checks.filter(id=>allowed.includes(id)) : [], checkedOn: typeof entry?.checkedOn === 'string' && validDate(entry.checkedOn) && entry.checkedOn <= todayPlus(0) ? entry.checkedOn : '' };
+        } catch { /* Invalid stored preparation is not copied into a listing. */ }
+        const lot = { ...details,id:uid(),sample:false,farmerName:farmerProfile.name || displayName,createdAt:new Date().toISOString(),preparation };
+        data.listings.unshift(lot); selectedLotId=lot.id;
+        if (!save()) { data.listings.shift(); throw new Error(notice); }
+        notice=t('আলু বাজারের তালিকায় যোগ হয়েছে।','Your potatoes have been listed.');
+        try {
+          const saved = JSON.parse(localStorage.getItem('alusathi-selling-prep-v1') || '{}');
+          const records = saved && typeof saved === 'object' && !Array.isArray(saved) ? saved : {};
+          records[lot.id] = preparation; delete records.draft;
+          localStorage.setItem('alusathi-selling-prep-v1',JSON.stringify(records));
+          localStorage.setItem('alusathi-selling-prep-selected',lot.id);
+        } catch { notice += t(' প্রস্তুতির টিক লটের সঙ্গে আছে; লটটি বেছে দেখুন।',' Preparation is saved with the listing; select that lot to view it.'); }
+        setView('home'); return;
+      } catch (error) { errorBox.hidden=false; errorBox.textContent=error.message || t('রাখা যায়নি। আবার চেষ্টা করুন।','Could not save. Please retry.'); }
+      finally { form.dataset.saving='false'; buttons.forEach(b=>b.disabled=false); }
+      return;
+    }
     const unitKg = values.quantityUnit === "mon" ? 40 : values.quantityUnit === "bag" ? validNumber(values.bagKg, 1, 100) : 1;
     const quantityKg = unitKg && validNumber(Number(values.quantityKg) * unitKg, 1, 100000);
     if (!quantityKg || !districts.includes(values.district) || !/^\d{4}-\d{2}-\d{2}$/.test(values.readyDate)) {
@@ -677,11 +1344,9 @@ document.addEventListener("submit", async event => {
     const profile = { businessName: String(values.buyer || "").trim().slice(0, 80), contactPerson: String(values.contactPerson || "").trim().slice(0, 80), contactPhone: String(values.contactPhone || "").trim(), buyerUpazila: String(values.buyerUpazila || "").trim().slice(0, 80), buyerAddress: String(values.buyerAddress || "").trim().slice(0, 180) };
     if (profile.businessName.length < 2 || profile.contactPerson.length < 2 || !/^(?:\+?88)?01[3-9]\d{8}$/.test(profile.contactPhone) || profile.buyerUpazila.length < 2 || profile.buyerAddress.length < 5) { notice = t("ব্যবসার নাম, যোগাযোগের নাম, বাংলাদেশি মোবাইল নম্বর ও ঠিকানা ঠিক করে দিন।", "Check the business name, contact, Bangladesh mobile number and address."); return render(); }
     const lot = data.listings.find(item => item.id === values.lotId);
-    const costValue = key => values[`known_${key}`] === "yes" ? 0 : (values[`cost_${key}`] === "" ? null : validNumber(values[`cost_${key}`], 0, 1000000));
-    const buyerCosts = { transport: costValue("transport"), loadingSacks: costValue("loadingSacks"), taxes: costValue("taxes"), marketFees: costValue("marketFees"), other: costValue("other") };
-    const fields = { quantityKg: validNumber(values.quantityKg, 1, lot ? availableKg(lot, data.deals) : 0), priceKg: validNumber(values.priceKg, 1, 10000), acceptedPercent: validNumber(values.acceptedPercent, 1, 100), transport: 0, handling: 0, fee: 0, paymentDays: validNumber(values.paymentDays, 0, 30), pickupDate: values.pickupDate && /^\d{4}-\d{2}-\d{2}$/.test(values.pickupDate) ? values.pickupDate : "", paymentMethod: ["cash", "mfs", "bank"].includes(values.paymentMethod) ? values.paymentMethod : "cash" };
+    const fields = { quantityKg: validNumber(values.quantityKg, 1, lot ? availableKg(lot, data.deals) : 0), priceKg: validNumber(values.priceKg, 1, 10000), acceptedPercent: validNumber(values.acceptedPercent, 1, 100), transport: validNumber(values.transport, 0, 1000000), handling: validNumber(values.handling, 0, 1000000), fee: validNumber(values.fee, 0, 1000000), paymentDays: validNumber(values.paymentDays, 0, 30) };
     if (!lot || Object.values(fields).some(value => value === null) || !districts.includes(values.district) || values.expires < todayPlus(0)) { notice = t("দরের তথ্য ঠিক করে আবার দিন।", "Check the offer details and try again."); return render(); }
-    const offer = { id: uid(), sample: false, lotId: lot.id, buyer: String(values.buyer).trim().slice(0, 80), district: values.district, contact: profile, buyerCosts, ...fields, pickup: values.pickup === "farmer" ? "farmer" : "buyer", terms: String(values.terms).trim().slice(0, 400), expires: values.expires, createdAt: new Date().toISOString() };
+    const offer = { id: uid(), sample: false, lotId: lot.id, buyer: String(values.buyer).trim().slice(0, 80), district: values.district, contact: profile, ...fields, pickup: values.pickup === "farmer" ? "farmer" : "buyer", terms: String(values.terms).trim().slice(0, 400), expires: values.expires, createdAt: new Date().toISOString() };
     data.offers.unshift(offer); if (!save()) { data.offers.shift(); return render(); }
     buyerProfile = profile;
     try { localStorage.setItem(buyerProfileKey, JSON.stringify(profile)); } catch { /* Offer remains saved; profile can be entered again. */ }
@@ -692,9 +1357,7 @@ document.addEventListener("submit", async event => {
     const lot = offer && data.listings.find(item => item.id === offer.lotId);
     const quantityKg = validNumber(values.quantityKg, 1, offer && lot ? offerRemainingKg(offer, lot) : 0);
     if (!offer || !lot || !quantityKg || offer.expires < todayPlus(0) || estimateOffer(offer, quantityKg).net <= 0) { notice = t("এই দর বা পরিমাণ আর পাওয়া যাচ্ছে না। আবার দর দেখুন।", "This offer or quantity is no longer available. Review the offers again."); reviewOfferId = ""; return render(); }
-    const pickupDate = values.pickupDate && /^\d{4}-\d{2}-\d{2}$/.test(values.pickupDate) ? values.pickupDate : offer.pickupDate || "";
-    const paymentMethod = ["cash", "mfs", "bank"].includes(values.paymentMethod) ? values.paymentMethod : offer.paymentMethod || "cash";
-    data.deals.unshift({ id: uid(), sample: offer.sample || lot.sample, lotId: lot.id, variety: lot.variety, quantityKg, offer: { ...offer }, pickupDate, paymentMethod, status: "agreed", actualAcceptedKg: null, createdAt: new Date().toISOString() });
+    data.deals.unshift({ id: uid(), sample: offer.sample || lot.sample, lotId: lot.id, variety: lot.variety, quantityKg, offer: { ...offer }, status: "agreed", actualAcceptedKg: null, createdAt: new Date().toISOString() });
     if (!save()) { data.deals.shift(); return render(); }
     notice = t("চুক্তির নথি রাখা হয়েছে। কোনো পেমেন্ট হয়নি।", "Deal record saved. No payment was made."); setView("deals");
   }
@@ -707,12 +1370,12 @@ document.addEventListener("submit", async event => {
   if (form.dataset.form === "payment") {
     const deal = getDeal(form.dataset.id);
     const amount = validNumber(values.paymentAmount, 0, 100000000);
-    const due = deal ? potatoPaymentDue(deal) : 0;
-    const remaining = Math.max(0, due - confirmedPayments(deal));
+    const estimate = deal ? estimateOffer(deal.offer, deal.actualAcceptedKg ?? deal.quantityKg) : null;
+    const due = estimate ? Math.max(0, estimate.net) : 0;
+    const paid = Math.max(0, Number(deal?.paidAmount) || 0);
+    const remaining = Math.max(0, due - paid);
     if (!deal || deal.status !== "collected" || amount === null || amount <= 0 || amount > remaining || !String(values.paymentRef || "").trim()) { notice = t("টাকার পরিমাণ শূন্য হতে পারবে না এবং বাকি টাকার বেশি হতে পারবে না।", "Payment must be above zero and cannot exceed the remaining balance."); return render(); }
-    deal.paymentReports ??= [];
-    deal.paymentReports.push({ id: uid(), amount, reference: String(values.paymentRef).trim().slice(0, 80), reportedAt: new Date().toISOString(), status: "reported" });
-    deal.status = "payment_pending"; save(); render();
+    deal.paymentAmount = amount; deal.paidAmount = paid + amount; deal.remainingBalance = Math.max(0, due - deal.paidAmount); deal.paymentRef = String(values.paymentRef).trim().slice(0, 80); deal.status = "payment_pending"; save(); render();
   }
   if (form.id === "storage-form") {
     const bounds = { quantityKg: [1, 100000], priceKg: [0, 10000], months: [0.1, 12], feeKgMonth: [0, 1000], lossPercent: [0, 80], oneTimeCost: [0, 1000000] };

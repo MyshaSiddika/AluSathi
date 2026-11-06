@@ -1,0 +1,64 @@
+.farmer-hisab { padding-block: 38px 64px; color: var(--home-ink, #123c30); }
+.hisab-heading { margin-bottom: 28px; }
+.hisab-heading>span { display:flex; align-items:center; gap:10px; font-weight:700; color:var(--home-green,#125b45); }
+.hisab-heading h1 { font-size:30px; line-height:1.4; margin:8px 0; font-weight:800; }
+.hisab-heading p { font-size:16px; line-height:1.7; }
+.hisab-layout { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:28px; align-items:start; max-width:1240px; }
+.hisab-entry,.hisab-result { background:white; border:1px solid var(--home-line,#ccdedc); border-radius:22px; padding:28px; min-width:0; }
+.hisab-entry h2 { font-size:20px; font-weight:700; margin-bottom:20px; }
+.hisab-field { display:block; margin-bottom:18px; font-size:17px; font-weight:700; }
+.hisab-field>div { display:flex; align-items:center; border:1px solid var(--home-line,#b9d0cc); border-radius:12px; margin-top:8px; background:var(--home-soft,#f4faf8); }
+.hisab-field input { width:100%; min-width:0; background:transparent; border:0; padding:12px 16px; font-size:18px; font-weight:600; color:inherit; border-radius:12px; }
+.hisab-field input:focus-visible { outline:3px solid var(--home-green,#125b45); outline-offset:2px; }
+.hisab-field small { font-size:15px; font-weight:400; line-height:1.6; }
+.hisab-field>div>small { flex-shrink:0; padding-right:16px; }
+.hisab-extras { border-block:1px solid var(--home-line,#ccdedc); margin:4px 0 22px; padding:16px 0; }
+.hisab-extras summary { cursor:pointer; font-size:16px; font-weight:700; }
+.hisab-extras[open] summary { margin-bottom:18px; }
+.hisab-outcome { background:var(--home-soft,#edf7f0); border-radius:15px; padding:22px; position:relative; }
+.hisab-outcome>svg { position:absolute; right:22px; top:22px; }
+.hisab-outcome p { font-size:17px; font-weight:700; }
+.hisab-outcome>strong { display:block; font-size:32px; line-height:1.5; font-weight:800; }
+.hisab-outcome span { font-size:16px; }
+.hisab-outcome.is-loss { background:#fff0e9; color:#872d17; }
+.hisab-breakdown { margin:16px 0; }
+.hisab-breakdown>div { display:flex; justify-content:space-between; gap:16px; padding:12px 0; border-bottom:1px solid var(--home-line,#ccdedc); font-size:16px; }
+.hisab-breakdown dd { font-weight:700; white-space:nowrap; }
+.hisab-total { font-weight:700; }
+.hisab-price-floor { padding:18px; border-left:4px solid var(--home-gold,#bb871c); background:var(--home-soft,#f4faf8); }
+.hisab-price-floor strong { display:block; font-size:16px; }
+.hisab-price-floor b { display:block; margin-block:4px; font-size:22px; }
+.hisab-price-floor p,.hisab-margin,.hisab-note { font-size:16px; line-height:1.7; }
+.hisab-margin { margin-top:18px; }
+.hisab-note { margin-top:20px; padding-top:16px; border-top:1px solid var(--home-line,#ccdedc); }
+.hisab-empty { padding:65px 15px; text-align:center; }
+.hisab-empty svg { margin:0 auto 20px; }
+.hisab-empty h2 { font-size:20px; font-weight:700; }
+.hisab-empty p { font-size:16px; line-height:1.7; margin-top:12px; }
+.hisab-error { color:#962b19; }
+.hisab-save-message { margin-top:10px; font-size:16px; }
+.hisab-entry>button { background:var(--home-green,#125b45); color:white; border-radius:12px; padding:13px 22px; font-size:16px; font-weight:700; cursor:pointer; }
+.hisab-entry>button:disabled { opacity:.5; cursor:not-allowed; }
+.hisab-entry>button:focus-visible,.hisab-extras summary:focus-visible { outline:3px solid var(--home-green,#125b45); outline-offset:4px; }
+.hisab-spending { max-width:1240px; background:white; border:1px solid var(--home-line,#ccdedc); border-radius:22px; padding:24px 28px; margin-bottom:24px; font-size:16px; line-height:1.7; }
+.hisab-spending-top { display:flex; justify-content:space-between; align-items:start; gap:20px; }
+.hisab-spending h2 { font-size:20px; font-weight:700; }
+.hisab-spending-top strong { display:block; font-size:30px; font-weight:800; }
+.hisab-forecast { display:grid; grid-template-columns:1fr 1fr 1fr; gap:24px; padding-top:18px; margin-top:18px; border-top:1px solid var(--home-line,#ccdedc); }
+.hisab-forecast strong,.hisab-forecast span { display:block; }
+.hisab-forecast strong { font-size:22px; }
+.hisab-forecast input,.hisab-add-expense input { display:block; width:100%; min-width:0; padding:9px 12px; border:1px solid var(--home-line,#ccdedc); border-radius:9px; background:white; color:inherit; }
+.hisab-forecast-note { margin-top:12px; font-size:15px; }
+.hisab-add-expense { display:grid; grid-template-columns:1fr 2fr auto; align-items:end; gap:16px; padding-block:18px; }
+.hisab-spending button { padding:10px 16px; border-radius:10px; border:1px solid var(--home-line,#ccdedc); font-weight:700; cursor:pointer; }
+.hisab-add-expense button { background:var(--home-green,#125b45); color:white; }
+.hisab-source { margin-bottom:18px; }
+.hisab-source legend { font-weight:700; margin-bottom:8px; }
+.hisab-source label { display:inline-flex; align-items:center; gap:8px; margin:0 18px 10px 0; font-size:16px; cursor:pointer; }
+.hisab-source input { accent-color:var(--home-green,#125b45); width:18px; height:18px; }
+.hisab-selected-cost { background:var(--home-soft,#edf7f0); padding:12px; border-radius:10px; font-size:16px; line-height:1.7; margin-bottom:18px; }
+.hisab-selected-cost a { text-decoration:underline; white-space:nowrap; }
+.hisab-extras>p { font-size:15px; line-height:1.7; margin-bottom:12px; }
+.hisab-spending :is(button,input):focus-visible { outline:3px solid var(--home-green,#125b45); outline-offset:3px; }
+@media(max-width:760px) { .hisab-layout { grid-template-columns:1fr; } .hisab-entry,.hisab-result { padding:20px; } }
+@media(max-width:760px) { .hisab-spending-top { flex-direction:column; } .hisab-forecast,.hisab-add-expense { grid-template-columns:1fr; } }

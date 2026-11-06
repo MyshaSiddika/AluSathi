@@ -1,0 +1,146 @@
+.buyer-portal:has(.buyer-plan-page) { overflow: clip; }
+.buyer-plan-page { padding-top: 22px; padding-bottom: 38px; max-width: 1440px; }
+.practice-note { display: flex; align-items: baseline; gap: 14px; border-left: 3px solid var(--home-green); padding: 10px 14px; margin: 12px 0 16px; background: var(--home-soft); color: var(--home-ink); font-size: 16px; line-height: 1.5; }
+.practice-note strong { flex-shrink: 0; }
+.buyer-practice .buyer-offers-banner { height: 112px; min-height: 0; }
+.buyer-practice .buyer-purchases-banner { height: 112px; margin-top: 12px; }
+.buyer-practice .buyer-purchases-banner img { height: 112px; object-fit: cover; }
+.buyer-practice .section-header { margin-bottom: 12px; }
+.buyer-practice .section-header .section-kicker { display: none; }
+.buyer-practice .liked-page { padding-top: 18px; }
+.buyer-practice .plan-table th, .buyer-practice .plan-table td { padding: 8px 12px; line-height: 1.5; }
+.buyer-practice .plan-lot-heading .lot-photo { width: 42px; height: 46px; min-width: 42px; }
+.buyer-practice .plan-lot-heading h2 { font-size: 18px; }
+.buyer-practice .plan-inputs { padding: 12px; position: static; }
+.buyer-practice .plan-collection { margin-top: 22px; }
+.buyer-plan-page > .section-header { align-items: center; gap: 20px; margin-bottom: 18px; }
+.buyer-plan-page h1 { font-size: 32px; line-height: 1.3; margin: 5px 0; }
+.buyer-plan-page h2 { font-size: 23px; margin: 0; }
+.buyer-plan-page .section-header p { margin: 0; }
+.buyer-plan-page .button { min-height: 44px; padding: 9px 15px; font-size: 15px; }
+.plan-inputs { display: grid; grid-template-columns: .8fr 1fr .9fr 1.5fr; align-items: end; gap: 20px; padding: 18px; border: 1px solid var(--home-line); border-radius: 14px; background: #fff; position: sticky; top: 12px; z-index: 4; box-shadow: 0 4px 16px #113a2d08; }
+.plan-inputs label { display: grid; gap: 8px; font-size: 15px; font-weight: 700; min-width: 0; }
+@media (min-width: 1101px) { .plan-inputs:has([name=unloading]) { grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(0, 1.5fr); } }
+#buyer-weight-converter { margin-block: 20px; }
+.plan-inputs input:not([type=range]), .plan-fare, .plan-collection select { width: 100%; min-height: 44px; padding: 9px 12px; border: 1px solid var(--home-line); border-radius: 8px; background: #fff; font: inherit; color: var(--home-ink); }
+.plan-inputs .plan-resale > div { display: flex; align-items: center; gap: 14px; min-height: 44px; }
+.plan-resale input { flex: 1; min-width: 50px; accent-color: var(--home-green); cursor: pointer; }
+.plan-resale output { min-width: 62px; font-size: 21px; font-weight: 750; color: var(--home-green); }
+#buyer-plan-validation { color: #924515; font-size: 15px; margin: 8px 0; }
+#buyer-plan-validation:empty { display: none; }
+.plan-table { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 0; background: #fff; border: 1px solid var(--home-line); border-radius: 14px; overflow: hidden; margin-top: 16px; }
+.plan-table caption { text-align: left; font-size: 15px; font-weight: 650; color: var(--home-muted); padding: 0 0 10px; }
+.plan-label-column { width: 195px; }
+.plan-table th, .plan-table td { text-align: left; vertical-align: middle; padding: 12px 16px; border-right: 1px solid var(--home-line); border-bottom: 1px solid var(--home-line); font-size: 16px; line-height: 1.4; overflow-wrap: anywhere; }
+.plan-table tr > :last-child { border-right: 0; }
+.plan-table tbody tr:last-child > * { border-bottom: 0; }
+.plan-table thead { background: var(--home-soft); }
+.plan-lot-heading { display: flex; align-items: center; gap: 12px; }
+.plan-lot-heading .lot-photo { width: 48px; min-width: 48px; max-width: 48px; height: 54px; min-height: 0; border-radius: 7px; object-fit: cover; }
+.plan-lot-heading h2 { font-size: 20px; line-height: 1.2; margin: 0; }
+.plan-lot-heading p { font-size: 14px; font-weight: 650; margin: 4px 0 2px; }
+.plan-lot-heading small { font-size: 13px; color: var(--home-muted); font-weight: 400; }
+.plan-asking { display: block; font-size: 13px; margin-top: 8px; font-weight: 500; }
+.plan-table tbody th { font-weight: 650; color: var(--home-muted); font-size: 15px; }
+.plan-table .plan-row-total { background: color-mix(in srgb, var(--home-sky) 60%, white); }
+.plan-table .plan-row-total strong { font-size: 19px; }
+.plan-row-total small { display: block; margin-top: 4px; color: var(--home-muted); font-size: 13px; }
+.plan-row-profit td { background: color-mix(in srgb, var(--home-soft) 65%, white); }
+.plan-row-profit strong { font-size: 21px; }
+.plan-profit { color: var(--home-green); font-weight: 700; }
+.plan-loss, .plan-warning { color: #9b3e24; font-weight: 650; }
+.plan-assumptions { margin: 12px 0 0; font-size: 14px; color: var(--home-muted); line-height: 1.6; }
+.plan-collection { margin-top: 28px; padding: 22px; border: 1px solid var(--home-line); border-radius: 14px; background: #fff; }
+.plan-collection .section-header { align-items: center; margin-bottom: 18px; gap: 20px; }
+.plan-collection .section-header > label { display: grid; gap: 6px; font-size: 14px; font-weight: 650; min-width: 260px; }
+.plan-collection .collection-checklist { display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; list-style: none; padding: 0; margin: 0; }
+.plan-collection li { border-top: 1px solid var(--home-line); }
+.plan-collection li label { display: flex; align-items: center; gap: 12px; padding: 15px 0; min-height: 54px; cursor: pointer; font-size: 17px; }
+.plan-collection input { width: 22px; height: 22px; flex: none; accent-color: var(--home-green); }
+#collection-progress { color: var(--home-green); font-size: 15px; font-weight: 650; margin: 12px 0 0; }
+#buyer-plan-save-status { color: #9b3e24; margin: 12px 0 0; }
+.buyer-plan-page :focus-visible { outline: 3px solid var(--home-green); outline-offset: 3px; }
+@media (max-width: 1100px) { .plan-label-column { width: 160px; } .plan-table th, .plan-table td { padding: 10px; } .plan-inputs { gap: 12px; } }
+@media (max-width: 700px) { .plan-inputs { grid-template-columns: 1fr 1fr; } #buyer-plan-results { overflow-x: auto; } .plan-table { min-width: 700px; } .plan-collection .collection-checklist { grid-template-columns: 1fr; } }
+.plan-lot-inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(245px, 100%), 1fr)); gap: 12px; margin-top: 18px; }
+.plan-lot-inputs fieldset { min-width: 0; margin: 0; padding: 10px 13px 13px; border: 1px solid var(--home-line); border-radius: 12px; background: #fff; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.plan-lot-inputs legend { font-weight: 750; padding-inline: 4px; overflow-wrap: anywhere; }
+.plan-lot-inputs label { min-width: 0; display: grid; align-content: end; gap: 5px; font-size: 14px; }
+.plan-lot-inputs input { width: 100%; min-height: 42px; padding: 6px 8px; border: 1px solid var(--home-line); border-radius: 8px; color: inherit; font: inherit; }
+.plan-freight-link { margin: 8px 0 16px; text-align: right; color: var(--home-green); }
+.plan-freight-link a { text-decoration: underline; }
+.plan-chart-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.plan-chart-panel { min-width: 0; padding: clamp(14px, 2vw, 24px); background: #fff; border: 1px solid var(--home-line); border-radius: 16px; }
+.plan-chart-panel h2 { color: var(--home-green); }
+.plan-chart-panel p, .plan-chart-legend { margin: 8px 0 12px; color: var(--home-muted); font-size: 14px; }
+.plan-chart-legend { display: flex; flex-wrap: wrap; gap: 8px 14px; }
+.plan-chart-legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 5px; border-radius: 3px; background: var(--plan-part); }
+.plan-part-potatoes { --plan-part: #176550; }
+.plan-part-fare { --plan-part: #4d84a6; }
+.plan-part-unloading { --plan-part: #bd801e; }
+.plan-part-other { --plan-part: #84678c; }
+.plan-part-handling { --plan-part: #bd801e; }
+.plan-part-weighing { --plan-part: #886047; }
+.plan-part-storage { --plan-part: #557a39; }
+.plan-budget-editor select { display: block; width: 100%; min-height: 42px; }
+.plan-chart-row { padding: 10px 0; border-top: 1px solid var(--home-line); }
+.plan-chart-row > div:first-child { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 12px; }
+.plan-chart-row b { white-space: nowrap; }
+.plan-chart-panel small { display: block; color: var(--home-muted); font-size: 13px; }
+.plan-chart-track, .plan-net-track { height: 10px; margin: 6px 0; border-radius: 5px; background: #eaf0ed; overflow: hidden; }
+.plan-chart-track { display: flex; }
+.plan-chart-track i { background: var(--plan-part); }
+.plan-net-track { position: relative; background: linear-gradient(90deg,#f8eae4 50%,#e6f1e9 50%); }
+.plan-net-track::after { content: ""; position: absolute; inset: 0 auto 0 50%; border-left: 1px solid #52685e; }
+.plan-net-track i { position: absolute; height: 100%; }
+.plan-net-track .is-loss { right: 50%; background: #a54c32; }
+.plan-net-track .is-profit { left: 50%; background: #176550; }
+.plan-scenarios { margin: 16px 0; overflow-x: auto; }
+.plan-scenarios table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+.plan-scenarios th, .plan-scenarios td { text-align: left; padding: 9px 12px; border-top: 1px solid var(--home-line); }
+.plan-scenarios td.plan-loss { background: #fbede7; }
+.plan-scenarios td.plan-profit { background: #eaf4ed; }
+.plan-chart-empty { background: var(--home-soft); padding: 12px 16px; border-radius: 10px; }
+.plan-price-history { margin-block: 16px; background: linear-gradient(155deg, white, var(--home-sky)); box-shadow: 0 14px 36px #173d3010; }
+.plan-price-select { display: inline-grid; gap: 5px; font-weight: 650; }
+.plan-price-select select { min-width: 160px; min-height: 42px; padding: 6px 12px; border: 1px solid var(--home-line); border-radius: 8px; background: white; color: inherit; font: inherit; }
+.plan-price-stage { margin-block: 12px; padding: 4px; overflow-x: auto; background: #ffffffa8; border: 1px solid var(--home-line); border-radius: 14px; }
+.plan-price-plot { display: block; width: 100%; max-width: 960px; margin-inline: auto; }
+.plan-price-plot text { fill: var(--home-muted); font-size: 14px; font-weight: 650; }
+.plan-price-hit { fill: transparent; }
+.plan-price-month:is(:hover, :focus) .plan-price-point { fill: var(--home-green); stroke-width: 4; }
+.plan-price-tooltip { visibility: hidden; pointer-events: none; }
+.plan-price-month:is(:hover, :focus) .plan-price-tooltip { visibility: visible; }
+.plan-price-plot:has(.plan-price-month:hover) .plan-price-month:not(:hover) .plan-price-tooltip { visibility: hidden; }
+.plan-price-tooltip rect { fill: #143d32; }
+.plan-price-tooltip text { fill: #fff; }
+.plan-price-line { fill: none; stroke: var(--home-green); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; animation: plan-price-draw 720ms ease-out both; }
+.plan-price-point { fill: white; stroke: var(--home-green); stroke-width: 3; pointer-events: none; animation: plan-price-point 360ms ease-out both; }
+@keyframes plan-price-draw { from { stroke-dashoffset: 1; } }
+@keyframes plan-price-point { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .plan-price-line, .plan-price-point { animation: none; } }
+@media (max-width: 650px) { .plan-price-plot { min-width: 570px; } }
+.plan-price-history table { width: min(100%, 420px); border-collapse: collapse; text-align: left; }
+.plan-price-history th, .plan-price-history td { padding: 6px 10px; border-bottom: 1px solid var(--home-line); }
+.plan-price-history a { text-decoration: underline; }
+.plan-price-history summary { cursor: pointer; color: var(--home-green); font-weight: 700; }
+@media (max-width: 850px) { .plan-chart-grid { grid-template-columns: 1fr; } }
+.buyer-cost-nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 18px; }
+.buyer-plan-page .plan-inputs:has(.plan-optional) { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); align-items: start; position: static; gap: 12px 24px; }
+.plan-optional { grid-column: 1 / -1; grid-row: 2; }
+.plan-budget-editor > summary { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; padding: 12px 14px; border-radius: 10px; background: var(--home-soft); }
+.plan-budget-editor > summary span:last-child { text-decoration: underline; }
+.buyer-plan-page .plan-calculate { grid-column: 1 / -1; justify-self: start; }
+.plan-simple-result { margin-block: 12px; }
+.plan-selected-lot { margin: 0 0 12px; color: var(--home-green); }
+.plan-cost-breakdown { margin-top: 12px; border-top: 1px solid var(--home-line); padding-top: 10px; }
+.plan-cost-breakdown summary { cursor: pointer; font-weight: 700; color: var(--home-green); }
+.plan-cost-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); gap: 12px; margin-block: 12px; }
+.plan-budget-editor .plan-cost-fields label { display: grid; width: auto; margin: 0; }
+.plan-budget-editor .plan-lot-inputs label { width: auto; margin: 0; display: grid; }
+.plan-optional[open] label { display: inline-grid; vertical-align: top; width: min(100%, 220px); margin: 10px 10px 0 0; }
+.plan-quantity-picks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.buyer-plan-page .plan-quantity-picks button { min-height: 32px; padding: 3px 9px; font-size: 13px; }
+.plan-optional > summary, .plan-lot-editor > summary, .plan-full-breakdown > summary, .plan-collection-tools > summary { cursor: pointer; color: var(--home-green); font-weight: 700; padding: 9px 0; }
+.plan-lot-editor, .plan-full-breakdown, .plan-collection-tools { margin-block: 12px; }
+@media (max-width: 650px) { .buyer-plan-page .plan-inputs:has(.plan-optional) { grid-template-columns: 1fr; } .plan-optional { grid-row: auto; } }

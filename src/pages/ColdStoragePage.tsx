@@ -1,9 +1,21 @@
-import SellingPondBanner from "@/components/SellingPondBanner";
+import { ArrowRight } from "lucide-react";
+import SellingPreparationTools from "@/components/SellingPreparationTools";
 import ColdStorage from "@/components/ColdStorage";
 import FarmerNavigation from "@/components/FarmerNavigation";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useSiteTheme } from "@/hooks/useSiteTheme";
+import "@/farmer-selling.css";
 
 export default function ColdStoragePage() {
   const { language } = useLanguage(); const bn = language === "bn";
-  return <div className={`farmer-v2 ${bn ? "font-bangla" : ""}`}><FarmerNavigation active="selling" /><main className="farmer-selling"><SellingPondBanner /><div className="app-shell"><header className="farmer-page-heading"><p className="section-kicker">{bn ? "বিক্রির প্রস্তুতি" : "PREPARE TO SELL"}</p><h1>{bn ? "বিক্রির আগে" : "Before selling"}</h1><p>{bn ? "আগে আলুর পরিচয়পত্র তৈরি করুন, তারপর দরকার হলে হিমাগার দেখুন।" : "Create the potato passport first, then browse cold storage if needed."}</p></header><div className="selling-compact-grid"><section className="selling-focus-card"><span className="selling-icon">🪪</span><div><h2>{bn ? "আলুর পরিচয়পত্র" : "Potato passport"}</h2><p>{bn ? "জাত, পরিমাণ ও জমির নোট একসাথে রাখুন। পুরোনো খাতার জানা তথ্য নিজে থেকে বসবে।" : "Keep variety, quantity and field notes together. Known notebook details are prefilled."}</p><a className="secondary-main" href="/marketplace/farmer.html#list">{bn ? "পরিচয়পত্র তৈরি করুন" : "Create passport"}</a></div></section><section className="selling-focus-card"><span className="selling-icon">❄️</span><div><h2>{bn ? "হিমাগার খুঁজুন" : "Find cold storage"}</h2><p>{bn ? "কাছের সংরক্ষণ কেন্দ্রের তথ্য দেখুন।" : "Browse storage options for your harvest."}</p><a className="secondary-main" href="#cold-storage">{bn ? "হিমাগার দেখুন" : "Browse storage"}</a></div></section></div><section className="selling-route-teaser"><div className="route-line"><span>📍 {bn ? "পীরগঞ্জ, রংপুর" : "Pirganj, Rangpur"}</span><span className="route-arrow">→</span><span>🏪 {bn ? "ঢাকা বাজার" : "Dhaka market"}</span></div><p>{bn ? "যাত্রাপথ ও গাড়ির খুঁটিনাটি পরে দেখুন—এখানে শুধু গন্তব্যটি মনে রাখুন।" : "Keep the destination visible here; open the detailed route only when needed."}</p><a className="text-button" href="/selling-preparation/details">🚚 {bn ? "পথ ও গাড়ির বিস্তারিত হিসাব" : "Route and transport details"}</a></section><section className="selling-intent"><h2>{bn ? "আপনি কী চান?" : "What are you looking for?"}</h2><div className="intent-options"><label><input type="radio" name="selling-intent" defaultChecked />{bn ? "বাজারে পাঠাব" : "Send to market"}</label><label><input type="radio" name="selling-intent" />{bn ? "আগে হিমাগারে রাখব" : "Store first"}</label></div></section></div><div id="cold-storage"><ColdStorage /></div></main></div>;
+  const theme = useSiteTheme();
+  return <div className={`farmer-v2 selling-page ${bn ? "font-bangla" : ""}`} data-home-theme={theme}>
+    <FarmerNavigation active="selling" />
+    <main className="app-shell selling-shell">
+      <header className="selling-heading"><p>{bn ? "আলু তোলার পরের ধাপ" : "AFTER THE HARVEST"}</p><h1>{bn ? "বিক্রির আগে" : "Before selling"}</h1><p>{bn ? "আলু বাছুন, তথ্য লিখুন, তারপর ক্রেতাদের দেখান।" : "Sort your potatoes, add their details, then show them to buyers."}</p></header>
+      <SellingPreparationTools />
+      <ColdStorage />
+      <div className="selling-next"><p>{bn ? "প্রস্তুত হলে ছবি, পরিমাণ ও দাম দিয়ে ক্রেতাদের দেখান।" : "When ready, show buyers your photos, quantity and asking price."}</p><a href="/farmer#market">{bn ? "আলু বাজারে দিন" : "Showcase your potatoes"}<ArrowRight size={18}/></a></div>
+    </main>
+  </div>;
 }

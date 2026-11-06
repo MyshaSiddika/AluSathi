@@ -251,6 +251,15 @@
 .passport-fields .form-grid { margin-top: 14px; }
 .passport-fields small { color: #586c57; line-height: 1.6; }
 .passport-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+.sale-details-page { max-width: 920px; }
+.sale-details-page > header { margin-bottom: 28px; }
+.sale-details-page h1 { font-size: clamp(28px,4vw,40px); line-height: 1.4; margin: 8px 0; }
+.sale-details-page header p { line-height: 1.7; color: #536b60; }
+.sale-details-page .form-panel { padding: clamp(18px,4vw,30px); }
+.sale-details-page textarea { width: 100%; min-height: 90px; padding: 12px; border: 1px solid #b7cebf; border-radius: 10px; background: #fff; font: inherit; }
+.sale-details-photos { display: flex; gap: 12px; margin: 16px 0; }
+.sale-details-photos img { width: min(28%,180px); aspect-ratio: 1; object-fit: cover; border-radius: 10px; }
+.sale-details-page .lot-save-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 24px; }
 .passport-actions .button,.passport-actions .text-arrow { min-height: 44px; }
 .lot-passport { max-width: 920px; margin: auto; padding: clamp(20px,4vw,48px); border: 1px solid #d4ddc9; border-radius: 20px; background: radial-gradient(ellipse at top right,#e7ecd9,transparent 50%),#fffef8; box-shadow: 0 18px 50px #183c2a0a; }
 .passport-heading { border-bottom: 2px solid #173d30; padding-bottom: 24px; }
@@ -395,55 +404,6 @@
 @keyframes route-dash { to { stroke-dashoffset: -14; } }
 @media(prefers-reduced-motion:reduce) { .route-preview-line { animation: none; } }
 .bag-weight[hidden] { display: none !important; }
-.buyer-portal { background: #eaf4f1; }
-.buyer-portal .topbar { background: #fffdf7; }
-.buyer-workspace,.buyer-page { padding-top: 24px; padding-bottom: 70px; }
-.buyer-title,.compact-page-head { display:flex; align-items:flex-start; justify-content:space-between; gap:28px; margin-bottom:12px; }
-.buyer-title h1,.compact-page-head h1 { margin:4px 0 6px; color:#102d20; font-size:clamp(29px,2.75vw,40px); line-height:1.08; letter-spacing:-.04em; }
-.buyer-title p:not(.section-kicker),.compact-page-head p:not(.section-kicker) { max-width:670px; margin:0; color:#50645a; line-height:1.5; font-size:16px; }
-.buyer-market-mark { display:flex; align-items:center; gap:10px; min-width:176px; padding:13px 16px; border:1px solid #d4e2db; border-radius:15px; background:linear-gradient(135deg,#f6fbf9,#e1f0e9); color:#0f5a3f; font-size:13px; font-weight:800; }
-.buyer-summary-strip { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin:14px 0; }
-.buyer-summary-strip a { display:grid; gap:3px; min-height:60px; padding:10px 15px; border:1px solid #d4e2db; border-radius:14px; color:#102d20; text-decoration:none; background:#fff; transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease; }
-.buyer-summary-strip a:hover { transform:translateY(-2px); border-color:#8bb79f; box-shadow:0 8px 20px #0f5a3f14; }
-.buyer-summary-strip strong { font:800 26px/1 "DM Sans","Anek Bangla",sans-serif; color:#0f5a3f; }
-.buyer-summary-strip span { color:#50645a; font-size:14px; font-weight:700; }
-.buyer-brief { padding:12px 18px; margin-bottom:14px; border-radius:16px; box-shadow:none; }
-.buyer-brief .brief-grid { grid-template-columns:repeat(4,minmax(0,1fr)) auto; align-items:end; margin:0; }
-.buyer-brief .brief-grid label { margin:0; }
-.buyer-brief .brief-submit { min-height:48px; }
-.buyer-more-filter { grid-column:1/-1; margin-top:2px; }
-.buyer-more-filter summary { width:max-content; min-height:38px; padding:8px 0; color:#24583c; cursor:pointer; font-weight:800; }
-.buyer-more-filter > div { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:13px; padding:10px 0 2px; }
-.buyer-split { display:grid; grid-template-columns:minmax(0,1.25fr) minmax(330px,.75fr); gap:20px; align-items:start; }
-.buyer-lots-heading { margin:4px 0 12px; }
-.buyer-lot-list { display:grid; gap:9px; }
-.buyer-lot-row { display:grid; grid-template-columns:72px minmax(0,1fr) auto; align-items:center; gap:13px; width:100%; padding:9px; border:1px solid #d4e2db; border-radius:14px; text-align:left; color:#102d20; background:#fff; cursor:pointer; }
-.buyer-lot-row:hover,.buyer-lot-row.selected { border-color:#76a88a; background:#f6fbf8; }
-.buyer-lot-row:focus-visible,.buyer-summary-strip a:focus-visible { outline:3px solid #d69522; outline-offset:3px; }
-.buyer-lot-photo { width:72px; height:62px; object-fit:cover; border-radius:9px; background:#dfeee6; }
-.buyer-lot-row span { display:grid; gap:5px; min-width:0; }
-.buyer-lot-row strong { font-size:18px; }
-.buyer-lot-row small,.buyer-lot-row em { color:#50645a; font-size:13px; font-style:normal; overflow-wrap:anywhere; }
-.buyer-lot-detail { position:sticky; top:20px; padding:19px; border-radius:17px; box-shadow:0 12px 30px #0f5a3f0d; }
-.detail-head { display:grid; grid-template-columns:96px 1fr; gap:14px; align-items:center; }
-.buyer-detail-photo { width:96px; height:88px; object-fit:cover; border-radius:12px; background:#e0eee7; }
-.buyer-detail-photo.lot-art,.buyer-lot-photo.lot-art { pointer-events:none; }
-.buyer-detail-actions { position:relative; z-index:1; }
-.detail-head h2 { margin:4px 0; font-size:26px; }
-.detail-head p { margin:0; color:#50645a; }
-.buyer-detail-facts { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; margin:17px 0; }
-.buyer-detail-facts div { padding:10px; border-radius:10px; background:#eef6f1; }
-.buyer-detail-facts dt { color:#50645a; font-size:12px; }
-.buyer-detail-facts dd { margin:4px 0 0; color:#102d20; font-size:15px; font-weight:800; overflow-wrap:anywhere; }
-.buyer-detail-notes,.detail-caution { color:#50645a; font-size:14px; line-height:1.6; }
-.detail-caution { margin:16px 0 0; padding-top:13px; border-top:1px solid #d4e2db; }
-.buyer-detail-actions { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
-.buyer-offer-grid { display:grid; gap:11px; }
-.buyer-offer-row { display:grid; grid-template-columns:minmax(210px,1fr) 130px 190px auto; gap:18px; align-items:center; padding:18px; border:1px solid #d4e2db; border-radius:15px; background:#fff; }
-.buyer-offer-row h2 { margin:8px 0 5px; font-size:21px; }.buyer-offer-row p,.buyer-offer-row small { margin:0; color:#50645a; font-size:13px; line-height:1.5; }.buyer-offer-row > div>span { display:block; color:#50645a; font-size:12px; }.buyer-offer-row > div>strong { display:block; margin:5px 0; color:#102d20; font-size:18px; }.buyer-offer-actions { display:flex; flex-wrap:wrap; gap:10px; justify-content:flex-end; }
-.notebook-tabs { display:flex; gap:8px; margin:0 0 12px; }.notebook-tabs button { min-height:40px; padding:8px 13px; border:1px solid #d4e2db; border-radius:9px; color:#50645a; background:#fff; font-weight:800; }.notebook-tabs .active { background:#0f5a3f; color:#fff; border-color:#0f5a3f; }.notebook-table-wrap { overflow:auto; border:1px solid #d4e2db; border-radius:15px; background:#fff; }.notebook-table-wrap table { width:100%; min-width:980px; border-collapse:collapse; }.notebook-table-wrap th,.notebook-table-wrap td { padding:13px 14px; border-bottom:1px solid #e5eee9; text-align:left; font-size:14px; }.notebook-table-wrap th { color:#50645a; background:#f5faf7; font-size:12px; }.notebook-note { color:#50645a; font-size:13px; }
-@media(max-width:1050px) { .buyer-brief .brief-grid{grid-template-columns:repeat(3,minmax(0,1fr));}.buyer-split{grid-template-columns:1fr;}.buyer-lot-detail{position:static;}.buyer-offer-row{grid-template-columns:1fr 150px;}.buyer-offer-actions{justify-content:flex-start;}.buyer-more-filter>div{grid-template-columns:1fr 1fr;} }
-@media(max-width:700px) { .buyer-title,.compact-page-head{display:grid;gap:14px;}.buyer-market-mark{width:max-content;}.buyer-summary-strip{grid-template-columns:1fr;}.buyer-brief .brief-grid,.buyer-more-filter>div{grid-template-columns:1fr;}.buyer-lot-row{grid-template-columns:58px minmax(0,1fr);}.buyer-lot-row em{grid-column:2;}.buyer-lot-photo{width:58px;height:58px;}.buyer-offer-row{grid-template-columns:1fr;gap:11px;}.buyer-offer-actions{justify-content:flex-start;}.buyer-page,.buyer-workspace{padding-top:22px;} }
 .quantity-conversion { grid-column: 1 / -1; color: #52695c; }
 @media (max-width: 760px) {
   .hero.page-shell { background-image: linear-gradient(90deg, #f6f3eafa 0%, #f6f3eaf0 45%, #f6f3eabc 74%, #f6f3ea4d 100%), url('./farmer-hero.png'); }
@@ -465,3 +425,31 @@
 .farmer-market-tools .sample-switch[aria-pressed=true] { background: #fff0cb; }
 .farmer-market-tools .sample-label { flex-basis: 100%; color: #754900; }
 @media(max-width:760px) { .farmer-portal .mobile-nav .nav-link { font-size: 12px; padding: 9px 2px; } }
+.buyer-market-banner, .buyer-offers-banner { display: block; width: 100%; aspect-ratio: 2172 / 304; border: 0; margin: 0 0 22px; background: #eaf1e7; }
+@media(max-width:760px) { .buyer-market-banner, .buyer-offers-banner { aspect-ratio: 3 / 1; } }
+.buyer-purchases-banner { position: relative; width: min(1440px, calc(100% - 48px)); aspect-ratio: 2172 / 304; overflow: hidden; margin: 24px auto 0; background: #eaf1e7; }
+.buyer-purchases-banner img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.buyer-purchases-banner > svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.buyer-purchases-birds { fill: none; stroke: #254d45; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; animation: buyer-purchases-flight 15s ease-in-out infinite alternate; }
+.buyer-purchases-birds .bird-one { transform: translate(230px, 58px); }
+.buyer-purchases-birds .bird-two { transform: translate(282px, 89px) scale(.78); }
+.buyer-purchases-birds .bird-three { transform: translate(318px, 49px) scale(.62); }
+@keyframes buyer-purchases-flight { from { translate: 0 0; } to { translate: 245px -12px; } }
+.buyer-transport-page { padding-top: 28px; padding-bottom: 42px; }
+.buyer-transport-provider { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: 30px; align-items: center; padding: 28px; background: linear-gradient(115deg,#fffdf8,#f3f7ef); }
+.buyer-transport-provider h1 { margin: 8px 0; }
+.buyer-transport-provider p { color: var(--muted); line-height: 1.65; }
+.buyer-transport-provider strong { color: #956516; }
+.buyer-transport-trip { min-width: 0; }
+.buyer-transport-trip > label { display: block; margin-bottom: 8px; font-weight: 800; }
+.buyer-transport-trip textarea { display: block; width: 100%; min-height: 140px; resize: vertical; padding: 12px; border: 1px solid var(--line); border-radius: 11px; background: #fff; color: var(--forest); }
+.buyer-transport-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 10px; }
+.buyer-transport-heading { margin: 34px 0 16px; }
+.buyer-transport-heading h2 { margin: 7px 0; }
+.buyer-transport-heading p,.buyer-transport-note { color: var(--muted); }
+.buyer-transport-fields { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 16px; }
+.buyer-transport-fields label { display: grid; gap: 8px; font-weight: 750; }
+.buyer-transport-fields input,.buyer-transport-fields select { width: 100%; min-height: 48px; padding: 9px 12px; border: 1px solid #c9d8cf; border-radius: 10px; background: #fff; color: var(--forest); }
+.buyer-transport-note { margin-top: 12px; }
+@media(max-width:760px) { .buyer-purchases-banner { width: calc(100% - 28px); aspect-ratio: 3 / 1; } .buyer-purchases-banner img { object-position: center; } .buyer-transport-provider { grid-template-columns: 1fr; gap: 16px; padding: 20px; } .buyer-transport-fields { grid-template-columns: 1fr; } }
+@media(prefers-reduced-motion:reduce) { .buyer-purchases-birds { animation: none; } }

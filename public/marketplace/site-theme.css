@@ -1,0 +1,29 @@
+:root {
+  --forest: var(--home-green);
+  --forest-deep: var(--home-ink);
+  --moss: var(--home-leaf);
+  --cream: var(--home-sky);
+  --line: var(--home-line);
+  --muted: var(--home-muted);
+  --white: #fff;
+  color: var(--home-ink);
+  background: var(--home-sky);
+}
+body { background: var(--home-sky); color: var(--home-ink); }
+.topbar, .farmer-portal .topbar, .mobile-nav { background: var(--home-sky); border-color: var(--home-line); }
+.nav-link:hover, .nav-link.active { color: var(--home-green); background: var(--home-soft); }
+.nav-link.active { box-shadow: inset 0 -2px var(--home-green); }
+.brand-mark { background: var(--home-soft); color: var(--home-green); }
+.button-green { background: var(--home-green); color: #fff; }
+.button-outline, .panel, .lot-card, .modal, .profile-drawer, .buyer-discovery .buyer-catalogue-filters, .buyer-discovery .buyer-contact-card { background: #fff; border-color: var(--home-line); color: var(--home-ink); }
+.footer { background: var(--home-ink); color: #fff; }
+.account-name, .status-pill, .comparison-column, .profile-notice, .catalogue-compare-tray, .catalogue-detail-price { background: var(--home-soft); color: var(--home-ink); border-color: var(--home-line); }
+.buyer-search-panel, .buyer-search-edit, .catalogue-detail-gallery > img { background: color-mix(in srgb, var(--home-sky) 55%, white); border-color: var(--home-line); }
+.buyer-search-panel textarea, .buyer-search-panel input, .buyer-search-edit input, .buyer-search-edit select, #buyer-profile-form input, #buyer-profile-form select, .buyer-discovery select, .buyer-discovery input:not([type=checkbox]) { color: var(--home-ink); border-color: var(--home-line); }
+.catalogue-price strong, .catalogue-farmer, .buyer-search-panel label, .buyer-search-edit label { color: var(--home-ink); }
+.buyer-transport-provider { background: linear-gradient(115deg, #fff, var(--home-sky)); }
+.buyer-transport-fields input, .buyer-transport-fields select, .buyer-transport-trip textarea { border-color: var(--home-line); color: var(--home-ink); }
+.estimate-bar { background: var(--home-soft); }
+.estimate-bar span { background: var(--home-green); }
+.buyer-plan-results dt { color: var(--home-muted); }
+.buyer-discovery :focus-visible, .catalogue-detail-dialog :focus-visible, .catalogue-contact-dialog :focus-visible { outline-color: var(--home-green); }

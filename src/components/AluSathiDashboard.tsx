@@ -1,9 +1,9 @@
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
-  AlertTriangle, ArrowLeft, ArrowRight, Calculator, Camera, Check, ChevronDown, CloudRain, Eye, Sun, Cloud,
+  AlertTriangle, ArrowLeft, ArrowRight, Camera, Check, ChevronDown, CloudRain, Sun, Cloud,
   CloudLightning, Flame, Globe2, History, Leaf, Loader2, MapPin,
   Menu, Minus, PhoneCall, RefreshCw, ScanLine, ShieldCheck, Snowflake,
-  Sprout, Store, Trash2, WifiOff, Wind, X,
+  Sprout, Store, TrendingDown, TrendingUp, Trash2, WifiOff, Wind, X,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { DiseaseLabel, DiseaseResult } from "@/lib/disease-api";
@@ -14,22 +14,25 @@ import { useAuth } from "@/contexts/AuthContext";
 import FarmerTools from "@/components/FarmerTools";
 import FarmerNavigation from "@/components/FarmerNavigation";
 import FarmerToday from "@/components/FarmerToday";
+import FarmerProfile from "@/components/FarmerProfile";
+import FarmerNotebook from "@/components/FarmerNotebook";
+import FarmerMarketPages from "@/components/FarmerMarketPages";
+import { useSiteTheme } from "@/hooks/useSiteTheme";
 import { useDemo } from "@/contexts/DemoContext";
+import ScanInsights from "@/components/ScanInsights";
 import { deleteRecord, readRecords, writeRecord } from "@/lib/farmer-records";
 import type { Json } from "@/integrations/supabase/types";
 import { cropAge } from "@/lib/crop-advice";
 import { localToday } from "@/lib/local-date";
 import { spreadOutlook } from "@/lib/farmer-tools";
 import { DISTRICT_NAMES } from "@/lib/district-names";
-import { readFieldActions, saveFieldActions, type FieldAction } from "@/lib/field-actions";
-import { LEDGER_EVENT, readLedger, saveLedger, syncLedger, type ExpenseCategory, type FarmExpense, type FarmLedgerEntry } from "@/lib/farm-ledger";
-import { PHOTO_DEMO_CASES } from "@/lib/photo-demo-cases";
+import { farmerDistrict, PROFILE_CHANGED } from "@/lib/farmer-profile";
 
 const TuberScan = lazy(() => import("@/components/TuberScan"));
 
 type ScanMode = "quick" | "field";
 type Risk = "healthy" | "watch" | "urgent" | "uncertain";
-type TimelineEntry = { type: "scan"; createdAt: string; entry: DiaryEntry } | { type: "action"; createdAt: string; entry: FieldAction } | { type: "ledger"; createdAt: string; entry: FarmLedgerEntry };
+type Trend = "first" | "improving" | "stable" | "worsening" | "uncertain";
 
 interface DiaryEntry {
   id: string;
@@ -45,7 +48,6 @@ interface DiaryEntry {
   inferenceMode?: "online" | "offline";
   triage?: boolean;
   thumbnails?: string[];
-  symptoms?: string[];
 }
 
 const DIARY_KEY = "alusathi-field-diary-v1";
@@ -65,6 +67,8 @@ const COPY = {
     weatherLoading: "আবহাওয়া দেখা হচ্ছে…", weatherGood: "আজ নজর রাখুন",
     weatherRisk: "রোগ বাড়ার মতো আবহাওয়া", weatherUnavailable: "আবহাওয়া এখন পাওয়া যাচ্ছে না", humidity: "আর্দ্রতা", cachedWeather: "শেষ সেভ করা আবহাওয়া",
     alertTitle: "প্রতিকূল আবহাওয়ার সতর্কতা", alertSource: "৩ দিনের পূর্বাভাস",
+    scanKicker: "পাতার লক্ষণ", scanTitle: "পাতার ছবি ও লক্ষণ লিখে রাখুন",
+    scanBody: "একটি পরিষ্কার ছবি দিন। তারপর কয়েকটি প্রশ্নের উত্তর দিয়ে বিশেষজ্ঞের জন্য রিপোর্ট তৈরি করুন।",
     guidedInstructions: ["পাতার সামনের দিক কাছে থেকে", "একই পাতার আরেকটি পরিষ্কার ছবি দিন", "আক্রান্ত অংশ কাছে থেকে দেখান"],
     fieldTitle: "৩টি ছবি দিয়ে দেখুন", fieldBody: "একটি পাতার তিনটি পরিষ্কার ছবি দিলে আরও তথ্য পাওয়া যায়।",
     point: "ছবি", of: "এর মধ্যে", photoSaved: "ছবি রাখা হয়েছে", photoSavedBody: "চাইলে পরের ছবিটি দিন।",
@@ -121,6 +125,8 @@ const COPY = {
     weatherLoading: "Checking weather…", weatherGood: "Keep watch today", weatherRisk: "Weather may support disease",
     weatherUnavailable: "Weather is unavailable now", humidity: "Humidity", cachedWeather: "Last saved weather",
     alertTitle: "Extreme-weather message", alertSource: "3-day forecast",
+    scanKicker: "Leaf symptoms", scanTitle: "Record a leaf photo and symptoms",
+    scanBody: "Add one clear photo, then answer a few questions for a report to share with an expert.",
     guidedInstructions: ["Close view of the leaf front", "Another clear view of the same leaf", "Close view of the affected area"],
     fieldTitle: "Check with three photos", fieldBody: "Three clear views of one leaf can give more evidence.",
     point: "Photo", of: "of", photoSaved: "Photo recorded", photoSavedBody: "Add the next view if you want.",
@@ -256,6 +262,15 @@ function dominantLabel(results: DiseaseResult[], risk: Risk): DiseaseLabel {
   return totals.sort((a, b) => b.value - a.value)[0].label;
 }
 
+const RISK_RANK: Record<Risk, number> = { healthy: 0, uncertain: 1, watch: 2, urgent: 3 };
+
+function trendFromEntries(current: DiaryEntry, previous?: DiaryEntry): Trend {
+  if (!previous) return "first";
+  if (current.risk === "uncertain" || previous.risk === "uncertain" || current.district !== previous.district || current.scanCount !== previous.scanCount) return "uncertain";
+  const difference = RISK_RANK[current.risk] - RISK_RANK[previous.risk];
+  return difference < 0 ? "improving" : difference > 0 ? "worsening" : "stable";
+}
+
 function weatherAlertText(alert: WeatherAlert, language: "bn" | "en") {
   const messages = {
     heavy_rain: {
@@ -283,10 +298,11 @@ function weatherAlertText(alert: WeatherAlert, language: "bn" | "en") {
 }
 
 export default function AluSathiDashboard({ farmerHome = false }: { farmerHome?: boolean }) {
+  const siteTheme = useSiteTheme();
   const { user, signOut } = useAuth();
   const { demo, setDemo } = useDemo();
   const dashboardAccess = Boolean(user) || demo;
-  const buyerSession = !dashboardAccess && (() => { try { return sessionStorage.getItem("alusathi-role") === "buyer" || localStorage.getItem("alusathi-role") === "buyer"; } catch { return false; } })();
+  const buyerSession = !dashboardAccess && (() => { try { return sessionStorage.getItem("alusathi-role") === "buyer"; } catch { return false; } })();
   const activeRole = dashboardAccess ? "farmer" : buyerSession ? "buyer" : null;
   const { language, setLanguage } = useLanguage();
   const copy = COPY[language];
@@ -300,25 +316,27 @@ export default function AluSathiDashboard({ farmerHome = false }: { farmerHome?:
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [blurWarning, setBlurWarning] = useState(false);
-  const [todayDemoResult, setTodayDemoResult] = useState<typeof PHOTO_DEMO_CASES[number] | null>(null);
+  const [leafOpen, setLeafOpen] = useState(false);
   const [farmerView, setFarmerView] = useState(() => window.location.hash.slice(1) || "today");
-  const [tuberConsent, setTuberConsent] = useState(false);
   const location = useLocation();
   useEffect(() => {
     if (!farmerHome) return;
-    const update = () => { const view = window.location.hash.slice(1) || "today"; if (view === "tuber") { window.location.hash = "photos"; return; } setFarmerView(view); window.scrollTo({ top: 0, behavior: "instant" }); };
+    const update = () => { const hash = window.location.hash.slice(1); const view = hash === "tuber" ? "photos" : hash === "hisab" ? "diary" : hash || "today"; setFarmerView(view); if (view === "photos") setLeafOpen(true); window.scrollTo({ top: 0, behavior: "instant" }); };
     update(); window.addEventListener("hashchange", update);
     return () => window.removeEventListener("hashchange", update);
   }, [farmerHome, location.hash]);
   const [tipIndex, setTipIndex] = useState(0);
-  const [district, setDistrict] = useState(() => localStorage.getItem("alusathi-district") || "Rangpur");
+  const [district, setDistrict] = useState(farmerDistrict);
+  useEffect(() => {
+    const refresh = () => setDistrict(farmerDistrict());
+    window.addEventListener(PROFILE_CHANGED, refresh); window.addEventListener("storage", refresh); window.addEventListener("focus", refresh);
+    return () => { window.removeEventListener(PROFILE_CHANGED, refresh); window.removeEventListener("storage", refresh); window.removeEventListener("focus", refresh); };
+  }, []);
   const [districtOptions, setDistrictOptions] = useState<Record<string, string>>({ Rangpur: "রংপুর" });
   const [plantingDate, setPlantingDate] = useState(() => localStorage.getItem("alusathi-planting-date") || "");
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [diary, setDiary] = useState<DiaryEntry[]>(() => readDiary());
-  const [ledger, setLedger] = useState<FarmLedgerEntry[]>(() => readLedger(user?.id));
-  const [activeDiaryId, setActiveDiaryId] = useState<string>();
   const [cloudMessage, setCloudMessage] = useState("");
   const diaryKey = user ? `${DIARY_KEY}-${user.id}` : DIARY_KEY;
   useEffect(() => {
@@ -343,30 +361,13 @@ export default function AluSathiDashboard({ farmerHome = false }: { farmerHome?:
     return () => { active = false; window.removeEventListener("online", sync); };
   }, [user, diaryKey, language]);
 
-  useEffect(() => {
-    const refresh = () => setLedger(readLedger(user?.id));
-    refresh(); window.addEventListener(LEDGER_EVENT, refresh); window.addEventListener("storage", refresh);
-    if (user) {
-      const sync = () => { if (navigator.onLine) void syncLedger(user.id).then(setLedger).catch(() => setCloudMessage(language === "bn" ? "হিসাবের অনলাইন খাতা পাওয়া যায়নি। এই ফোনে সেভ আছে; ইন্টারনেট এলে আবার চেষ্টা হবে।" : "Cloud notebook unavailable. Records remain on this device and will retry online.")); };
-      sync(); window.addEventListener("online", sync);
-      return () => { window.removeEventListener(LEDGER_EVENT, refresh); window.removeEventListener("storage", refresh); window.removeEventListener("online", sync); };
-    }
-    return () => { window.removeEventListener(LEDGER_EVENT, refresh); window.removeEventListener("storage", refresh); };
-  }, [user?.id, language]);
-
   const [, setPendingCount] = useState(0);
   const [syncedCount, setSyncedCount] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [notebookTab, setNotebookTab] = useState<"work" | "expenses">("work");
-  const [expenseCategory, setExpenseCategory] = useState<ExpenseCategory>("seed");
-  const [expenseAmount, setExpenseAmount] = useState(""); const [expenseDate, setExpenseDate] = useState(localToday()); const [expenseNote, setExpenseNote] = useState(""); const [expenseMessage, setExpenseMessage] = useState("");
   const [followUpOf, setFollowUpOf] = useState<string | undefined>();
+  const scanRef = useRef<HTMLElement>(null);
   const landingRef = useRef<HTMLDivElement>(null);
   const syncingRef = useRef(false);
-  useEffect(() => {
-    if (farmerView !== "diary" || localStorage.getItem("alusathi-notebook-tab") !== "expenses") return;
-    localStorage.removeItem("alusathi-notebook-tab"); setNotebookTab("expenses");
-  }, [farmerView]);
   useLayoutEffect(() => {
     if (farmerHome || !landingRef.current || !window.IntersectionObserver || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const targets = landingRef.current.querySelectorAll<HTMLElement>(".landing-reveal");
@@ -453,24 +454,11 @@ export default function AluSathiDashboard({ farmerHome = false }: { farmerHome?:
   function startScan(nextMode: ScanMode, nextFollowUp?: string) {
     if (loading) return;
     if (farmerHome) { window.location.hash = "photos"; setFarmerView("photos"); }
+    setLeafOpen(true);
     setReportImage(null);
     setMode(nextMode); setFile(null); setPreview(null); setResult(null); setFieldResults([]); setFieldThumbnails([]); setError(""); setBlurWarning(false);
     setFollowUpOf(nextFollowUp);
-    if (!farmerHome) requestAnimationFrame(() => document.getElementById("scan")?.scrollIntoView({ behavior: "smooth", block: "start" }));
-  }
-
-  function showDemoInToday(demo: typeof PHOTO_DEMO_CASES[number]) {
-    const profile = demo[language];
-    const entry: FieldAction = {
-      id: `demo-${demo.id}-${localToday()}`, date: localToday(), district, kind: "observation", category: "photo",
-      text: `${language === "bn" ? "ছবি পরীক্ষা" : "Photo check"} · ${profile.variety}`,
-      status: profile.health, details: profile.action, variety: profile.variety, cropAge: profile.age,
-    };
-    saveFieldActions([entry, ...readFieldActions().filter(item => item.id !== entry.id)].slice(0, 100));
-    setTodayDemoResult(demo);
-    setFarmerView("today");
-    if (window.location.hash) window.location.hash = "";
-    else window.scrollTo({ top: 0, behavior: "instant" });
+    if (!farmerHome) requestAnimationFrame(() => scanRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
   }
 
   function chooseFile(next?: File) {
@@ -490,20 +478,6 @@ export default function AluSathiDashboard({ farmerHome = false }: { farmerHome?:
     }
   }
 
-  function saveSymptoms(id: string, symptoms: string[]) {
-    const entry = diary.find((item) => item.id === id);
-    if (!entry) return;
-    const updated = { ...entry, symptoms };
-    const next = diary.map((item) => item.id === id ? updated : item);
-    localStorage.setItem(diaryKey, JSON.stringify(next)); setDiary(next);
-    if (user) {
-      localStorage.setItem(`${diaryKey}-pending-${id}`, JSON.stringify(updated));
-      writeRecord(user.id, "scan", id, updated as unknown as Json, updated.createdAt)
-        .then(() => localStorage.removeItem(`${diaryKey}-pending-${id}`))
-        .catch(() => setCloudMessage(language === "bn" ? "লক্ষণ এই ফোনে আছে। অনলাইনে সেভ হয়নি।" : "Symptoms are saved on this phone; cloud save failed."));
-    }
-  }
-
   async function analyze(allowBlurry = false) {
     if (!file || loading || scanComplete || (result && !result.quality_warning)) return;
     setLoading(true); setError("");
@@ -519,12 +493,11 @@ export default function AluSathiDashboard({ farmerHome = false }: { farmerHome?:
       if (isScanComplete(nextField, mode)) {
         const risk = riskFromResults(nextField, weather);
         const affectedCount = nextField.filter((item) => ["early_blight", "late_blight"].includes(item.label)).length;
-        const entry = {
+        saveDiary({
           id: crypto.randomUUID(), createdAt: new Date().toISOString(), mode, district, risk,
           label: dominantLabel(nextField, risk), scanCount: nextField.length, affectedCount,
            humidity: weather?.humidity, followUpOf, triage: true, thumbnails: nextThumbnails,
-        };
-        saveDiary(entry); setActiveDiaryId(entry.id);
+        });
       }
     } catch (cause) {
       const reason = cause instanceof Error ? cause.message : "";
@@ -543,29 +516,24 @@ export default function AluSathiDashboard({ farmerHome = false }: { farmerHome?:
   function retakeCurrent() {
     if (preview) URL.revokeObjectURL(preview);
     setFile(null); setPreview(null); setResult(null); setError(""); setBlurWarning(false);
-    document.getElementById("scan")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    scanRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
 
   async function removeDiary(id?: string) {
     if (user) {
       try { await deleteRecord(user.id, "scan", id); }
-      catch { setCloudMessage(language === "bn" ? "মোছা হয়নি। ইন্টারনেট দেখে আবার চেষ্টা করুন।" : "Could not delete. Check your connection and retry."); return; }
+      catch { setCloudMessage(language === "bn" ? "মোছা হয়নি। ইন্টারনেট দেখে আবার চেষ্টা করুন।" : "Could not delete. Check your connection and retry."); return false; }
     }
     const next = id ? diary.filter((entry) => entry.id !== id) : [];
     for (const key of Object.keys(localStorage).filter(key => key.startsWith(`${diaryKey}-pending-`) && (!id || key.endsWith(id)))) localStorage.removeItem(key);
-    localStorage.setItem(diaryKey, JSON.stringify(next)); setDiary(next);
+    localStorage.setItem(diaryKey, JSON.stringify(next)); setDiary(next); return true;
   }
 
   const weatherRisk = Boolean(spreadOutlook(weather)?.high);
   const weatherAlerts = weather?.cached ? [] : weather?.alerts || [];
   const age = cropAge(plantingDate);
   const marketHref = dashboardAccess ? "/marketplace/farmer.html" : "/marketplace/";
-  const timeline = [
-    ...diary.map((entry): TimelineEntry => ({ type: "scan", createdAt: entry.createdAt, entry })),
-    ...readFieldActions().map((entry): TimelineEntry => ({ type: "action", createdAt: `${entry.date}T12:00:00`, entry })),
-    ...ledger.map((entry): TimelineEntry => ({ type: "ledger", createdAt: `${entry.date}T12:00:00`, entry })),
-  ].sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt)).slice(0, 100);
 
   async function logout() {
     if (user) {
@@ -576,15 +544,7 @@ export default function AluSathiDashboard({ farmerHome = false }: { farmerHome?:
     window.location.replace("/");
   }
 
-  function addNotebookExpense(event: React.FormEvent) {
-    event.preventDefault(); const amount = Number(expenseAmount);
-    if (!Number.isFinite(amount) || amount <= 0 || amount > 1e9 || !/^\d{4}-\d{2}-\d{2}$/.test(expenseDate)) { setExpenseMessage(language === "bn" ? "তারিখ ও খরচ ঠিক করে লিখুন।" : "Check the date and amount."); return; }
-    const entry: FarmExpense = { type: "expense", id: crypto.randomUUID(), date: expenseDate, category: expenseCategory, amount, note: expenseNote.trim().slice(0, 120) };
-    try { saveLedger(entry, user?.id); setExpenseAmount(""); setExpenseNote(""); setExpenseMessage(language === "bn" ? "খরচ খাতায় রাখা হয়েছে।" : "Expense recorded in Notebook."); }
-    catch { setExpenseMessage(language === "bn" ? "খরচ সেভ হয়নি। আবার চেষ্টা করুন।" : "Could not save the expense. Please retry."); }
-  }
-
-  return <div ref={landingRef} className={`${language === "bn" ? "font-bangla" : ""} ${farmerHome ? "farmer-v2" : "landing-motion"}`} data-view={farmerView}>
+  return <div ref={landingRef} className={`${language === "bn" ? "font-bangla" : ""} ${farmerHome ? "farmer-v2" : "landing-motion"}`} data-view={farmerView} data-home-theme={siteTheme}>
     <a href="#main" className="skip-link">{language === "bn" ? "মূল অংশে যান" : "Skip to content"}</a>
     {farmerHome ? <FarmerNavigation active={farmerView} /> : <header className={`site-header ${activeRole ? "signed-in" : ""}`}>
       <div className="app-shell flex h-16 items-center justify-between gap-3">
@@ -618,7 +578,10 @@ export default function AluSathiDashboard({ farmerHome = false }: { farmerHome?:
         </section>
       </div>}
 
-      {farmerHome && <div hidden={farmerView !== "today"}><FarmerToday weather={weather} loading={weatherLoading} district={district} districts={districtOptions} plantingDate={plantingDate} onPhoto={() => { window.location.hash = "photos"; setFarmerView("photos"); }} demoResult={todayDemoResult} onClearDemo={() => setTodayDemoResult(null)} lastCheckin={diary[0] ? { createdAt: diary[0].createdAt, thumbnails: (diary[0].thumbnails || []).filter(src => /^data:image\/jpeg;base64,/.test(src)) } : undefined} /></div>}
+      {farmerHome && <div hidden={farmerView !== "today"}><FarmerToday weather={weather} loading={weatherLoading} district={district} districts={districtOptions} plantingDate={plantingDate} onPhoto={() => startScan("quick")} lastCheckin={diary[0] ? { createdAt: diary[0].createdAt, thumbnails: (diary[0].thumbnails || []).filter(src => /^data:image\/jpeg;base64,/.test(src)) } : undefined} /></div>}
+
+      {farmerHome && <div hidden={farmerView !== "profile"}><FarmerProfile /></div>}
+      {farmerHome && (farmerView === "market" || farmerView === "interest") && <FarmerMarketPages key={farmerView} view={farmerView} district={district} />}
 
       {farmerHome && <section hidden={farmerView !== "settings"} className="app-shell farmer-settings"><p className="section-kicker">{language === "bn" ? "সেটিংস" : "SETTINGS"}</p><h1>{language === "bn" ? "জেলা ও চাষের সময়" : "District and planting time"}</h1><p>{language === "bn" ? "এগুলো একবার ঠিক করলে আজকের কাজ ও আবহাওয়া সেই অনুযায়ী দেখাবে।" : "Set these once to tailor today's work and weather."}</p><div><label>{language === "bn" ? "জেলা" : "District"}<select value={district} onChange={event => setDistrict(event.target.value)}>{Object.entries(districtOptions).map(([id, name]) => <option key={id} value={id}>{language === "bn" ? name : id}</option>)}</select></label><label>{language === "bn" ? "লাগানোর সঠিক তারিখ (ঐচ্ছিক)" : "Exact planting date (optional)"}<input type="date" value={plantingDate} max={localToday()} onChange={event => { setPlantingDate(event.target.value); localStorage.setItem("alusathi-planting-date", event.target.value); }} /></label></div></section>}
 
@@ -627,14 +590,25 @@ export default function AluSathiDashboard({ farmerHome = false }: { farmerHome?:
         <span className="field-bird field-bird-one"><svg viewBox="0 0 62 28" fill="none"><path d="M2 20 Q9 11 17 19 Q25 11 32 20 M29 9 Q35 2 41 9 Q48 2 54 10" /></svg></span>
         <span className="field-bird field-bird-two"><svg viewBox="0 0 62 28" fill="none"><path d="M2 21 Q15 2 30 17 Q45 2 60 21" /></svg></span>
       </div>}
-      {farmerHome && farmerView === "photos" && <section className="app-shell photo-page-titlebar" aria-labelledby="photo-page-title"><div className="farmer-greeting"><div><p className="section-kicker">{language === "bn" ? "ছবি" : "PHOTO"}</p><h1 id="photo-page-title">{language === "bn" ? "আলুর নমুনা দেখুন বা ছবি দিন" : "View a potato sample or add a photo"}</h1><p>{language === "bn" ? "আজকের কাজের জন্য পরিষ্কার ছবি দিন বা একটি নমুনা বেছে নিন।" : "Add a clear photo or choose a sample for today's work."}</p></div></div></section>}
-      {farmerHome && farmerView === "photos" && <section className="app-shell photo-today-bridge" aria-labelledby="photo-today-title"><div><p className="section-kicker">{language === "bn" ? "আজকের কাজ" : "TODAY'S WORK"}</p><h2 id="photo-today-title">{language === "bn" ? "ছবি দিন, আজকের কাজ বুঝুন" : "Add a photo for today's work"}</h2><p>{language === "bn" ? "ছবির দৃশ্যমান লক্ষণ দেখে আজকের কাজের পাতায় পরের ছোট ধাপ দেখুন।" : "Use visible signs in the photo to find the next small step for today."}</p><a className="secondary-main" href="/farmer#today">{language === "bn" ? "আজকের কাজ দেখুন" : "View today's work"}</a></div></section>}
-      {(!farmerHome || farmerView === "photos") && <div className={farmerHome ? "" : "landing-reveal"}><Suspense fallback={<div id="scan" className="app-shell py-12" role="status">{language === "bn" ? "ছবি স্ক্যানার খুলছে…" : "Loading photo scanner…"}</div>}><TuberScan modelsAllowed={!farmerHome || tuberConsent} onEnableModels={() => setTuberConsent(true)} onDemo={farmerHome ? showDemoInToday : undefined} /></Suspense></div>}
-      {farmerHome && farmerView === "tools" && <div className="farmer-tools-scene" aria-hidden="true" />}
-      <div hidden={farmerHome && farmerView !== "tools" && farmerView !== "today"} className={farmerHome ? "" : "landing-reveal"}><FarmerTools showReminders={!farmerHome} todayMode={farmerHome && farmerView === "today"} /></div>
-      {farmerHome && farmerView === "diary" && <div className="farmer-diary-scene" aria-hidden="true" />}
-      {dashboardAccess && (farmerHome || timeline.length > 0) && <section hidden={farmerHome && farmerView !== "diary"} id="diary" className={`diary-section scroll-mt-20 ${timeline.length ? "" : "diary-empty-section"}`}><div className="app-shell py-16 sm:py-24"><div className="section-heading light"><div><p className="section-kicker"><History size={16} />{language === "bn" ? "আমার খাতা" : "MY NOTEBOOK"}</p><h2>{language === "bn" ? "দিনভিত্তিক জমির খাতা" : "Daily field notebook"}</h2><p>{language === "bn" ? "কাজ ও খরচ আলাদা তালিকায়—তারিখ ধরে সহজে মিলিয়ে দেখুন।" : "Work and expenses stay in separate dated tables."}</p><p>{user ? (language === "bn" ? "আপনার ব্যক্তিগত অনলাইন খাতা" : "Your private account history") : (language === "bn" ? "এই ফোনের খাতা; অনলাইনে সেভ হয় না।" : "Saved on this device; no cloud sync.")}</p>{cloudMessage && <p role="status">{cloudMessage}</p>}<div className="notebook-tabs" role="tablist"><button role="tab" aria-selected={notebookTab === "work"} className={notebookTab === "work" ? "active" : ""} onClick={() => setNotebookTab("work")}>{language === "bn" ? "কাজ" : "Work"}</button><button role="tab" aria-selected={notebookTab === "expenses"} className={notebookTab === "expenses" ? "active" : ""} onClick={() => setNotebookTab("expenses")}>{language === "bn" ? "খরচ" : "Expenses"}</button></div>{notebookTab === "expenses" && <form className="notebook-expense-form" onSubmit={addNotebookExpense}><label>{language === "bn" ? "ধরন" : "Type"}<select value={expenseCategory} onChange={event => setExpenseCategory(event.target.value as ExpenseCategory)}><option value="seed">{language === "bn" ? "বীজ" : "Seed"}</option><option value="manure">{language === "bn" ? "সার / গোবর" : "Manure"}</option><option value="labour">{language === "bn" ? "শ্রম" : "Labour"}</option><option value="irrigation">{language === "bn" ? "সেচ" : "Irrigation"}</option><option value="transport">{language === "bn" ? "পরিবহন" : "Transport"}</option><option value="other">{language === "bn" ? "অন্যান্য" : "Other"}</option></select></label><label>{language === "bn" ? "টাকা" : "Amount"}<input required type="number" min="0.01" max="1000000000" step="any" value={expenseAmount} onChange={event => setExpenseAmount(event.target.value)} /></label><label>{language === "bn" ? "তারিখ" : "Date"}<input required type="date" max={localToday()} value={expenseDate} onChange={event => setExpenseDate(event.target.value)} /></label><label>{language === "bn" ? "নোট" : "Note"}<input maxLength={120} value={expenseNote} onChange={event => setExpenseNote(event.target.value)} /></label><button className="secondary-main">{language === "bn" ? "খরচ রাখুন" : "Save expense"}</button>{expenseMessage && <small role="status">{expenseMessage}</small>}</form>}</div>{diary.length > 0 && <button className="text-button" onClick={() => removeDiary()}><Trash2 size={16} />{language === "bn" ? "ছবির পুরোনো নোট মুছুন" : "Delete photo notes"}</button>}</div><NotebookTable items={timeline} tab={notebookTab} language={language} copy={copy} /></div></section>}
+      {farmerHome && farmerView === "photos" && <section className="app-shell photo-page-titlebar" aria-labelledby="photo-page-title"><div className="farmer-greeting"><div><h1 id="photo-page-title">{language === "bn" ? "আলুর ছবি দিন" : "Add a potato photo"}</h1><p>{language === "bn" ? "ছবি বাছুন → ফল দেখুন → আজকের কাজে যান।" : "Choose a photo → See the result → Go to today's work."}</p></div></div></section>}
+      <div hidden={farmerHome && farmerView !== "photos"} className={farmerHome ? "" : "landing-reveal"}><Suspense fallback={<div id="scan" className="app-shell py-12" role="status">{language === "bn" ? "ছবি স্ক্যানার খুলছে…" : "Loading photo scanner…"}</div>}><TuberScan /></Suspense></div>
+      <details hidden={farmerHome} className="app-shell leaf-check-details" open={leafOpen} onToggle={event => setLeafOpen(event.currentTarget.open)}><summary>{language === "bn" ? "গাছের পাতায় সমস্যা?" : "Problem with the plant’s leaves?"}</summary>
+      <section id="leaf-scan" ref={scanRef} className="app-shell scroll-mt-24 py-16 sm:py-24">
+        <div className="section-heading"><div><p className="section-kicker"><ScanLine size={16} />{copy.scanKicker}</p><h2>{copy.scanTitle}</h2><p>{copy.scanBody}</p></div></div>
+        {!fieldResults.length && !file && <button className="secondary-main mb-4" onClick={() => startScan(mode === "quick" ? "field" : "quick")}>{language === "bn" ? (mode === "quick" ? "চাইলে ৩টি ছবি দিন" : "১টি ছবি দিয়ে শুরু করুন") : (mode === "quick" ? "Use three photos instead" : "Use one photo instead")}</button>}
+        {!scanComplete && (mode === "field" || fieldResults.length > 0) && <div className="field-progress-card"><div className="field-path" aria-label={`${fieldResults.length} of ${scanPoints.length} completed`}>{scanPoints.map((point, index) => <span key={point} className={index < fieldResults.length ? "done" : index === fieldResults.length ? "current" : ""}>{index < fieldResults.length ? <Check size={16} /> : point}</span>)}</div><div><p className="text-sm font-bold text-leaf">{copy.point} {fieldResults.length + 1} {copy.of} {scanPoints.length}</p><strong className="mt-1 block text-xl text-ink">{mode === "quick" ? copy.guidedInstructions[fieldResults.length] : copy.pointInstructions[fieldResults.length]}</strong></div></div>}
+        <div className={`scan-workspace ${!file && !result ? "scan-workspace-empty" : ""}`}><div className="scan-capture"><label className={`camera-stage ${preview ? "has-image" : ""}`}><input disabled={loading || scanComplete || Boolean(result && !result.quality_warning)} className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { chooseFile(event.target.files?.[0]); event.currentTarget.value = ""; }} />{preview ? <img src={preview} alt={language === "bn" ? "বাছাই করা আলু পাতা" : "Selected potato leaf"} /> : <div className="camera-empty"><span className="leaf-frame"><Leaf size={62} /></span><strong>{copy.choose}</strong><small>{copy.formats}</small></div>}{preview && <span className="replace-photo"><RefreshCw size={16} />{copy.replace}</span>}</label><div className="photo-tips"><span><Check />{language === "bn" ? "একটি পাতা" : "One leaf"}</span><span><Check />{language === "bn" ? "দিনের আলো" : "Daylight"}</span><span><Check />{language === "bn" ? "কাছে থেকে" : "Close view"}</span></div>{error && <p className="error-message" role="alert"><AlertTriangle size={18} />{error}</p>}{blurWarning && <button type="button" className="secondary-main" onClick={() => analyze(true)}>{language === "bn" ? "এই ছবিই ব্যবহার করুন" : "Use anyway"}</button>}<button className="main-button" disabled={!file || loading || scanComplete || Boolean(result && !result.quality_warning)} onClick={() => analyze()}>{loading ? <Loader2 className="animate-spin" /> : <ScanLine />}{loading ? copy.analyzing : copy.analyze}</button></div>
+           {(file || result) && <div className="result-stage" aria-live="polite">{scanComplete ? <div className="result-content field-summary animate-rise"><div className="result-symbol uncertain"><Check /></div><h3>{language === "bn" ? "ছবি রাখা হয়েছে" : "Photo recorded"}</h3><p>{language === "bn" ? "নিচের প্রশ্নগুলোর উত্তর দিন। এটি রোগ নির্ণয় নয়।" : "Answer the questions below. This is not a disease diagnosis."}</p><button className="secondary-main mt-4" onClick={() => startScan(mode)}><RefreshCw size={18} />{copy.newScan}</button></div> : result ? <PhotoAccepted copy={copy} offline={false} /> : <div className="result-empty"><span><Leaf size={42} /></span><h3>{copy.noResult}</h3><p>{copy.noResultBody}</p></div>}{result && !scanComplete && <button className="next-button" onClick={nextFieldPoint}>{copy.nextPoint}<ArrowRight size={18} /></button>}</div>}</div>
+       {scanComplete && <ScanInsights key={reportImage} results={fieldResults} weather={weather} district={district} image={reportImage} cropAgeDays={age} />}
+      </section>
 
+      </details>
+      <div hidden={farmerHome && farmerView !== "tools"} className={farmerHome ? "" : "landing-reveal"}><FarmerTools showReminders={!farmerHome} /></div>
+      {farmerHome && dashboardAccess && farmerView === "diary" && <FarmerNotebook userId={user?.id} photos={diary} onDeletePhoto={async id => { if (!await removeDiary(id)) throw new Error("Photo deletion failed"); }} />}
+      {!farmerHome && <>
+      {dashboardAccess && (farmerHome || diary.length > 0) && <section hidden={farmerHome && farmerView !== "diary"} id="diary" className={`diary-section scroll-mt-20 ${diary.length ? "" : "diary-empty-section"}`}><div className="app-shell py-16 sm:py-24"><div className="section-heading light"><div><p className="section-kicker"><History size={16} />{language === "bn" ? "আমার খাতা" : "MY NOTEBOOK"}</p><h2>{language === "bn" ? "আগের ছবি ও লক্ষণ" : "Previous photos and symptoms"}</h2><p>{language === "bn" ? "আগের লেখা ও ছবি দেখুন। এগুলো রোগের উন্নতি বা অবনতির নির্ণয় নয়।" : "Review saved photos and notes, not a diagnosis of improvement or deterioration."}</p><p>{user ? (language === "bn" ? "আপনার ব্যক্তিগত অনলাইন খাতা" : "Your private account history") : (language === "bn" ? "এই ফোনের খাতা; অনলাইনে সেভ হয় না।" : "Saved on this device; no cloud sync.")}</p>{cloudMessage && <p role="status">{cloudMessage}</p>}</div>{diary.length > 0 && <button className="text-button" onClick={() => removeDiary()}><Trash2 size={16} />{copy.clearAll}</button>}</div>{diary.length === 0 ? <div className="empty-diary"><span><History size={31} /></span><h3>{copy.emptyDiary}</h3><p>{copy.emptyDiaryBody}</p><button className="secondary-main" onClick={() => startScan("quick")}><Camera size={18} />{copy.quick}</button></div> : <div className="diary-grid timeline-grid">{diary.map((entry) => { const previous = entry.followUpOf ? diary.find((item) => item.id === entry.followUpOf) : undefined; return <DiaryCard key={entry.id} entry={entry} trend={trendFromEntries(entry, previous)} language={language} copy={copy} onDelete={() => removeDiary(entry.id)} onRecheck={() => { setDistrict(entry.district); startScan("quick", entry.id); }} />; })}</div>}</div></section>}
+
+      </>}
       <section id="help" hidden={farmerHome && farmerView !== "help"} className={`app-shell scroll-mt-20 py-16 sm:py-24 ${farmerHome ? "" : "landing-reveal"}`}>
         <div className="section-heading"><div><p className="section-kicker">{copy.helpKicker}</p><h2>{copy.helpTitle}</h2></div></div>
         <div className="care-slider" aria-roledescription="carousel" aria-label={copy.helpTitle}>
@@ -656,23 +630,6 @@ export default function AluSathiDashboard({ farmerHome = false }: { farmerHome?:
   </div>;
 }
 
-function NotebookTable({ items, tab, language, copy }: { items: TimelineEntry[]; tab: "work" | "expenses"; language: "bn" | "en"; copy: Copy }) {
-  const bn = language === "bn";
-  const rows = items.filter(item => tab === "work" ? item.type !== "ledger" : item.type === "ledger");
-  const date = (value: string) => new Intl.DateTimeFormat(bn ? "bn-BD" : "en-GB", { day: "numeric", month: "short", year: "numeric" }).format(new Date(value));
-  if (!rows.length) return <div className="notebook-sheet-empty"><History size={24} /><strong>{tab === "work" ? (bn ? "এখনও কোনো কাজ রাখা হয়নি" : "No work recorded yet") : (bn ? "এখনও কোনো খরচ রাখা হয়নি" : "No expenses recorded yet")}</strong><p>{tab === "work" ? (bn ? "আজকের কাজ থেকে সার, স্প্রে বা ছবি পরীক্ষা রাখলে এখানে দেখা যাবে।" : "Saved fertilizer, spray and photo checks from Today will appear here.") : (bn ? "হিসাব পাতায় খরচ রাখলে এখানে দেখা যাবে।" : "Expenses saved from Tools will appear here.")}</p></div>;
-  return <div className="notebook-sheet-wrap"><table className="notebook-sheet"><thead><tr><th>{bn ? "তারিখ" : "Date"}</th><th>{tab === "work" ? (bn ? "কাজ" : "Work") : (bn ? "ধরন" : "Type")}</th><th>{tab === "work" ? (bn ? "অবস্থা" : "Status") : (bn ? "পরিমাণ / ফল" : "Amount / result")}</th><th>{bn ? "বিস্তারিত" : "Details"}</th></tr></thead><tbody>{rows.map(item => {
-    if (item.type === "scan") return <tr key={`scan-${item.entry.id}`}><td>{date(item.createdAt)}</td><td>{bn ? "ছবি পরীক্ষা" : "Photo check"}</td><td>{riskText(item.entry.risk, copy)}</td><td>{item.entry.symptoms?.join(" · ") || (bn ? `${item.entry.scanCount.toLocaleString("bn-BD")}টি ছবি` : `${item.entry.scanCount} photo${item.entry.scanCount === 1 ? "" : "s"}`)}</td></tr>;
-    if (item.type === "action") {
-      const labels = { photo: bn ? "ছবি পরীক্ষা" : "Photo check", fertilizer: bn ? "সার" : "Fertilizer", spray: bn ? "স্প্রে" : "Spray", field: bn ? "মাঠের কাজ" : "Field work" };
-      return <tr key={`action-${item.entry.id}`}><td>{date(`${item.entry.date}T12:00:00`)}</td><td>{item.entry.category ? labels[item.entry.category] : item.entry.text}</td><td>{item.entry.status || (item.entry.kind === "task" ? (bn ? "সম্পন্ন" : "Done") : (bn ? "রাখা হয়েছে" : "Recorded"))}</td><td>{[item.entry.variety, item.entry.cropAge, item.entry.details || item.entry.text].filter(Boolean).join(" · ")}</td></tr>;
-    }
-    const entry = item.entry;
-    const amount = entry.type === "expense" ? `৳${entry.amount.toLocaleString(bn ? "bn-BD" : "en-GB")}` : Object.values(entry.result).join(" · ");
-    return <tr key={`ledger-${entry.id}`}><td>{date(`${entry.date}T12:00:00`)}</td><td>{entry.type === "expense" ? (bn ? "খরচ" : "Expense") : entry.title}</td><td>{amount}</td><td>{entry.type === "expense" ? (entry.note || "—") : (bn ? "সংরক্ষিত হিসাব" : "Saved calculation")}</td></tr>;
-  })}</tbody></table></div>;
-}
-
 function riskText(risk: Risk, copy: Copy) {
   return risk === "healthy" ? copy.fieldHealthy : risk === "watch" ? copy.fieldWatch : risk === "urgent" ? copy.fieldUrgent : copy.fieldUnknown;
 }
@@ -681,30 +638,9 @@ function PhotoAccepted({ copy, offline }: { copy: Copy; offline: boolean }) {
   return <div className="result-empty photo-accepted animate-rise"><span><Check size={38} /></span><h3>{copy.photoSaved}</h3><p>{copy.photoSavedBody}</p>{offline && <small className="offline-result"><WifiOff size={15} />{copy.offlineResult}</small>}</div>;
 }
 
-function DiaryCard({ entry, language, copy, onDelete, onRecheck }: { entry: DiaryEntry; language: "bn" | "en"; copy: Copy; onDelete: () => void; onRecheck: () => void }) {
+function DiaryCard({ entry, trend, language, copy, onDelete, onRecheck }: { entry: DiaryEntry; trend: Trend; language: "bn" | "en"; copy: Copy; onDelete: () => void; onRecheck: () => void }) {
   const date = new Intl.DateTimeFormat(language === "bn" ? "bn-BD" : "en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(entry.createdAt));
-  const photos = (entry.thumbnails || []).filter((src) => /^data:image\/jpeg;base64,/.test(src));
-  return <article className="diary-card"><div className="timeline-dot" aria-hidden="true" /><div className="flex items-start justify-between gap-3"><span className={`diary-status ${entry.risk}`}>{entry.risk === "healthy" ? <Check /> : <AlertTriangle />}</span><button onClick={onDelete} aria-label={copy.delete}><Trash2 size={16} /></button></div><div className="trend-chip first"><History size={15} />{entry.followUpOf ? (language === "bn" ? "আগের ছবির ফলো-আপ" : "Follow-up photo") : (language === "bn" ? "পাতার নোট" : "Leaf note")}</div><p className="mt-4 text-xs font-bold uppercase tracking-[.12em] text-white/45">{entry.mode === "field" ? copy.fieldLabel : copy.quickLabel}</p><h3>{entry.triage ? (language === "bn" ? "পাতার ছবি রাখা হয়েছে" : "Leaf photo recorded") : riskText(entry.risk, copy)}</h3><div className="mt-5 flex flex-wrap gap-2"><span><MapPin />{language === "bn" ? DISTRICT_NAMES[entry.district] || entry.district : entry.district}</span><span><Camera />{entry.scanCount} {copy.scans}</span>{entry.humidity && <span><CloudRain />{entry.humidity}%</span>}{entry.inferenceMode === "offline" && <span><WifiOff />Offline</span>}</div><details className="diary-details"><summary>{language === "bn" ? "ছবি ও নোট দেখুন" : "View photo and notes"}</summary>{photos.length > 0 && <div className="diary-thumbnails">{photos.map((src, index) => <img key={index} src={src} alt={language === "bn" ? "সংরক্ষিত পাতার ছবি" : "Saved leaf photo"} />)}</div>}{entry.symptoms?.length ? <ul>{entry.symptoms.map((symptom) => <li key={symptom}>{symptom}</li>)}</ul> : <p>{language === "bn" ? "এই পুরোনো নোটে লক্ষণের উত্তর রাখা হয়নি।" : "This older note has no saved symptom answers."}</p>}<small>{language === "bn" ? "এটি রোগ নির্ণয় নয়।" : "This is not a disease diagnosis."}</small></details><time>{date}</time><button className="recheck-button" onClick={onRecheck}><RefreshCw size={16} />{copy.checkAgain}</button></article>;
-}
-
-function FieldActionCard({ entry, language }: { entry: FieldAction; language: "bn" | "en" }) {
-  const date = new Intl.DateTimeFormat(language === "bn" ? "bn-BD" : "en-GB", { day: "numeric", month: "short", year: "numeric" }).format(new Date(`${entry.date}T12:00:00`));
-  const isTask = entry.kind === "task";
-  return <article className="diary-card diary-action-card"><div className="timeline-dot" aria-hidden="true" /><span className="diary-status healthy">{isTask ? <Check /> : <Eye />}</span><div className="trend-chip first">{isTask ? <Check size={15} /> : <Eye size={15} />}{isTask ? (language === "bn" ? "কাজ শেষ" : "Task completed") : (language === "bn" ? "জমির নোট" : "Field observation")}</div><h3>{entry.text}</h3><div className="mt-5 flex flex-wrap gap-2"><span><MapPin />{language === "bn" ? DISTRICT_NAMES[entry.district] || entry.district : entry.district}</span></div><time>{date}</time></article>;
-}
-
-function LedgerCard({ entry, language }: { entry: FarmLedgerEntry; language: "bn" | "en" }) {
-  const bn = language === "bn";
-  const date = new Intl.DateTimeFormat(bn ? "bn-BD" : "en-GB", { day: "numeric", month: "short", year: "numeric" }).format(new Date(`${entry.date}T12:00:00`));
-  const title = entry.type === "expense" ? ({ seed: bn ? "বীজের খরচ" : "Seed expense", manure: bn ? "সার / গোবরের খরচ" : "Manure expense", labour: bn ? "শ্রমের খরচ" : "Labour expense", irrigation: bn ? "সেচের খরচ" : "Irrigation expense", transport: bn ? "পরিবহনের খরচ" : "Transport expense", other: bn ? "অন্যান্য খরচ" : "Other expense" })[entry.category] : entry.title;
-  const money = (value: number) => `৳${value.toLocaleString(bn ? "bn-BD" : "en-GB", { maximumFractionDigits: 2 })}`;
-  const summary = entry.type === "expense" ? money(entry.amount) : entry.category === "sale-offer"
-    ? `${bn ? "মোট বিক্রি" : "Gross"}: ${money(Number(entry.result.gross))} · ${bn ? "বিক্রির খরচ" : "Selling costs"}: ${money(Number(entry.result.sellingCosts))} · ${bn ? "হাতে" : "Take-home"}: ${money(Number(entry.result.takeHome))} · ${bn ? "আনুমানিক লাভ" : "Est. profit"}: ${money(Number(entry.result.estimatedProfit))}${entry.result.offer2TakeHome !== undefined ? ` · ${bn ? "প্রস্তাব ২ হাতে" : "Offer 2 take-home"}: ${money(Number(entry.result.offer2TakeHome))}` : ""}`
-    : Object.entries(entry.result).map(([key, value]) => {
-      const labels: Record<string, string> = bn
-        ? { amount: "পরিমাণ", unit: "একক", amountPerTank: "প্রতি ট্যাংকে", amountPerLitre: "প্রতি লিটারে", totalProduct: "মোট", tanks: "ট্যাংক", lowKg: "কম", estimateKg: "মাঝামাঝি", highKg: "বেশি" }
-        : { amount: "Amount", unit: "Unit", amountPerTank: "Per tank", amountPerLitre: "Per litre", totalProduct: "Total", tanks: "Tanks", lowKg: "Low", estimateKg: "Estimate", highKg: "High" };
-      return `${labels[key] || key}: ${value}`;
-    }).join(" · ");
-  return <article className="diary-card ledger-diary-card"><div className="timeline-dot" aria-hidden="true" /><span className="diary-status healthy"><Calculator size={18} /></span><div className="trend-chip first">{entry.type === "expense" ? (bn ? "জমির খরচ" : "Field expense") : (bn ? "হিসাব" : "Calculation")}</div><h3>{title}</h3><p>{summary}</p>{entry.type === "expense" && entry.note && <small>{entry.note}</small>}<time>{date}</time></article>;
+  const trendText = trend === "uncertain" ? copy.uncertain : trend === "improving" ? copy.improving : trend === "worsening" ? copy.worsening : trend === "stable" ? copy.stable : copy.firstCheck;
+  const TrendIcon = trend === "improving" ? TrendingDown : trend === "worsening" ? TrendingUp : Minus;
+  return <article className="diary-card"><div className="timeline-dot" aria-hidden="true" /><div className="flex items-start justify-between gap-3"><span className={`diary-status ${entry.risk}`}>{entry.risk === "healthy" ? <Check /> : <AlertTriangle />}</span><button onClick={onDelete} aria-label={copy.delete}><Trash2 size={16} /></button></div><div className={`trend-chip ${trend}`}><TrendIcon size={15} />{entry.triage ? (language === "bn" ? "লক্ষণ লেখা হয়েছে" : "Symptoms recorded") : trendText}</div><p className="mt-4 text-xs font-bold uppercase tracking-[.12em] text-white/45">{entry.mode === "field" ? copy.fieldLabel : copy.quickLabel}</p><h3>{entry.triage ? (language === "bn" ? "পাতার ছবি রাখা হয়েছে" : "Leaf photo recorded") : riskText(entry.risk, copy)}</h3><div className="mt-5 flex flex-wrap gap-2"><span><MapPin />{language === "bn" ? DISTRICT_NAMES[entry.district] || entry.district : entry.district}</span><span><Camera />{entry.scanCount} {copy.scans}</span>{entry.humidity && <span><CloudRain />{entry.humidity}%</span>}{entry.inferenceMode === "offline" && <span><WifiOff />Offline AI</span>}</div><time>{date}</time><button className="recheck-button" onClick={onRecheck}><RefreshCw size={16} />{copy.checkAgain}</button></article>;
 }

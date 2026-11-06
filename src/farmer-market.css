@@ -1,0 +1,133 @@
+.farmer-v2[data-view="market"], .farmer-v2[data-view="interest"] { background:var(--home-sky); }
+.farmer-market-page { max-width:1120px; padding:30px 28px 110px; color:var(--home-ink); }
+.fm-heading { margin-bottom:24px; }
+.fm-heading .section-kicker { display:flex; gap:8px; align-items:center; color:var(--home-green); font-size:14px; }
+.fm-heading h1 { margin:8px 0; font-size:clamp(28px,3vw,36px); line-height:1.35; font-weight:700; }
+.fm-heading p { margin:0; color:var(--home-muted); line-height:1.65; font-size:17px; }
+.fm-form { display:grid; grid-template-columns:1fr 1fr; gap:22px; border:1px solid var(--home-line); border-radius:18px; background:white; padding:24px; }
+.fm-location, .fm-form-bottom, .fm-error { grid-column:1/-1; }
+.fm-location { display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding-bottom:18px; border-bottom:1px solid var(--home-line); font-size:16px; }
+.fm-location a { color:var(--home-green); text-decoration:underline; min-height:44px; display:inline-flex; align-items:center; }
+.fm-location small { margin-left:auto; color:var(--home-muted); font-size:14px; }
+.fm-fields { display:grid; grid-template-columns:1fr; gap:22px; align-content:start; }
+.fm-pickup select { width:100%; padding:14px; border:1px solid var(--home-line); border-radius:10px; background:white; font-size:20px; color:var(--home-ink); }
+.fm-fields label > span, .fm-photos legend { display:block; font-size:20px; font-weight:700; margin-bottom:10px; }
+.fm-unit { display:flex; align-items:center; border:1px solid var(--home-line); border-radius:10px; overflow:hidden; }
+.fm-unit input { width:100%; min-width:0; border:0; padding:14px; background:white; font-size:20px; color:var(--home-ink); }
+.fm-unit b { padding:0 14px; font-size:15px; white-space:nowrap; color:var(--home-muted); }
+.fm-photos { border:0; padding:0; min-width:0; }
+.fm-photos p { color:var(--home-muted); margin:0 0 12px; font-size:15px; }
+.fm-photo-strip { display:flex; flex-wrap:wrap; gap:12px; }
+.fm-photo-strip > div { position:relative; width:145px; height:125px; }
+.fm-photo-strip img { width:100%; height:100%; object-fit:cover; border-radius:10px; border:1px solid var(--home-line); }
+.fm-photo-strip > div button { position:absolute; right:4px; top:4px; width:44px; height:44px; background:white; border:1px solid var(--home-line); border-radius:50%; font-size:24px; }
+.fm-upload { position:relative; display:flex; min-height:125px; min-width:180px; flex-direction:column; justify-content:center; align-items:center; gap:6px; border:1px dashed var(--home-green); border-radius:10px; padding:16px; background:var(--home-sky); cursor:pointer; overflow:hidden; }
+.fm-upload small { font-size:12px; color:var(--home-muted); }
+.fm-upload input { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; }
+.fm-provided { display:inline-flex; align-items:center; min-height:44px; margin-top:8px; color:var(--home-green); text-decoration:underline; font-size:15px; }
+.fm-provided-photos { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-top:14px; max-width:360px; }
+.fm-provided-photos button { min-width:0; border:2px solid var(--home-line); border-radius:10px; padding:4px; background:white; }
+.fm-provided-photos button[aria-pressed=true] { border-color:var(--home-green); background:var(--home-soft); }
+.fm-provided-photos img { display:block; width:100%; height:80px; object-fit:cover; border-radius:6px; }
+.fm-provided-photos span { display:flex; justify-content:center; align-items:center; gap:4px; min-height:30px; font-size:14px; }
+.fm-editing { grid-column:1/-1; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px; border-radius:10px; background:var(--home-soft); }
+.fm-form-bottom { display:flex; align-items:center; justify-content:space-between; gap:20px; padding-top:18px; border-top:1px solid var(--home-line); }
+.fm-form-bottom p { max-width:540px; color:var(--home-muted); font-size:15px; margin:0; line-height:1.6; }
+.farmer-market-page .main-button, .farmer-market-page .secondary-main { display:inline-flex; width:auto; min-height:46px; align-items:center; justify-content:center; gap:9px; margin:0; padding:11px 18px; border-radius:10px; font-size:16px; font-weight:700; }
+.farmer-market-page .main-button { background:var(--home-green); color:white; }
+.farmer-market-page .secondary-main { border:1px solid var(--home-line); color:var(--home-green); background:white; }
+.farmer-market-page :focus-visible { outline:3px solid var(--home-green); outline-offset:3px; }
+.fm-upload:focus-within { outline:3px solid var(--home-green); outline-offset:3px; }
+.fm-error { color:#9b2924; background:#fff1ef; border-left:3px solid #9b2924; padding:12px; }
+.fm-listings { margin-top:30px; }
+.fm-listings > header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.fm-listings h2 { font-size:23px; font-weight:700; }
+.fm-listings > header span { color:var(--home-muted); }
+.fm-lot-list { background:white; border:1px solid var(--home-line); border-radius:12px; overflow:hidden; }
+.fm-lot-list article { display:flex; flex-wrap:wrap; align-items:center; gap:16px; padding:16px; border-bottom:1px solid var(--home-line); }
+.fm-lot-copy { flex:1; min-width:150px; }
+.fm-list-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.fm-remove { min-height:44px; padding:10px 12px; color:#9b2924; text-decoration:underline; }
+.fm-remove-confirm { width:100%; background:var(--home-sky); padding:14px; border-radius:10px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.fm-remove-confirm p { flex:1; min-width:200px; }
+.fm-lot-list article:last-child { border:0; }
+.fm-lot-list article > img { width:76px; height:70px; object-fit:cover; border-radius:8px; }
+.fm-lot-list h3 { font-size:19px; font-weight:700; margin:0; }
+.fm-lot-list p { margin:3px 0; }
+.fm-lot-list small { color:var(--home-muted); }
+.fm-lot-list a { margin-left:auto!important; }
+.fm-empty { border:1px dashed var(--home-line); border-radius:12px; padding:24px; color:var(--home-muted); }
+.fm-empty svg { color:var(--home-green); }
+.fm-empty p { max-width:550px; margin:8px 0 0; font-size:17px; line-height:1.7; }
+.fm-success { padding:28px; background:white; border:1px solid var(--home-line); border-radius:16px; }
+.fm-success > span { display:inline-flex; padding:10px; background:var(--home-soft); color:var(--home-green); border-radius:50%; }
+.fm-success h2 { font-size:26px; font-weight:700; margin:12px 0 6px; }
+.fm-success small { display:block; color:var(--home-muted); margin-top:18px; }
+.fm-actions { display:flex; flex-wrap:wrap; gap:12px; margin-top:20px; }
+.fm-interest-toolbar { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px; padding:0 0 20px; }
+.fm-interest-toolbar > span { color:var(--home-muted); }
+.fm-filters { display:flex; gap:6px; }
+.fm-filters button { min-height:44px; padding:10px 18px; border:1px solid var(--home-line); border-radius:999px; background:white; font-weight:700; }
+.fm-filters button[aria-pressed=true] { color:white; background:var(--home-green); border-color:var(--home-green); }
+.fm-interest-list > article { display:flex; gap:16px; background:white; padding:22px; border:1px solid var(--home-line); border-radius:14px; margin-bottom:14px; }
+.fm-buyer-avatar { display:flex; align-items:center; justify-content:center; width:50px; height:50px; flex-shrink:0; border-radius:50%; color:var(--home-green); background:var(--home-soft); }
+.fm-buyer-copy { min-width:0; flex:1; }
+.fm-buyer-copy h2 { margin:0 0 4px; font-size:23px; font-weight:700; overflow-wrap:anywhere; }
+.fm-buyer-copy p { color:var(--home-muted); font-size:17px; line-height:1.6; margin:0; }
+.fm-buyer-copy p.fm-enquiry-note { font-size:14px; margin-bottom:14px; }
+.fm-buyer-copy dl { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; margin:18px 0; padding:12px 0; border-block:1px solid var(--home-line); }
+.fm-buyer-copy dt { color:var(--home-muted); font-size:14px; }
+.fm-buyer-copy dd { font-size:19px; font-weight:700; margin-top:4px; overflow-wrap:anywhere; }
+.fm-buyer-copy details { margin:0 0 14px; }
+.fm-buyer-copy summary { min-height:44px; cursor:pointer; }
+.fm-contact { display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; padding:14px; border-radius:10px; background:var(--home-sky); }
+.fm-example-bar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; padding:18px 22px; margin-bottom:20px; border:1px solid var(--home-line); border-left:4px solid var(--home-green); border-radius:14px; background:var(--home-soft); }
+.fm-example-bar strong { font-size:19px; color:var(--home-ink); }
+.fm-example-bar p { max-width:760px; color:var(--home-muted); margin-top:6px; line-height:1.6; }
+.fm-example-label { display:inline-block; font-size:12px; font-weight:700; padding:3px 9px; border:1px solid var(--home-line); border-radius:20px; margin-bottom:8px; }
+.fm-buyer-copy .fm-example-description { margin:12px 0; }
+.fm-visibility { font-size:13px; color:var(--home-muted); align-self:center; }
+.fm-footnote { margin-top:20px; color:var(--home-muted); font-size:14px; line-height:1.65; }
+.fm-interest-empty { text-align:center; padding:45px 24px; background:white; }
+.fm-interest-empty h2 { color:var(--home-ink); font-size:25px; font-weight:700; margin:12px 0; }
+.fm-interest-empty p { margin:0 auto 20px; }
+.farmer-v2 .farmer-header-inner { max-width:1500px; grid-template-columns:auto minmax(0,1fr) auto; gap:16px; }
+.farmer-v2 .farmer-tabs a { padding:12px 10px; font-size:15px; gap:6px; white-space:nowrap; }
+@media(max-width:1200px) {
+ .farmer-v2 .farmer-header-inner { display:flex; justify-content:space-between; }
+ .farmer-v2 .farmer-tabs { display:none; }
+ .farmer-v2 .farmer-bottom-tabs { position:fixed; bottom:0; left:0; right:0; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:2px; padding:6px 5px calc(6px + env(safe-area-inset-bottom)); border-top:1px solid var(--home-line); background:var(--home-sky); z-index:55; }
+ .farmer-v2 .farmer-bottom-tabs a { flex-direction:column; gap:4px; padding:8px 3px; min-height:48px; }
+ .farmer-v2 .farmer-bottom-tabs a span { white-space:normal; text-align:center; font-size:12px; line-height:1.25; }
+ .farmer-mobile-more { position:relative; }
+ .farmer-mobile-more > summary { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; min-height:56px; border-radius:12px; font-size:12px; font-weight:700; cursor:pointer; list-style:none; }
+ .farmer-mobile-more > summary::-webkit-details-marker { display:none; }
+ .farmer-mobile-more > summary.is-current, .farmer-mobile-more[open] > summary { background:var(--home-soft); color:var(--home-green); }
+ .farmer-mobile-more > div { position:absolute; right:0; bottom:calc(100% + 12px); width:250px; padding:8px; border:1px solid var(--home-line); border-radius:12px; background:white; box-shadow:0 8px 32px #113a2d22; }
+ .farmer-v2 .farmer-mobile-more > div a { display:flex; flex-direction:row; gap:10px; font-size:16px; padding:12px; min-height:48px; }
+ .farmer-mobile-more :focus-visible { outline:3px solid var(--home-green); outline-offset:2px; }
+}
+@media(max-width:760px) {
+ .farmer-v2 .farmer-bottom-tabs { grid-template-columns:repeat(5,minmax(0,1fr)); }
+ .farmer-v2 .farmer-bottom-tabs a span { white-space:normal; text-align:center; font-size:12px; line-height:1.25; }
+ .farmer-market-page { padding:24px 16px 110px; }
+ .fm-form { padding:18px; grid-template-columns:1fr; }
+ .fm-fields { grid-template-columns:1fr; gap:20px; }
+ .fm-location small { margin-left:0; width:100%; }
+ .fm-form-bottom { flex-direction:column; align-items:stretch; gap:14px; }
+ .fm-form-bottom .main-button { width:100%; }
+ .fm-lot-list article { gap:10px; flex-wrap:wrap; }
+ .fm-lot-list a { padding:9px 12px!important; }
+ .fm-interest-list > article { padding:18px; gap:10px; }
+ .fm-buyer-avatar { width:36px; height:36px; }
+ .fm-buyer-copy dl { grid-template-columns:1fr; gap:9px; }
+ .fm-buyer-copy dl > div { display:flex; justify-content:space-between; gap:12px; align-items:center; }
+ .fm-buyer-copy dd { margin:0; text-align:right; font-size:17px; }
+}
+.fm-extra-details { margin:22px 0; padding-top:18px; border-top:1px solid var(--home-line); }
+.fm-extra-details summary { cursor:pointer; padding:10px 0; color:var(--home-green); font-size:18px; font-weight:600; }
+.fm-extra-details > p { color:var(--home-muted); margin:6px 0 16px; }
+.fm-details-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+.fm-details-grid label { display:grid; gap:7px; min-width:0; font-size:17px; }
+.fm-details-grid input,.fm-details-grid textarea { width:100%; min-height:48px; padding:10px 12px; border:1px solid var(--home-line); border-radius:10px; background:#fff; color:var(--home-ink); font-size:17px; }
+@media(max-width:600px) { .fm-details-grid { grid-template-columns:1fr; } }

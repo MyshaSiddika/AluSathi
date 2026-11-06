@@ -1,0 +1,43 @@
+.buyer-personal { color:var(--home-ink); }
+.buyer-personal [hidden] { display:none !important; }
+.buyer-personal h1 { font-size:36px; line-height:1.3; margin:8px 0 12px; }
+.buyer-personal h2,.buyer-personal legend { font-size:21px; font-weight:700; }
+.personal-heading { display:flex; justify-content:space-between; align-items:center; gap:32px; margin-bottom:28px; }
+.personal-heading p { margin:8px 0; color:var(--home-muted); }
+.personal-avatar { display:grid; place-items:center; width:76px; height:76px; border-radius:20px; background:var(--home-soft); color:var(--home-green); font-size:36px; font-weight:700; }
+.personal-profile-layout { display:grid; grid-template-columns:minmax(0,2fr) minmax(240px,1fr); gap:28px; align-items:start; }
+.personal-profile-form,.personal-shortcuts,.personal-entry,.personal-records { background:#fff; border:1px solid var(--home-line); border-radius:16px; padding:24px; }
+.personal-profile-form fieldset { border:0; padding:0 0 20px; margin:0 0 20px; border-bottom:1px solid var(--home-line); min-width:0; }
+.personal-profile-form legend { margin-bottom:16px; padding:0; }
+.personal-fields { display:grid; grid-template-columns:1fr 1fr; gap:16px 22px; }
+.buyer-personal label { display:flex; flex-direction:column; gap:8px; font-weight:600; font-size:16px; }
+.buyer-personal input,.buyer-personal select { width:100%; min-width:0; min-height:46px; border:1px solid var(--home-line); border-radius:9px; padding:10px 12px; background:#fff; color:var(--home-ink); font:inherit; }
+.buyer-personal :focus-visible { outline:3px solid var(--home-green); outline-offset:3px; }
+.personal-shortcuts { display:flex; flex-direction:column; gap:14px; }
+.personal-shortcuts h2 { margin:0 0 6px; }
+.personal-shortcuts .button { justify-content:flex-start; }
+.personal-shortcuts p,.personal-footnote { color:var(--home-muted); font-size:15px; line-height:1.65; }
+.personal-profile-form [role=alert]:empty,.personal-status:empty { display:none; }
+.personal-profile-form [role=alert] { color:#8a3617; }
+.personal-entry { display:grid; grid-template-columns:160px 190px 150px minmax(180px,1fr) auto; gap:14px; align-items:end; margin-bottom:24px; }
+.personal-status { grid-column:1 / -1; margin:0; }
+.personal-entry .button { min-height:46px; padding:10px 18px; }
+.personal-toolbar { display:flex; align-items:center; justify-content:space-between; gap:24px; margin-bottom:18px; }
+.personal-toolbar label { flex-direction:row; align-items:center; }
+.personal-toolbar strong { color:var(--home-green); font-size:23px; }
+.personal-records { padding:20px; }
+.personal-table { width:100%; table-layout:fixed; border-collapse:collapse; text-align:left; font-size:16px; }
+.personal-table th,.personal-table td { padding:13px 14px; border-bottom:1px solid var(--home-line); overflow-wrap:anywhere; }
+.personal-table th { background:var(--home-soft); font-weight:650; }
+.personal-table th:first-child { width:170px; }
+.personal-table th:nth-child(2) { width:180px; }
+.personal-table th:nth-child(4) { width:140px; text-align:right; }
+.personal-table td:nth-child(4) { text-align:right; font-variant-numeric:tabular-nums; }
+.personal-table th:last-child { width:160px; }
+.personal-table tbody tr:nth-child(even) { background:color-mix(in srgb,var(--home-sky) 40%,white); }
+.personal-table button,.personal-status button { border:0; background:transparent; color:var(--home-green); padding:7px; font:inherit; cursor:pointer; text-decoration:underline; text-underline-offset:3px; }
+.personal-empty { color:var(--home-muted); padding:20px 0 0; }
+.personal-empty:empty { display:none; }
+.personal-sr { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+@media(max-width:1100px) { .personal-entry { grid-template-columns:1fr 1fr 1fr; }.personal-note { grid-column:span 2; }.personal-table th:first-child {width:140px}.personal-table th:nth-child(2){width:150px}.personal-table th:last-child{width:135px} }
+@media(max-width:700px) { .personal-profile-layout,.personal-fields {grid-template-columns:1fr}.personal-entry{grid-template-columns:1fr 1fr}.personal-heading{align-items:start;flex-direction:column}.personal-records{overflow:auto}.personal-table{min-width:680px} }
