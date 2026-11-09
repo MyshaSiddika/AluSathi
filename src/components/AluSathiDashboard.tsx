@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useSta
 import {
   AlertTriangle, ArrowLeft, ArrowRight, Camera, Check, ChevronDown, CloudRain, Sun, Cloud,
   CloudLightning, Flame, Globe2, History, Leaf, Loader2, MapPin,
-  Menu, Minus, PhoneCall, RefreshCw, ScanLine, ShieldCheck, Snowflake,
+  Menu, Minus, PhoneCall, RefreshCw, ScanLine, Snowflake,
   Sprout, Store, TrendingDown, TrendingUp, Trash2, WifiOff, Wind, X,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -112,7 +112,7 @@ const COPY = {
     aboutTitle: "এই AI সম্পর্কে",
     aboutBody: "১৩,৮০০টি আলাদা আঞ্চলিক ছবির পরীক্ষায় এই AI প্রতি ১০০টির মধ্যে প্রায় ৫১টি ঠিক চিনেছে। তাই এটি এখন শুধু গবেষণার জন্য; কৃষকের রোগ নির্ণয়ের জন্য নয়।",
     modelReady: "AI প্রস্তুত", modelResearch: "গবেষণা পর্যায়", modelMissing: "AI সংযোগ নেই", modelVersion: "মডেল", regionalTest: "আঞ্চলিক পরীক্ষা",
-    privacy: "এখন আপনার ছবি AI প্রশিক্ষণে ব্যবহার করা হয় না।", footer: "আলুসাথী · কৃষকের সিদ্ধান্ত, AI-এর সহায়তা",
+    footer: "আলুসাথী · কৃষকের সিদ্ধান্ত, AI-এর সহায়তা",
   },
   en: {
     brandLine: "Understand potato disease, simply",
@@ -169,7 +169,7 @@ const COPY = {
     aboutTitle: "About this AI",
     aboutBody: "On 13,800 separate regional images, this AI identified about 51 in every 100 correctly. It is therefore research-only, not ready for farmer diagnosis.",
     modelReady: "AI ready", modelResearch: "Research stage", modelMissing: "AI disconnected", modelVersion: "Model", regionalTest: "Regional test",
-    privacy: "Your photos are not used for AI training in this version.", footer: "AluSathi · Farmer decisions, assisted by AI",
+    footer: "AluSathi · Farmer decisions, assisted by AI",
   },
 } as const;
 
@@ -321,7 +321,7 @@ export default function AluSathiDashboard({ farmerHome = false }: { farmerHome?:
   const location = useLocation();
   useEffect(() => {
     if (!farmerHome) return;
-    const update = () => { const hash = window.location.hash.slice(1); const view = hash === "tuber" ? "photos" : hash === "hisab" ? "diary" : hash || "today"; setFarmerView(view); if (view === "photos") setLeafOpen(true); window.scrollTo({ top: 0, behavior: "instant" }); };
+    const update = () => { const hash = window.location.hash.slice(1); const candidate = hash === "tuber" ? "photos" : hash === "hisab" ? "diary" : hash || "today"; const view = ["today", "photos", "diary", "profile", "market", "my-listings", "interest", "settings", "tools", "help"].includes(candidate) ? candidate : "today"; setFarmerView(view); if (view === "photos") setLeafOpen(true); window.scrollTo({ top: 0, behavior: "instant" }); };
     update(); window.addEventListener("hashchange", update);
     return () => window.removeEventListener("hashchange", update);
   }, [farmerHome, location.hash]);
@@ -545,18 +545,18 @@ export default function AluSathiDashboard({ farmerHome = false }: { farmerHome?:
   }
 
   return <div ref={landingRef} className={`${language === "bn" ? "font-bangla" : ""} ${farmerHome ? "farmer-v2" : "landing-motion"}`} data-view={farmerView} data-home-theme={siteTheme}>
-    <a href="#main" className="skip-link">{language === "bn" ? "মূল অংশে যান" : "Skip to content"}</a>
+    <a href="#main" className="skip-link" onClick={event => { event.preventDefault(); document.getElementById("main")?.focus(); document.getElementById("main")?.scrollIntoView(); }}>{language === "bn" ? "মূল অংশে যান" : "Skip to content"}</a>
     {farmerHome ? <FarmerNavigation active={farmerView} /> : <header className={`site-header ${activeRole ? "signed-in" : ""}`}>
       <div className="app-shell flex h-16 items-center justify-between gap-3">
         <a href="#top" className="site-brand flex items-center gap-3" aria-label={language === "bn" ? "আলুসাথীর প্রথম পাতা" : "AluSathi home"}><span className="brand-mark"><Leaf size={22} /></span><span><strong className="block text-lg leading-none">আলুসাথী</strong><small className="mt-1 hidden text-xs font-semibold text-ink/75 sm:block">{copy.brandLine}</small></span></a>
         <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary navigation"><a className="top-nav" href="#scan"><Camera size={16} />{copy.navScan}</a><a className="top-nav" href={marketHref}><Store size={16} />{language === "bn" ? "বাজার" : "Market"}</a>{dashboardAccess && <a className="top-nav" href="#diary"><History size={16} />{copy.navField}</a>}{dashboardAccess && <Link className="top-nav" to="/selling-preparation"><Snowflake size={16} />{language === "bn" ? "বিক্রির প্রস্তুতি" : "Prepare to sell"}</Link>}<Link className="top-nav" to="/life-cycle"><Sprout size={16} />{language === "bn" ? "আলুর জীবন" : "Potato life"}</Link></nav>
-        <div className="flex items-center gap-2">{activeRole && <a className="role-badge" href={activeRole === "farmer" ? "/farmer" : "/marketplace/buyer.html"}>{activeRole === "farmer" ? <Leaf size={15} /> : <Store size={15} />}<span className="role-badge-full">{language === "bn" ? (activeRole === "farmer" ? "কৃষক · আমার পাতা" : "ব্যবসায়ী · আমার পাতা") : (activeRole === "farmer" ? "Farmer · My page" : "Businessman · My page")}</span><span className="role-badge-mobile">{language === "bn" ? (activeRole === "farmer" ? "কৃষক" : "ব্যবসায়ী") : (activeRole === "farmer" ? "Farmer" : "Buyer")}</span></a>}{activeRole ? <button className="icon-button" onClick={logout}>{language === "bn" ? "বের হন" : "Logout"}</button> : <Link className="icon-button" to="/auth">{language === "bn" ? "কৃষক / ব্যবসায়ী" : "Farmer / buyer"}</Link>}<button className="icon-button" onClick={() => setLanguage(language === "bn" ? "en" : "bn")} aria-label={language === "bn" ? "ভাষা বদলান" : "Change language"}><Globe2 size={18} /><span>{language === "bn" ? "EN" : "বাংলা"}</span></button><button className="icon-button lg:hidden" onClick={() => setMenuOpen(!menuOpen)} aria-label={language === "bn" ? (menuOpen ? "মেনু বন্ধ করুন" : "মেনু খুলুন") : (menuOpen ? "Close menu" : "Open menu")} aria-expanded={menuOpen}>{menuOpen ? <X size={19} /> : <Menu size={19} />}</button></div>
+        <div className="flex items-center gap-2">{activeRole && <a className="role-badge" href={activeRole === "farmer" ? "/farmer" : "/marketplace/buyer.html"}>{activeRole === "farmer" ? <Leaf size={15} /> : <Store size={15} />}<span className="role-badge-full">{language === "bn" ? (activeRole === "farmer" ? "কৃষক · আমার পাতা" : "ক্রেতা · আমার পাতা") : (activeRole === "farmer" ? "Farmer · My page" : "Buyer · My page")}</span><span className="role-badge-mobile">{language === "bn" ? (activeRole === "farmer" ? "কৃষক" : "ক্রেতা") : (activeRole === "farmer" ? "Farmer" : "Buyer")}</span></a>}{activeRole ? <button className="icon-button" onClick={logout}>{language === "bn" ? "বের হন" : "Logout"}</button> : <Link className="icon-button" to="/auth">{language === "bn" ? "কৃষক / ক্রেতা" : "Farmer / buyer"}</Link>}<button className="icon-button" onClick={() => setLanguage(language === "bn" ? "en" : "bn")} aria-label={language === "bn" ? "ভাষা বদলান" : "Change language"}><Globe2 size={18} /><span>{language === "bn" ? "EN" : "বাংলা"}</span></button><button className="icon-button lg:hidden" onClick={() => setMenuOpen(!menuOpen)} aria-label={language === "bn" ? (menuOpen ? "মেনু বন্ধ করুন" : "মেনু খুলুন") : (menuOpen ? "Close menu" : "Open menu")} aria-expanded={menuOpen}>{menuOpen ? <X size={19} /> : <Menu size={19} />}</button></div>
       </div>
       {menuOpen && <nav className="mobile-menu app-shell" aria-label="Mobile navigation"><a href="#scan" onClick={() => setMenuOpen(false)}>{copy.navScan}</a><a href={marketHref} onClick={() => setMenuOpen(false)}>{language === "bn" ? "আলুর বাজার" : "Potato market"}</a>{dashboardAccess && <a href="#diary" onClick={() => setMenuOpen(false)}>{copy.navField}</a>}{dashboardAccess && <Link to="/selling-preparation" onClick={() => setMenuOpen(false)}>{language === "bn" ? "বিক্রির প্রস্তুতি" : "Prepare to sell"}</Link>}<Link to="/life-cycle" onClick={() => setMenuOpen(false)}>{language === "bn" ? "আলুর জীবন" : "Potato life"}</Link></nav>}
     </header>}
     {syncedCount > 0 && <div className="sync-notice" role="status"><div className="app-shell"><Check size={18} /><strong>{language === "bn" ? `${syncedCount}${copy.syncDone}` : `${syncedCount} ${copy.syncDone}`}</strong><button onClick={() => setSyncedCount(0)} aria-label={copy.stop}><X size={17} /></button></div></div>}
 
-    <main id="main">
+    <main id="main" tabIndex={-1}>
       {!farmerHome && <section id="top" className="hero-section"><div className="hero-photo" aria-hidden="true" /><div className="hero-wash" aria-hidden="true" /><div className="nakshi-pattern" aria-hidden="true" />
         <div className="app-shell relative grid min-h-[760px] items-end pb-12 pt-28 sm:min-h-[720px] sm:pb-16 lg:grid-cols-[1.05fr_.95fr] lg:items-center lg:pb-8">
           <div className="hero-copy animate-rise"><h1>{farmerHome ? (language === "bn" ? "আমার আলুর জমি" : "My potato field") : copy.heroTitle}<br /><em>{farmerHome ? (language === "bn" ? "আজকের কাজ" : "Today's work") : copy.heroAccent}</em></h1><p className="hero-body">{farmerHome ? (language === "bn" ? "জমির সময়, আবহাওয়া আর আগের কাজ—সব এক জায়গায়।" : "Crop timing, weather and your past activity in one place.") : copy.heroBody}</p>
@@ -581,7 +581,7 @@ export default function AluSathiDashboard({ farmerHome = false }: { farmerHome?:
       {farmerHome && <div hidden={farmerView !== "today"}><FarmerToday weather={weather} loading={weatherLoading} district={district} districts={districtOptions} plantingDate={plantingDate} onPhoto={() => startScan("quick")} lastCheckin={diary[0] ? { createdAt: diary[0].createdAt, thumbnails: (diary[0].thumbnails || []).filter(src => /^data:image\/jpeg;base64,/.test(src)) } : undefined} /></div>}
 
       {farmerHome && <div hidden={farmerView !== "profile"}><FarmerProfile /></div>}
-      {farmerHome && (farmerView === "market" || farmerView === "interest") && <FarmerMarketPages key={farmerView} view={farmerView} district={district} />}
+      {farmerHome && (farmerView === "market" || farmerView === "interest" || farmerView === "my-listings") && <FarmerMarketPages key={farmerView} view={farmerView} district={district} />}
 
       {farmerHome && <section hidden={farmerView !== "settings"} className="app-shell farmer-settings"><p className="section-kicker">{language === "bn" ? "সেটিংস" : "SETTINGS"}</p><h1>{language === "bn" ? "জেলা ও চাষের সময়" : "District and planting time"}</h1><p>{language === "bn" ? "এগুলো একবার ঠিক করলে আজকের কাজ ও আবহাওয়া সেই অনুযায়ী দেখাবে।" : "Set these once to tailor today's work and weather."}</p><div><label>{language === "bn" ? "জেলা" : "District"}<select value={district} onChange={event => setDistrict(event.target.value)}>{Object.entries(districtOptions).map(([id, name]) => <option key={id} value={id}>{language === "bn" ? name : id}</option>)}</select></label><label>{language === "bn" ? "লাগানোর সঠিক তারিখ (ঐচ্ছিক)" : "Exact planting date (optional)"}<input type="date" value={plantingDate} max={localToday()} onChange={event => { setPlantingDate(event.target.value); localStorage.setItem("alusathi-planting-date", event.target.value); }} /></label></div></section>}
 
@@ -625,7 +625,7 @@ export default function AluSathiDashboard({ farmerHome = false }: { farmerHome?:
       </section>
     </main>
 
-    <footer><div className="app-shell"><div className="footer-brand"><span className="brand-mark"><Leaf size={22} /></span><div><strong>আলুসাথী</strong><small>{copy.footer}</small></div></div><p><ShieldCheck size={15} />{copy.privacy}</p></div></footer>
+    <footer><div className="app-shell"><div className="footer-brand"><span className="brand-mark"><Leaf size={22} /></span><div><strong>আলুসাথী</strong><small>{copy.footer}</small></div></div></div></footer>
     {!farmerHome && <nav className="bottom-nav" style={{ gridTemplateColumns: `repeat(${dashboardAccess ? 4 : 3}, minmax(0, 1fr))` }} aria-label="Mobile navigation"><a href="#scan"><Camera />{copy.navScan}</a><a href={marketHref}><Store />{language === "bn" ? "বাজার" : "Market"}</a>{dashboardAccess && <a href="#diary"><History />{copy.navField}</a>}<Link to="/life-cycle"><Sprout />{language === "bn" ? "আলুর জীবন" : "Potato life"}</Link></nav>}
   </div>;
 }

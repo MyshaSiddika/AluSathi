@@ -42,7 +42,7 @@ export function setLotHidden(id: string, hidden: boolean) {
   localStorage.setItem(marketKey,JSON.stringify({...data,listings:lots.map(l=>l.id===id ? {...l,hiddenAt:hidden ? new Date().toISOString() : null} : l)}));
   window.dispatchEvent(new Event(marketEvent));
 }
-export function publishLot(quantity: string, price: string, photos: {src: string}[], district: string, editingId?: string, details?: ListingDetails, pickupDays = 0) {
+export function publishLot(quantity: string, price: string, photos: {src: string}[], district: string, editingId?: string, details?: ListingDetails, pickupDays = 0, upazila?: string, pickupChanged = true) {
   const kg = amountFromText(quantity), rate = amountFromText(price);
   if (!kg || kg > 100000 || !rate || rate > 10000 || !DISTRICT_NAMES[district] || !photos.length || photos.length > 3 || photos.some(p => !photoSource(p.src))) throw new Error("invalid");
   if (details?.harvestDate && (!validDay(details.harvestDate) || details.harvestDate > notebookToday())) throw new Error("harvest");
@@ -62,8 +62,8 @@ export function publishLot(quantity: string, price: string, photos: {src: string
   const prep = record(readObject("alusathi-selling-prep-v1").draft);
   const lot: SaleLot = {
     ...draft, ...previous, id: editingId || crypto.randomUUID(), sample: false, quantityKg: kg, askingPriceKg: rate, priceKg: rate,
-    district: text(previous?.district,60) || district, upazila: text(previous?.upazila ?? profile.upazila ?? draft.upazila, 60), variety: text(previous?.variety ?? draft.variety, 60) || "Potatoes",
-    farmerName: text(previous?.farmerName ?? profile.name, 100), readyDate: text(previous?.readyDate,10) || ready.toISOString().slice(0,10), createdAt: text(previous?.createdAt,30) || new Date().toISOString(), updatedAt:new Date().toISOString(),
+    district, upazila: text(upazila ?? previous?.upazila ?? profile.upazila ?? draft.upazila, 60), variety: text(previous?.variety ?? draft.variety, 60) || "Potatoes",
+    farmerName: text(previous?.farmerName ?? profile.name, 100), readyDate: (!pickupChanged && text(previous?.readyDate,10)) || ready.toISOString().slice(0,10), createdAt: text(previous?.createdAt,30) || new Date().toISOString(), updatedAt:new Date().toISOString(),
     notes: text(previous?.notes ?? draft.notes, 300), storageDescription: text(previous?.storageDescription ?? draft.storageDescription), photos, photo: photos[0].src,
     preparation: previous?.preparation ?? { checks: Array.isArray(prep.checks) ? prep.checks.filter(c => ["sort","bag","weight","label","photos","example","scales","terms"].includes(String(c))) : [], checkedOn: text(prep.checkedOn, 10) },
     ...(details ? {variety:text(details.variety.trim(),60) || "Potatoes",notes:text(details.notes.trim(),300),harvestDate:text(details.harvestDate,10),storageDescription:text(details.storageDescription.trim(),200)} : {}),

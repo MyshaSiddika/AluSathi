@@ -96,8 +96,8 @@ export default function PublicLanding() {
           <span><strong>আলুসাথী</strong><small>{bn ? "আলু চাষ থেকে বিক্রি—পাশে" : "From field to market"}</small></span>
         </a>
         <nav className="public-nav" aria-label={bn ? "মূল নেভিগেশন" : "Main navigation"}>
-          <Link to="/farmer" onClick={() => setDemo(true)}>{bn ? "কৃষকের জন্য" : "For farmers"}</Link>
-          <a href={buyerPath} onClick={enterBuyerPage}>{bn ? "ব্যবসায়ীদের জন্য" : "For businesses"}</a>
+          <Link to="/farmer#photos" onClick={() => setDemo(true)}>{bn ? "কৃষকের জন্য" : "For farmers"}</Link>
+          <a href={buyerPath} onClick={enterBuyerPage}>{bn ? "ক্রেতাদের জন্য" : "For buyers"}</a>
           <a href={`${buyerPath}?preview=public`}>{bn ? "আলু কিনুন" : "Find potatoes"}</a>
         </nav>
         <div className="public-header-actions">
@@ -130,9 +130,9 @@ export default function PublicLanding() {
                 <span className="role-card-copy"><strong>{bn ? "আমি কৃষক" : "I’m a farmer"}</strong><small id="farmer-role-help">{bn ? "জমির যত্ন ও আলুর তথ্য" : "Field care and potato listings"}</small></span>
                 <ArrowRight size={19} />
               </Link>
-              <a className="button-secondary hero-role-card" href={buyerPath} onClick={enterBuyerPage} aria-label={bn ? "আমি ব্যবসায়ী" : "I’m a businessman"} aria-describedby="buyer-role-help">
+              <a className="button-secondary hero-role-card" href={buyerPath} onClick={enterBuyerPage} aria-label={bn ? "আমি ক্রেতা" : "I’m a buyer"} aria-describedby="buyer-role-help">
                 <span className="role-card-icon"><UsersRound size={23} /></span>
-                <span className="role-card-copy"><strong>{bn ? "আমি ব্যবসায়ী" : "I’m a buyer"}</strong><small id="buyer-role-help">{bn ? "আলু খুঁজুন, কৃষকের সঙ্গে কথা বলুন" : "Find potatoes, contact farmers"}</small></span>
+                <span className="role-card-copy"><strong>{bn ? "আমি ক্রেতা" : "I’m a buyer"}</strong><small id="buyer-role-help">{bn ? "আলু খুঁজুন, কৃষকের সঙ্গে কথা বলুন" : "Find potatoes, contact farmers"}</small></span>
                 <ArrowRight size={19} />
               </a>
             </div>

@@ -86,7 +86,7 @@ export default function TuberScan({ onLeafPhoto }: {
   function savePhotoAdvice(entry: Pick<FieldAction, "status" | "details" | "variety" | "cropAge" | "cause" | "advice" | "title" | "body" | "image">) {
     const date = localToday();
     const action: FieldAction = {
-      id: `photo-${date}`, date, district: localStorage.getItem("alusathi-district") || "Rangpur",
+      id: `photo-${crypto.randomUUID()}`, date, district: localStorage.getItem("alusathi-district") || "Rangpur",
       kind: "observation", category: "photo", text: bn ? "ছবি পরীক্ষা" : "Photo check", ...entry,
     };
     saveFieldActions([action, ...readFieldActions().filter(item => item.id !== action.id)].slice(0, 100));

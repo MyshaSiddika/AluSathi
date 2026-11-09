@@ -17,7 +17,7 @@ function PageTitle() {
     const titles: Record<string, [string, string]> = {
       "/": ["আলুসাথী — বাংলাদেশের আলুচাষির ডিজিটাল সাথী", "AluSathi — Potato care in Bangladesh"],
       "/farmer": ["আমার পাতা — আলুসাথী", "My farmer page — AluSathi"],
-      "/auth": ["কৃষক নাকি ব্যবসায়ী — আলুসাথী", "Farmer or businessman — AluSathi"],
+      "/auth": ["কৃষক নাকি ক্রেতা — আলুসাথী", "Farmer or buyer — AluSathi"],
       "/account": ["আমার অ্যাকাউন্ট — আলুসাথী", "My account — AluSathi"],
       "/life-cycle": ["আলুর জীবন — আলুসাথী", "Potato life cycle — AluSathi"],
       "/selling-preparation": ["বিক্রির প্রস্তুতি — আলুসাথী", "Prepare to sell — AluSathi"],

@@ -93,7 +93,7 @@ async def auth_action(action: str, request: Request):
         await asyncio.to_thread(call, "signup?redirect_to=" + urllib.parse.quote(request.headers["origin"] + "/auth", safe=""), {"email": email, "password": password, "data": {"farmer_name": name.strip()}})
         return {"sent": True}
     if action == "recover":
-        await asyncio.to_thread(call, "recover?redirect_to=" + urllib.parse.quote(request.headers["origin"] + "/auth", safe=""), {"email": email}); return {"sent": True}
+        await asyncio.to_thread(call, "recover?redirect_to=" + urllib.parse.quote(request.headers["origin"] + "/account", safe=""), {"email": email}); return {"sent": True}
     if action == "exchange":
         refresh = data.get("refresh_token")
         if not isinstance(refresh, str) or not 1 <= len(refresh) <= 1024: raise HTTPException(400, "Invalid session")

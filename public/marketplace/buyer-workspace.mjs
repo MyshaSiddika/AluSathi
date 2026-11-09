@@ -53,7 +53,8 @@ export function workspace(view, c) {
 }
 export function mountWorkspace(view, c) {
   const root = document.querySelector('#buyer-workspace'); if (!root) return;
-  const {t,h,kg,money,prettyDate,findLot,findMatches,today,districtName} = c;
+  const {t,h,kg,money,findLot,findMatches,today,districtName} = c;
+  const prettyDate = value => /^\d{4}-\d{2}-\d{2}$/.test(value || '') ? `${value.slice(8,10)}/${value.slice(5,7)}/${value.slice(2,4)}` : '—';
   const status = text => { const el=root.querySelector('.sourcing-status'); if(el) el.textContent=text; };
   if (view === 'needs') {
     const form=root.querySelector('form');

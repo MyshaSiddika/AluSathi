@@ -4,13 +4,19 @@ export const todayPlus = days => {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 };
 
+export const catalogueListings = () => Array.from({length: 15}, (_, i) => {
+  const places = [["Rangpur", "Pirganj"], ["Bogura", "Shibganj"], ["Dinajpur", "Sadar"], ["Rajshahi", "Paba"], ["Munshiganj", "Sadar"]];
+  const varieties = ["Diamant", "Cardinal", "Granola", "Asterix", "Lady Rosetta"];
+  const [district, upazila] = places[i % places.length];
+  const photo = `/marketplace/listing-photos/potato-0${i % 3 + 1}.webp`;
+  return {id: `illustrative-lot-${i + 1}`, sample: true, district, upazila, variety: varieties[i % varieties.length],
+    farmerName: `Illustrative seller ${i + 1}`, purpose: "table", quantityKg: 1000 + i * 100,
+    askingPriceKg: 22 + i % 6, priceKg: 22 + i % 6, readyDate: "2026-01-01", createdAt: "2026-01-01T00:00:00.000Z",
+    notes: "Illustrative listing; crop and seller have not been verified.", photo, photos: [0, 1, 2].map(offset => ({src: `/marketplace/listing-photos/potato-0${(i + offset) % 3 + 1}.webp`}))};
+});
+
 export const initialData = () => ({
-  listings: [{
-    id: "sample-lot", sample: true, district: "Rangpur", upazila: "Pirganj",
-    variety: "Diamant", purpose: "table", quantityKg: 2000,
-    readyDate: todayPlus(0), notes: "Stored potatoes; mixed medium and large sizes.", photo: "",
-    createdAt: new Date().toISOString(),
-  }],
+  listings: catalogueListings(),
   offers: [
     { id: "sample-local", sample: true, lotId: "sample-lot", buyer: "Local trader", district: "Rangpur", quantityKg: 2000, priceKg: 22, acceptedPercent: 100, transport: 0, handling: 0, fee: 0, pickup: "buyer", paymentDays: 0, terms: "Buyer collects; final weight confirmed at pickup.", expires: todayPlus(7), createdAt: new Date().toISOString() },
     { id: "sample-remote", sample: true, lotId: "sample-lot", buyer: "District wholesaler", district: "Dinajpur", quantityKg: 2000, priceKg: 27, acceptedPercent: 95, transport: 8000, handling: 2000, fee: 0, pickup: "farmer", paymentDays: 2, terms: "Estimated 5% grade rejection; confirm before dispatch.", expires: todayPlus(7), createdAt: new Date().toISOString() },

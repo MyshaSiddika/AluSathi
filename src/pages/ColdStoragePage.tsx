@@ -15,7 +15,7 @@ export default function ColdStoragePage() {
       <header className="selling-heading"><p>{bn ? "আলু তোলার পরের ধাপ" : "AFTER THE HARVEST"}</p><h1>{bn ? "বিক্রির আগে" : "Before selling"}</h1><p>{bn ? "আলু বাছুন, তথ্য লিখুন, তারপর ক্রেতাদের দেখান।" : "Sort your potatoes, add their details, then show them to buyers."}</p></header>
       <SellingPreparationTools />
       <ColdStorage />
-      <div className="selling-next"><p>{bn ? "প্রস্তুত হলে ছবি, পরিমাণ ও দাম দিয়ে ক্রেতাদের দেখান।" : "When ready, show buyers your photos, quantity and asking price."}</p><a href="/farmer#market">{bn ? "আলু বাজারে দিন" : "Showcase your potatoes"}<ArrowRight size={18}/></a></div>
+      <div className="selling-next"><a href="/farmer#market">{bn ? "আলু বাজারে দিন" : "Showcase your potatoes"}<ArrowRight size={18}/></a></div>
     </main>
   </div>;
 }

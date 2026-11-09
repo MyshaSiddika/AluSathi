@@ -26,8 +26,8 @@ export function DemoEntry() {
     <span className="brand-mark"><Leaf /></span>
     <p className="section-kicker">{bn ? 'আলুসাথী · কাজ বেছে নিন' : 'ALUSATHI · CHOOSE YOUR ROLE'}</p>
     <h1>{bn ? 'আপনি কী কাজ করেন?' : 'Choose your role'}</h1>
-    <p>{bn ? 'কৃষক ও ব্যবসায়ীর জন্য আলাদা পাতা। আপনার কাজ বেছে নিন।' : 'Farmers and businessmen have separate pages. Choose what you do.'}</p>
-    <button className="main-button" onClick={() => { setDemo(true); navigate('/farmer', { replace: true }); }}><Leaf size={22} />{bn ? 'কৃষক হিসেবে ঢুকুন' : 'Enter as farmer'}</button>
-    <a className="main-button" href="/marketplace/buyer.html" onClick={() => { try { sessionStorage.setItem('alusathi-role', 'buyer'); sessionStorage.setItem('alusathi-demo', 'false'); } catch { /* Session remains usable in this tab. */ } }}><Truck size={22} />{bn ? 'ব্যবসায়ী হিসেবে ঢুকুন' : 'Enter as businessman'}</a>
+    <p>{bn ? 'কৃষক ও ক্রেতার জন্য আলাদা পাতা। আপনার কাজ বেছে নিন।' : 'Farmers and buyers have separate pages. Choose what you do.'}</p>
+    <button className="main-button" onClick={() => { setDemo(true); navigate('/farmer#photos', { replace: true }); }}><Leaf size={22} />{bn ? 'কৃষক হিসেবে ঢুকুন' : 'Enter as farmer'}</button>
+    <a className="main-button" href="/marketplace/buyer.html" onClick={() => { try { sessionStorage.setItem('alusathi-role', 'buyer'); sessionStorage.setItem('alusathi-demo', 'false'); } catch { /* Session remains usable in this tab. */ } }}><Truck size={22} />{bn ? 'ক্রেতা হিসেবে ঢুকুন' : 'Enter as buyer'}</a>
   </section></main>;
 }

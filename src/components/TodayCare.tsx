@@ -9,7 +9,7 @@ import type { CareArea } from "@/lib/care-area";
 import { PROFILE_CHANGED } from "@/lib/farmer-profile";
 
 const numeric = (value: string) => Number(value.replace(/[০-৯]/g, digit => String("০১২৩৪৫৬৭৮৯".indexOf(digit))));
-export default function TodayCare({ bn, area, actions, cropAgeDays, onPhoto }: {
+export default function TodayCare({ bn, area, actions, cropAgeDays }: {
   bn: boolean; area: CareArea; actions: FieldAction[]; cropAgeDays: number | null; onPhoto: () => void;
 }) {
   const t = (b: string, e: string) => bn ? b : e;
@@ -38,7 +38,7 @@ export default function TodayCare({ bn, area, actions, cropAgeDays, onPhoto }: {
   let dose: ReturnType<typeof exampleTopDressing> | null = null;
   try {
     const measured = areaSquareMetres(numeric(area.value), area.unit, numeric(area.bigha));
-    if (!area.example || photoContext(actions)) dose = exampleTopDressing(measured);
+    if (cropAgeDays !== null && (!area.example || photoContext(actions))) dose = exampleTopDressing(measured);
   } catch { /* Invalid areas never display nutrient quantities. */ }
   const photo = photoContext(actions);
   const sprayExample = photo?.condition === "marks" && /^demo-sample-[345]-\d{4}-\d{2}-\d{2}$/.test(photo.id);
@@ -70,16 +70,14 @@ export default function TodayCare({ bn, area, actions, cropAgeDays, onPhoto }: {
     <article className="care-auto-spray" data-photo-condition={photo?.condition || "none"} data-example={sprayExample ? "true" : "false"} aria-labelledby="spray-results-heading"><h3 id="spray-results-heading"><Droplets size={21} />{t("স্প্রে", "Spray")}</h3>
       <div className="care-spray-status"><strong>{t("ছবিতে যা দেখা যাচ্ছে", "What the photo shows")}</strong><p>{photo?.title || t("আগে আলুর ছবি দিন।", "Add a potato photo first.")}</p></div>
       {photo && <div className="care-spray-status"><strong>{t("যা পরীক্ষা করবেন", "What to inspect")}</strong><p>{photo.condition === "healthy" ? t("আলু ঘুরিয়ে দেখুন—নরম, ভেজা বা কাটা অংশ আছে কি না। শুধু ছবি দিয়ে স্প্রে দরকার কি না বলা যায় না।", "Turn the potato over and check for soft, wet or cut areas. A photo alone cannot establish whether spraying is needed.") : t("দাগযুক্ত আলু আলাদা রাখুন। দাগ নরম, ভেজা বা গভীর কি না দেখুন। শুধু আলুর ছবি দেখে মাঠের রোগ বা ওষুধ নিশ্চিত করা যায় না।", "Separate marked potatoes. Check whether marks are soft, wet or deep. A tuber photo cannot confirm a field disease or treatment.")}</p></div>}
-      {sprayExample && <details className="care-reference"><summary>{t("স্প্রের উদাহরণ দেখুন", "See a spray example")}</summary>
-      {sprayExample ? <><dl className="care-spray-facts"><div className="care-product"><dt>{t("উদাহরণের পণ্য", "Example product")}</dt><dd>Ridomil Gold MZ 68 WG</dd></div><div><dt>{t("মিশ্রণের উদাহরণ", "Mixing example")}</dt><dd>{t("৫০ গ্রাম / ১০ লিটার পানি", "50 g / 10 L water")}</dd></div></dl><p className="care-spray-caution">{t("এটি ১ শতকের প্রয়োজনীয় পরিমাণ নয়। তোলা আলুতে প্রয়োগ করবেন না; বর্তমান লেবেল ও কৃষি কর্মকর্তার পরামর্শ মিলিয়ে নিন।", "This is not the quantity required for 1 shotok. Do not apply to harvested potatoes; check the current label and an agricultural adviser.")}</p><details className="care-reference"><summary>{t("আরও জানুন", "More information")}</summary><p>{t("Syngenta Bangladesh-এর ২০২০ সালের তথ্য: আলুর লেট ব্লাইটে ৫ গ্রাম/লিটার। জমির স্প্রে-পানির পরিমাণ জানা নেই, তাই জমিভিত্তিক ওষুধের মোট দেখানো হয়নি।", "Syngenta Bangladesh, 2020: 5 g/L for potato late blight. Field spray-water volume is unknown, so no area-based product total is inferred.")}</p><a href="https://www.syngenta.com.bd/product/crop-protection/ridomil-gold-mz-68-wg" target="_blank" rel="noopener noreferrer">Syngenta Bangladesh ↗</a></details></> : <p>{!photo ? t("ছবি না দেখে কোনো ওষুধ বাছা হয়নি।", "No medicine selected without a photo.") : photo.condition === "healthy" ? t("অপ্রয়োজনীয় স্প্রে নয়; নিয়মিত পর্যবেক্ষণ করুন।", "Avoid unnecessary spraying; keep inspecting.") : t("তোলা আলুর দাগ থেকে মাঠের ওষুধ নিশ্চিত করা যায় না। নরম বা ভেজা আলু ভালো আলুর সঙ্গে মেশাবেন না।", "A harvested tuber's marks do not establish field treatment. Keep soft or wet potatoes away from sound ones.")}</p>}
+      {sprayExample && <details className="care-reference" open><summary>{t("যে স্প্রে দেবেন", "Spray reference")}</summary>
+      {sprayExample ? <><dl className="care-spray-facts"><div className="care-product"><dt>{t("পণ্য", "Product")}</dt><dd>Ridomil Gold MZ 68 WG</dd></div><div><dt>{t("মিশ্রণ", "Mix")}</dt><dd>{t("৫০ গ্রাম / ১০ লিটার পানি", "50 g / 10 L water")}</dd></div></dl><p className="care-spray-caution">{t("এটি ১ শতকের প্রয়োজনীয় পরিমাণ নয়। তোলা আলুতে প্রয়োগ করবেন না; বর্তমান লেবেল ও কৃষি কর্মকর্তার পরামর্শ মিলিয়ে নিন।", "This is not the quantity required for 1 shotok. Do not apply to harvested potatoes; check the current label and an agricultural adviser.")}</p><details className="care-reference"><summary>{t("আরও জানুন", "More information")}</summary><p>{t("Syngenta Bangladesh-এর ২০২০ সালের তথ্য: আলুর লেট ব্লাইটে ৫ গ্রাম/লিটার। জমির স্প্রে-পানির পরিমাণ জানা নেই, তাই জমিভিত্তিক ওষুধের মোট দেখানো হয়নি।", "Syngenta Bangladesh, 2020: 5 g/L for potato late blight. Field spray-water volume is unknown, so no area-based product total is inferred.")}</p><a href="https://www.syngenta.com.bd/product/crop-protection/ridomil-gold-mz-68-wg" target="_blank" rel="noopener noreferrer">Syngenta Bangladesh ↗</a></details></> : <p>{!photo ? t("ছবি না দেখে কোনো ওষুধ বাছা হয়নি।", "No medicine selected without a photo.") : photo.condition === "healthy" ? t("অপ্রয়োজনীয় স্প্রে নয়; নিয়মিত পর্যবেক্ষণ করুন।", "Avoid unnecessary spraying; keep inspecting.") : t("তোলা আলুর দাগ থেকে মাঠের ওষুধ নিশ্চিত করা যায় না। নরম বা ভেজা আলু ভালো আলুর সঙ্গে মেশাবেন না।", "A harvested tuber's marks do not establish field treatment. Keep soft or wet potatoes away from sound ones.")}</p>}
       </details>}
-      <button type="button" onClick={onPhoto}>{t("ছবির ফল দেখুন", "View photo result")}</button>
     </article>
     <article className="care-auto-fertilizer" aria-labelledby="fertilizer-results-heading">
       <h3 id="fertilizer-results-heading"><Sprout size={21} />{t("আজ কী দেবেন?", "What should you apply today?")}</h3>
       <div className="care-fertilizer-info">
         {alreadyReported ? <p>{t("সার দেওয়া হয়েছে। আবার দেওয়ার আগে কী সার দিয়েছেন, মিলিয়ে নিন।", "Fertiliser was reported. Check what you applied before adding more.")}</p>
-          : photo && cropAgeDays === null && dose ? <div className="care-nutrient-grid"><div><span>{t("প্রথম মাসের সার পরিকল্পনা", "First-month fertiliser plan")}</span><strong>{t("ইউরিয়া:", "Urea:")} {format(Math.round(dose.minGrams))}–{format(Math.round(dose.maxGrams))} {t("গ্রাম", "g")}</strong><span>{t("আলু লাগানোর ৩০–৩৫ দিনে একবারের হিসাব। ছবির ফল দেখে আজকের মাত্রা ঠিক করা হয়নি।", "One application around days 30–35. The photo does not determine today's dose.")}</span></div></div>
           : cropAgeDays === null ? <p><a className="text-button" href="#settings">{t("আলু লাগানোর তারিখ দিন", "Add your planting date")}</a>{t(" — আজ সার লাগবে কি না দেখুন।", " to see whether fertiliser is due today.")}</p>
           : !ureaWindow ? <p>{t("আজকের জন্য কোনো সার নির্ধারিত নেই।", "No fertiliser is scheduled for today.")}</p>
           : !dose ? <p>{t("ইউরিয়ার পরিমাণ জানতে জমির মাপ দিন।", "Add your land area to see the urea amount.")}</p>
