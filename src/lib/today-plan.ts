@@ -1,12 +1,25 @@
 import type { FieldAction } from "./field-actions";
 
-export type PlanPhoto = { id: string; title: string; body: string; condition: "healthy" | "marks" | "unclear" };
+export type PlanPhoto = { id: string; title: string; body: string; condition: "healthy" | "marks" | "unclear"; modelResult?: "healthy" | "defective"; date?: string; sample?: number; thumbnail?: string };
 export type PlanContext = { date: string; district: string; band: string; rain: boolean; humid: boolean; photo: PlanPhoto | null; lastTreatment?: string };
 export type PlanTask = { id: string; text: string; why: string };
+export function recentPhoto(actions: FieldAction[], district: string, today: string) {
+  const now = Date.parse(today);
+  return photoContext(actions.filter(item => {
+    const elapsed = now - Date.parse(item.date);
+    return item.district === district && elapsed >= 0 && elapsed <= 7 * 86400000;
+  }));
+}
+export function sprayReference(photo: PlanPhoto | null, bn: boolean) {
+  if (photo?.sample === 4) return bn ? "ম্যানকোজেব + মেটাল্যাক্সিল" : "Mancozeb + metalaxyl";
+  if (photo?.sample === 5) return bn ? "ম্যানকোজেব" : "Mancozeb";
+  return null;
+}
 export function photoContext(actions: FieldAction[]): PlanPhoto | null {
   const item = actions.find(action => action.category === "photo" && action.kind === "observation");
   if (!item) return null;
-  return { id: item.id, title: typeof item.title === "string" ? item.title.slice(0,200) : "", body: typeof item.body === "string" ? item.body.slice(0,600) : "", condition: item.advice === "healthy" ? "healthy" : item.advice ? "marks" : "unclear" };
+  const thumbnail = typeof item.image === "string" && item.image.length <= 60000 && /^data:image\/jpeg;base64,[A-Za-z0-9+/]+={0,2}$/.test(item.image) ? item.image : undefined;
+  return { id: item.id, title: typeof item.title === "string" ? item.title.slice(0,200) : "", body: typeof item.body === "string" ? item.body.slice(0,600) : "", condition: item.advice === "healthy" ? "healthy" : item.advice ? "marks" : "unclear", date: item.date, sample: Number(/^demo-sample-([1-5])-/.exec(item.id)?.[1]) || undefined, thumbnail, modelResult: item.tuberModelResult === "healthy" || item.tuberModelResult === "defective" ? item.tuberModelResult : undefined };
 }
 export function readTodayPlan(fallback: PlanContext): PlanContext {
   try {

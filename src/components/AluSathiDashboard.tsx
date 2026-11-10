@@ -14,6 +14,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import FarmerTools from "@/components/FarmerTools";
 import FarmerNavigation from "@/components/FarmerNavigation";
 import FarmerToday from "@/components/FarmerToday";
+import SeasonProgress from "@/components/SeasonProgress";
 import FarmerProfile from "@/components/FarmerProfile";
 import FarmerNotebook from "@/components/FarmerNotebook";
 import FarmerMarketPages from "@/components/FarmerMarketPages";
@@ -321,7 +322,7 @@ export default function AluSathiDashboard({ farmerHome = false }: { farmerHome?:
   const location = useLocation();
   useEffect(() => {
     if (!farmerHome) return;
-    const update = () => { const hash = window.location.hash.slice(1); const candidate = hash === "tuber" ? "photos" : hash === "hisab" ? "diary" : hash || "today"; const view = ["today", "photos", "diary", "profile", "market", "my-listings", "interest", "settings", "tools", "help"].includes(candidate) ? candidate : "today"; setFarmerView(view); if (view === "photos") setLeafOpen(true); window.scrollTo({ top: 0, behavior: "instant" }); };
+    const update = () => { const hash = window.location.hash.slice(1); const candidate = hash === "tuber" ? "photos" : hash === "hisab" ? "diary" : hash || "today"; const view = ["today", "season", "photos", "diary", "profile", "market", "my-listings", "interest", "settings", "tools", "help"].includes(candidate) ? candidate : "today"; setFarmerView(view); if (view === "photos") setLeafOpen(true); window.scrollTo({ top: 0, behavior: "instant" }); };
     update(); window.addEventListener("hashchange", update);
     return () => window.removeEventListener("hashchange", update);
   }, [farmerHome, location.hash]);
@@ -579,6 +580,7 @@ export default function AluSathiDashboard({ farmerHome = false }: { farmerHome?:
       </div>}
 
       {farmerHome && <div hidden={farmerView !== "today"}><FarmerToday weather={weather} loading={weatherLoading} district={district} districts={districtOptions} plantingDate={plantingDate} onPhoto={() => startScan("quick")} lastCheckin={diary[0] ? { createdAt: diary[0].createdAt, thumbnails: (diary[0].thumbnails || []).filter(src => /^data:image\/jpeg;base64,/.test(src)) } : undefined} /></div>}
+      {farmerHome && farmerView === "season" && <SeasonProgress district={district} bn={language === "bn"} />}
 
       {farmerHome && <div hidden={farmerView !== "profile"}><FarmerProfile /></div>}
       {farmerHome && (farmerView === "market" || farmerView === "interest" || farmerView === "my-listings") && <FarmerMarketPages key={farmerView} view={farmerView} district={district} />}

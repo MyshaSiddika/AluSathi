@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Camera, History, Leaf, Menu, Store, Sun, UserRound, Package } from "lucide-react";
+import { CalendarDays, Camera, History, Leaf, Menu, Store, Sun, UserRound, Package } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDemo } from "@/contexts/DemoContext";
@@ -39,6 +39,7 @@ export default function FarmerNavigation({ active = "today" }: { active?: string
   const tabs = [
     ["photos", "/farmer#photos", bn ? "ছবি" : "Photos", Camera],
     ["today", "/farmer", bn ? "আজকের কাজ" : "Today", Sun],
+    ["season", "/farmer#season", bn ? "মৌসুমের অগ্রগতি" : "Season progress", CalendarDays],
     ["diary", "/farmer#diary", bn ? "খাতা" : "Notebook", History],
     ["selling", "/selling-preparation", bn ? "বিক্রির আগে" : "Before selling", Store],
     ["market", "/farmer#market", bn ? "বাজারে দিন" : "Showcase", Package],

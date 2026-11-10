@@ -245,3 +245,57 @@
   .farmer-v2[data-view="today"] .farmer-today .today-task details { padding-left: 42px; }
   .farmer-v2[data-view="today"] .farmer-today .today-task label strong { font-size: 17px; }
 }
+.app-shell.season-progress { --season-neutral:#f4f4f4; --season-border:#e7e7e7; max-width:984px; padding-block:24px 36px; }
+.season-card { margin-bottom:16px; padding:16px; border:1px solid var(--home-line); border-radius:20px; background:white; }
+.season-journey-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:10px; }
+.season-journey-heading h1 { margin:0; font-size:clamp(23px,3vw,32px); font-weight:700; }
+.season-journey-heading p { color:var(--home-muted); }
+.season-journey-heading > span { flex:none; padding:2px 9px; border-radius:20px; background:var(--season-neutral); font-size:14px; }
+.season-progress-label { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; }
+.season-current { color:var(--home-green); font-weight:700; }
+.season-setup a { color:var(--home-green); font-weight:700; text-decoration:underline; }
+.season-track { position:relative; margin:8px 6px 12px; }
+.season-track progress { display:block; width:100%; height:8px; appearance:none; border:0; border-radius:10px; background:var(--home-soft); accent-color:var(--home-green); }
+.season-track progress::-webkit-progress-bar { background:var(--home-soft); border-radius:10px; }
+.season-track progress::-webkit-progress-value { background:var(--home-green); border-radius:10px; }
+.season-track progress::-moz-progress-bar { background:var(--home-green); border-radius:10px; }
+.season-track i { position:absolute; top:50%; translate:-50% -50%; width:14px; height:14px; border:2px solid white; border-radius:50%; background:var(--home-green); box-shadow:0 0 0 1px var(--home-green); }
+.season-preview { display:block; margin-top:12px; }
+.season-preview input { display:block; width:100%; margin-top:4px; accent-color:var(--home-green); cursor:pointer; }
+.season-milestones, .season-week ul { display:grid; gap:6px; overflow-x:auto; scroll-snap-type:x mandatory; padding:4px; }
+.season-milestones { grid-template-columns:repeat(5,minmax(104px,1fr)); margin:8px -4px; }
+.season-milestones button, .season-week button { display:grid; align-content:center; justify-items:center; gap:4px; min-width:0; min-height:90px; padding:8px 5px; scroll-snap-align:start; background:var(--season-neutral); border:1px solid var(--season-border); cursor:pointer; text-align:center; transition:background-color 160ms, border-color 160ms; }
+.season-milestones button { border-radius:14px; font-size:14px; }
+.season-milestones button span { color:var(--home-muted); }
+.season-milestones svg, .season-week button svg { color:var(--home-muted); }
+.season-milestones button[aria-pressed=true], .season-week button[aria-pressed=true] { background:var(--home-soft); border-color:var(--home-green); }
+.season-milestones button:hover, .season-week button:hover { border-color:var(--home-green); }
+.season-milestones button[aria-pressed=true] svg, .season-week button .season-completed, .season-record { color:var(--home-green); }
+.season-stage { padding:14px 16px; border-radius:18px; background:color-mix(in srgb,var(--home-soft) 55%,white); }
+.season-stage-heading { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+.season-stage-heading > span { display:grid; place-items:center; flex:none; width:46px; height:46px; border-radius:12px; background:white; color:var(--home-green); }
+.season-card h2 { margin:0; font-size:19px; font-weight:700; }
+.season-card p { margin:5px 0; }
+.season-stage-heading p { margin:0; color:var(--home-muted); font-size:14px; }
+.season-card .season-activity { display:flex; align-items:baseline; gap:6px; margin:12px 0 0; padding-top:10px; border-top:1px solid var(--home-line); }
+.season-activity svg { flex:none; align-self:center; color:var(--home-green); }
+.season-safety { color:var(--home-muted); font-size:14px; }
+.season-week ul { grid-template-columns:repeat(7,minmax(76px,1fr)); margin:8px -4px 0; list-style:none; }
+.season-week button { width:100%; height:100%; border-radius:10px; font-size:14px; }
+.season-week button time { font-weight:700; }
+.season-week button[aria-current=date] span { text-decoration:underline; text-underline-offset:3px; }
+.season-day-details { margin-top:10px; padding:12px 14px; border-radius:14px; background:var(--season-neutral); overflow-wrap:anywhere; }
+.season-day-details h3 { margin:0; font-size:16px; font-weight:700; }
+.season-progress :is(button,input,summary,a):focus-visible { outline:2px solid var(--home-green); outline-offset:2px; }
+.season-card.farming-fertilizer > summary { display:flex; justify-content:space-between; align-items:center; font-weight:700; cursor:pointer; list-style:none; }
+.farming-fertilizer[open] > summary svg { rotate:180deg; }
+.season-card .care-land-summary { margin-top:14px; }
+.season-card .farming-table-wrap { overflow-x:auto; margin:12px 0; }
+.season-card table { width:100%; border-collapse:collapse; text-align:left; }
+.season-card th, .season-card td { padding:8px 10px; border-bottom:1px solid var(--home-line); }
+@media(max-width:700px) {
+ .season-card { padding:16px; }
+}
+@media(prefers-reduced-motion:reduce) {
+ .season-milestones button, .season-week button { transition:none; }
+}

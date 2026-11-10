@@ -4,6 +4,8 @@ export type FieldAction = {
   status?: string; details?: string; variety?: string; cropAge?: string;
   cause?: string; advice?: "healthy" | "observe" | "late-blight" | "fusarium-wilt" | "leaf-roll-vector"; title?: string; body?: string; image?: string;
   nextDueDate?: string;
+  planTask?: { id: string; text: string; why: string; how: string };
+  tuberModelResult?: "healthy" | "defective";
 };
 
 export const FIELD_ACTIONS_KEY = "alusathi-field-actions-v1";
