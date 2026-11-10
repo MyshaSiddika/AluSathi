@@ -4,23 +4,35 @@ export const todayPlus = days => {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 };
 
-export const catalogueListings = () => Array.from({length: 15}, (_, i) => {
-  const places = [["Rangpur", "Pirganj"], ["Bogura", "Shibganj"], ["Dinajpur", "Sadar"], ["Rajshahi", "Paba"], ["Munshiganj", "Sadar"]];
-  const varieties = ["Diamant", "Cardinal", "Granola", "Asterix", "Lady Rosetta"];
-  const [district, upazila] = places[i % places.length];
-  const photo = `/marketplace/listing-photos/potato-0${i % 3 + 1}.webp`;
-  return {id: `illustrative-lot-${i + 1}`, sample: true, district, upazila, variety: varieties[i % varieties.length],
-    farmerName: `Illustrative seller ${i + 1}`, purpose: "table", quantityKg: 1000 + i * 100,
-    askingPriceKg: 22 + i % 6, priceKg: 22 + i % 6, readyDate: "2026-01-01", createdAt: "2026-01-01T00:00:00.000Z",
-    notes: "Illustrative listing; crop and seller have not been verified.", photo, photos: [0, 1, 2].map(offset => ({src: `/marketplace/listing-photos/potato-0${(i + offset) % 3 + 1}.webp`}))};
+const photo = name => `/marketplace/listing-photos/${name}.webp`;
+
+const sampleLots = [
+  {farmerName:"Rahima Begum",farmerNameBn:"রহিমা বেগম",district:"Rangpur",upazila:"Pirganj",variety:"Diamant",purpose:"table",quantityKg:1250,askingPriceKg:22,readyIn:0,packaging:"Loose, sorted",packagingBn:"বাছাই করা, খোলা",notes:"Medium and large, dry potatoes; weigh at pickup.",notesBn:"মাঝারি ও বড় শুকনো আলু; নেওয়ার সময় ওজন মিলিয়ে নিন।",images:["potato-01"]},
+  {farmerName:"Abdul Karim",farmerNameBn:"আবদুল করিম",district:"Bogura",upazila:"Shibganj",variety:"Cardinal",purpose:"table",quantityKg:840,askingPriceKg:25,readyIn:1,packaging:"Wooden crates",packagingBn:"কাঠের ঝুড়িতে",notes:"Red-skinned potatoes in crates; inspect size before collection.",notesBn:"লাল খোসার আলু ঝুড়িতে রাখা; নেওয়ার আগে আকার দেখে নিন।",images:["red-crate"]},
+  {farmerName:"Nurul Islam",farmerNameBn:"নুরুল ইসলাম",district:"Dinajpur",upazila:"Birganj",variety:"Granola",purpose:"table",quantityKg:2200,askingPriceKg:20,readyIn:2,packaging:"Loose on burlap",packagingBn:"চটের ওপর খোলা",notes:"Mostly even-sized yellow potatoes; sacks are not included.",notesBn:"বেশির ভাগ আলু একই আকারের; বস্তা দরের মধ্যে নেই।",images:["yellow-burlap"]},
+  {farmerName:"Selina Akter",farmerNameBn:"সেলিনা আক্তার",district:"Rajshahi",upazila:"Paba",variety:"Asterix",purpose:"processing",quantityKg:1100,askingPriceKg:27,readyIn:3,packaging:"Jute sacks",packagingBn:"চটের বস্তায়",notes:"Long red-skinned potatoes; check processing suitability yourself.",notesBn:"লম্বা লাল খোসার আলু; প্রক্রিয়াজাতের উপযোগিতা নিজে দেখে নিন।",images:["red-sacks"]},
+  {farmerName:"Jahangir Alam",farmerNameBn:"জাহাঙ্গীর আলম",district:"Munshiganj",upazila:"Tongibari",variety:"Courage",purpose:"table",quantityKg:3100,askingPriceKg:19,readyIn:5,packaging:"Sorted in bamboo baskets",packagingBn:"বাঁশের ঝুড়িতে বাছাই",notes:"Large batch with smaller tubers mixed in; confirm the split at pickup.",notesBn:"বড় লটে কিছু ছোট আলুও আছে; নেওয়ার সময় ভাগ মিলিয়ে নিন।",images:["yellow-sorted"]},
+  {farmerName:"Nasima Khatun",farmerNameBn:"নাসিমা খাতুন",district:"Panchagarh",upazila:"Tetulia",variety:"Lady Rosetta",purpose:"table",quantityKg:650,askingPriceKg:29,readyIn:7,packaging:"Trays and baskets",packagingBn:"ট্রে ও ঝুড়িতে",notes:"Small red-skinned lot; inspect surface marks before buying.",notesBn:"ছোট লাল খোসার লট; কেনার আগে বাইরের দাগ দেখুন।",images:["red-tray","red-market"]},
+  {farmerName:"Monir Hossain",farmerNameBn:"মনির হোসেন",district:"Thakurgaon",upazila:"Baliadangi",variety:"Diamant",purpose:"table",quantityKg:470,askingPriceKg:23,readyIn:9,packaging:"Loose on burlap",packagingBn:"চটের ওপর খোলা",notes:"Small mixed-size lot; buyer brings sacks.",notesBn:"ছোট লটে নানা আকারের আলু; বস্তা ক্রেতাকে আনতে হবে।",images:["yellow-small"]},
+  {farmerName:"Rupa Begum",farmerNameBn:"রূপা বেগম",district:"Cumilla",upazila:"Chandina",variety:"Granola",purpose:"table",quantityKg:1700,askingPriceKg:22.5,readyIn:10,packaging:"Loose display",packagingBn:"খোলা সাজানো",notes:"Dry potatoes with some natural skin marks; sort at pickup.",notesBn:"শুকনো আলুতে স্বাভাবিক খোসার দাগ আছে; নেওয়ার সময় বাছাই করুন।",images:["yellow-display"]},
+  {farmerName:"Ashraf Ali",farmerNameBn:"আশরাফ আলী",district:"Naogaon",upazila:"Badalgachhi",variety:"Courage",purpose:"table",quantityKg:2550,askingPriceKg:19.5,readyIn:12,packaging:"Loose on table",packagingBn:"টেবিলে খোলা",notes:"Bulk lot with mixed sizes; final weight and deductions need agreement.",notesBn:"বড় লটে মিশ্র আকার; শেষ ওজন ও কাটতি আগে ঠিক করুন।",images:["yellow-table"]},
+  {farmerName:"Hasina Begum",farmerNameBn:"হাসিনা বেগম",district:"Jashore",upazila:"Jhikargacha",variety:"Diamant",purpose:"table",quantityKg:920,askingPriceKg:24,readyIn:14,packaging:"Loose on burlap",packagingBn:"চটের ওপর খোলা",notes:"Mostly medium potatoes; available after sorting.",notesBn:"বেশির ভাগ মাঝারি আলু; বাছাইয়ের পরে নেওয়া যাবে।",images:["potato-02"]},
+  {farmerName:"Kamal Uddin",farmerNameBn:"কামাল উদ্দিন",district:"Munshiganj",upazila:"Sadar",variety:"Granola",purpose:"table",quantityKg:1380,askingPriceKg:23.5,readyIn:18,packaging:"Plastic crates",packagingBn:"প্লাস্টিকের ঝুড়িতে",notes:"Crated batch; ask whether the crates travel with the potatoes.",notesBn:"ঝুড়িতে রাখা আলু; ঝুড়ি সঙ্গে যাবে কি না জেনে নিন।",images:["yellow-crates"]},
+  {farmerName:"Mofizur Rahman",farmerNameBn:"মফিজুর রহমান",district:"Bogura",upazila:"Shibganj",variety:"Courage",purpose:"table",quantityKg:1875,askingPriceKg:20.5,readyIn:21,packaging:"Bamboo basket",packagingBn:"বাঁশের ঝুড়িতে",notes:"Medium-sized potatoes in a basket; confirm the total bag count.",notesBn:"ঝুড়িতে মাঝারি আকারের আলু; মোট বস্তার সংখ্যা মিলিয়ে নিন।",images:["yellow-basket"]},
+];
+
+export const catalogueListings = () => sampleLots.map((lot, i) => {
+  const {images, readyIn, ...details} = lot;
+  return {id:`illustrative-lot-${i + 1}`,sample:true,...details,priceKg:details.askingPriceKg,
+    readyDate:todayPlus(readyIn),createdAt:new Date().toISOString(),photo:photo(images[0]),photos:images.map(name=>({src:photo(name)}))};
 });
 
 export const initialData = () => ({
   listings: catalogueListings(),
   offers: [
-    { id: "sample-local", sample: true, lotId: "sample-lot", buyer: "Local trader", district: "Rangpur", quantityKg: 2000, priceKg: 22, acceptedPercent: 100, transport: 0, handling: 0, fee: 0, pickup: "buyer", paymentDays: 0, terms: "Buyer collects; final weight confirmed at pickup.", expires: todayPlus(7), createdAt: new Date().toISOString() },
-    { id: "sample-remote", sample: true, lotId: "sample-lot", buyer: "District wholesaler", district: "Dinajpur", quantityKg: 2000, priceKg: 27, acceptedPercent: 95, transport: 8000, handling: 2000, fee: 0, pickup: "farmer", paymentDays: 2, terms: "Estimated 5% grade rejection; confirm before dispatch.", expires: todayPlus(7), createdAt: new Date().toISOString() },
-    { id: "sample-partial", sample: true, lotId: "sample-lot", buyer: "Potato processor", district: "Bogura", quantityKg: 1500, priceKg: 26, acceptedPercent: 100, transport: 2500, handling: 500, fee: 0, pickup: "farmer", paymentDays: 1, terms: "Only 1,500 kg requested; the rest remains unsold.", expires: todayPlus(7), createdAt: new Date().toISOString() },
+    { id: "sample-local", sample: true, lotId: "illustrative-lot-1", buyer: "Rahim Traders", district: "Rangpur", quantityKg: 800, priceKg: 22, acceptedPercent: 100, transport: 0, handling: 0, fee: 0, pickup: "buyer", paymentDays: 0, terms: "Buyer collects; final weight confirmed at pickup.", expires: todayPlus(7), createdAt: new Date().toISOString() },
+    { id: "sample-remote", sample: true, lotId: "illustrative-lot-1", buyer: "Karim Potato Store", district: "Bogura", quantityKg: 1000, priceKg: 25, acceptedPercent: 95, transport: 3000, handling: 500, fee: 0, pickup: "farmer", paymentDays: 2, terms: "Estimated 5% grade rejection; confirm before dispatch.", expires: todayPlus(7), createdAt: new Date().toISOString() },
+    { id: "sample-partial", sample: true, lotId: "illustrative-lot-1", buyer: "Nahar Store", district: "Dinajpur", quantityKg: 500, priceKg: 24, acceptedPercent: 100, transport: 1200, handling: 200, fee: 0, pickup: "farmer", paymentDays: 1, terms: "Only 500 kg requested; the rest remains available.", expires: todayPlus(7), createdAt: new Date().toISOString() },
   ],
   deals: [],
   quotes: [],

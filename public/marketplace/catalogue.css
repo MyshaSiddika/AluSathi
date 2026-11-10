@@ -13,7 +13,7 @@
 .buyer-discovery .lot-grid .buyer-contact-card { display: grid; grid-template-columns: minmax(0, 1fr); align-items: center; padding: 10px 14px; }
 .buyer-discovery .lot-grid .catalogue-card-identity { min-height: 0; padding: 0; }
 .buyer-discovery .lot-grid .catalogue-card-identity .lot-photo { width: 100%; min-width: 0; max-width: none; height: 160px; }
-.catalogue-row-gallery { flex: 0 0 min(180px, 50%); width: min(180px, 50%); }
+.catalogue-row-gallery { flex: 0 0 min(150px, 42%); width: min(150px, 42%); }
 .catalogue-row-gallery-window { position: relative; overflow: hidden; border-radius: 9px; }
 .catalogue-row-gallery-track { display: flex; transition: transform .24s ease; }
 .catalogue-row-gallery[data-index="1"] .catalogue-row-gallery-track { transform: translateX(-100%); }
@@ -33,8 +33,8 @@
 .buyer-discovery .lot-grid .buyer-card-actions { display: flex; flex-wrap: wrap; }
 .buyer-discovery [data-action="catalogue-compare-toggle"][aria-pressed="true"] { background: var(--home-tint, #e0eee5); border-color: var(--moss); }
 @media (min-width: 1100px) {
-  .buyer-discovery .lot-grid .buyer-contact-card { grid-template-columns: minmax(260px, 1fr) minmax(285px, 1.4fr) auto; }
-  .catalogue-row-gallery { flex-basis: 180px; width: 180px; }
+  .buyer-discovery .lot-grid .buyer-contact-card { grid-template-columns: minmax(345px, 1.2fr) minmax(240px, .85fr) minmax(330px, 1.3fr); gap: 18px; }
+  .catalogue-row-gallery { flex-basis: 150px; width: 150px; }
 .buyer-discovery .lot-grid .buyer-card-actions { flex-wrap: wrap; }
 }
 .catalogue-shortlist-tray { position: fixed; z-index: 8; inset: auto 0 0; display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 12px; padding: 10px 16px; color: var(--forest); background: var(--home-bg, #eaf4f4); border-top: 1px solid var(--line); box-shadow: 0 -6px 24px #173d301a; }
@@ -121,7 +121,15 @@
 .catalogue-contact-note { padding-top: 16px; border-top: 1px solid var(--line); margin: 22px 0 0; font-size: 15px; line-height: 1.6; }
 .buyer-discovery :focus-visible, .catalogue-detail-dialog :focus-visible, .catalogue-contact-dialog :focus-visible { outline: 3px solid #b77917; outline-offset: 3px; }
 @media (max-width: 1150px) { .buyer-discovery .lot-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 700px) { .buyer-discovery .lot-grid { grid-template-columns: 1fr; } .buyer-discovery .buyer-catalogue-filters { flex-wrap: wrap; } .catalogue-detail-dialog.modal { grid-template-columns: 1fr; } .catalogue-detail-gallery > img { height: 240px; } }
+@media (max-width: 700px) {
+  .buyer-discovery .lot-grid { grid-template-columns: 1fr; }
+  .buyer-discovery .buyer-catalogue-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: end; }
+  .buyer-discovery .buyer-catalogue-filters label { min-width: 0; }
+  .buyer-discovery .buyer-catalogue-filters label:nth-child(3), .buyer-discovery .buyer-catalogue-filters button[type="submit"], .buyer-discovery .buyer-catalogue-filters .catalogue-filter-error { grid-column: 1 / -1; }
+  .buyer-discovery .buyer-catalogue-filters .text-arrow { grid-column: 1 / -1; justify-self: start; }
+  .catalogue-detail-dialog.modal { grid-template-columns: 1fr; }
+  .catalogue-detail-gallery > img { height: 240px; }
+}
 
 .liked-page { padding-top: 26px; padding-bottom: 40px; }
 .liked-page > .section-header { align-items: center; gap: 18px; margin-bottom: 20px; }
