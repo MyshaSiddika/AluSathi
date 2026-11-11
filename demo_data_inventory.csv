@@ -1,0 +1,11 @@
+dataset,file,count,fields,where_it_renders
+"catalogue lots","public/marketplace/market.mjs","12","id; sample; farmerName; farmerNameBn; district; upazila; variety; purpose; quantityKg; askingPriceKg; packaging; packagingBn; notes; notesBn; priceKg; readyDate; createdAt; photo; photos","Buyer available potatoes; lot details; comparison; farmer sample view"
+"sample offers","public/marketplace/market.mjs","3","id; sample; lotId; buyer; district; quantityKg; priceKg; acceptedPercent; transport; handling; fee; pickup; paymentDays; terms; expires; createdAt","Farmer offers when sales feature enabled"
+"practice comparison lots","public/marketplace/buyer-examples.mjs","3","id; practice; variety; district; upazila; askingPriceKg; quantityKg; readyDate; purpose; photos; notes; notesBn; practiceFare; contactSharing","Buyer cost and compare practice"
+"farmer buyer-enquiry examples","src/lib/demo-buyer-interests.ts","3","name; nameBn; district; quantity; price; variety; neededInDays; note","Farmer buyer interest"
+"provider directory","public/marketplace/providers.json","3","kind; name; nameBn; area; phone; source; verification; note","Transport and cold-storage directories"
+"photo demo cases","src/lib/photo-demo-cases.ts","5","id; image; bn; en; advice","Farmer photo demo"
+"buyer requests","src/components/LocalBuyerRequests.tsx","0","localStorage records only","Unmounted component; no current route"
+"selling estimates","src/components/SellingEstimate.tsx","0","localStorage records only","Selling estimate history"
+"notebook entries","src/components/FarmerNotebook.tsx","0","localStorage records only","Farmer notebook"
+"harvest demand matches","src/components/HarvestMarket.tsx","0","localStorage records only","Harvest market"
