@@ -96,7 +96,11 @@ export function buyerInterests(): BuyerInterest[] {
   }) : []), ...legacy];
 }
 
-export async function salePhoto(file: File): Promise<{src: string}> {
+export function salePhoto(file: File) {
+  return preparePhoto(file, 1000);
+}
+
+export async function preparePhoto(file: File, maxSide: number): Promise<{src: string}> {
   if (!/^image\/(jpeg|png|webp)$/.test(file.type) || !file.size || file.size > 2 * 1024 * 1024) throw new Error("photo");
   const bytes = new Uint8Array(await file.slice(0, 12).arrayBuffer());
   const valid = file.type === "image/jpeg" ? bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255 : file.type === "image/png" ? [137,80,78,71,13,10,26,10].every((v,i) => bytes[i] === v) : String.fromCharCode(...bytes.slice(0,4)) === "RIFF" && String.fromCharCode(...bytes.slice(8,12)) === "WEBP";
@@ -104,7 +108,7 @@ export async function salePhoto(file: File): Promise<{src: string}> {
   const image = await createImageBitmap(file);
   try {
     if (image.width < 40 || image.height < 40 || image.width * image.height > 40_000_000) throw new Error("photo");
-    const scale = Math.min(1, 1000 / Math.max(image.width, image.height));
+    const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
     const canvas = document.createElement("canvas"); canvas.width = Math.round(image.width * scale); canvas.height = Math.round(image.height * scale);
     const context = canvas.getContext("2d"); if (!context) throw new Error("photo");
     context.fillStyle = "white"; context.fillRect(0,0,canvas.width,canvas.height); context.drawImage(image,0,0,canvas.width,canvas.height);

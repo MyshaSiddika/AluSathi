@@ -7,6 +7,7 @@ import os
 import urllib.error
 import urllib.parse
 import urllib.request
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -33,9 +34,15 @@ def api(path: str, *, token: str | None = None, method: str = "GET", body: Any =
             raw = response.read()
             return json.loads(raw) if raw else None
     except urllib.error.HTTPError as error:
+        try:
+            error_data = json.loads(error.read())
+        except (ValueError, OSError):
+            error_data = {}
+        if not isinstance(error_data, dict):
+            error_data = {}
         if error.code in {401, 403, 404}:
             raise HTTPException(404, "Record not found") from None
-        if error.code == 409:
+        if error.code == 409 or (error.code == 400 and (error_data.get("code") in {"40001", "23505"} or (error_data.get("code") == "P0001" and error_data.get("message") in {"stale offer", "lot unavailable"}))):
             raise HTTPException(409, "This record changed. Refresh and try again.") from None
         raise HTTPException(503, "Marketplace service unavailable") from None
     except (OSError, ValueError):
@@ -50,6 +57,10 @@ async def current_user(request: Request) -> tuple[dict[str, Any], str]:
     user, token = session.get("user"), session.get("access_token")
     if not isinstance(user, dict) or not isinstance(token, str):
         raise HTTPException(401, "Sign in to continue")
+    rotated = session.get("refresh_token")
+    if not isinstance(rotated, str) or not rotated:
+        raise HTTPException(503, "Account service unavailable")
+    request.state.market_refresh_token = rotated
     return user, token
 
 
@@ -113,16 +124,25 @@ async def save_profile(request: Request):
 async def publish_lot(request: Request):
     data = await guard(request)
     user, token = await current_user(request)
+    photos = data.get("photos", [])
+    allowed_prefix = URL.rstrip("/") + "/storage/v1/object/public/"
+    if not isinstance(photos, list) or len(photos) > 3 or any(not URL.startswith("https://") or not isinstance(p, str) or len(p) > 2048 or not p.startswith(allowed_prefix) or any(c in p for c in "\r\n\\?#") for p in photos):
+        raise HTTPException(400, "Invalid photos")
+    if not isinstance(data.get("published", False), bool):
+        raise HTTPException(400, "Invalid published status")
     payload = {
         "seller_id": user["id"], "variety": text(data.get("variety"), 80, "variety"), "quantity_kg": number(data.get("quantityKg"), 0.001, 1_000_000, "quantity"),
         "district": text(data.get("district"), 60, "district"), "upazila": str(data.get("upazila") or "").strip()[:60] or None,
         "ready_date": data.get("readyDate"), "purpose": str(data.get("purpose") or "").strip()[:40] or None,
-        "notes": str(data.get("notes") or "").strip()[:300] or None, "photos": data.get("photos") if isinstance(data.get("photos"), list) else [],
+        "notes": str(data.get("notes") or "").strip()[:300] or None, "photos": photos,
         "asking_price": number(data["askingPrice"], 0, 100000, "asking price") if data.get("askingPrice") not in (None, "") else None,
         "published": bool(data.get("published")),
     }
-    if not isinstance(payload["ready_date"], str) or len(payload["ready_date"]) != 10:
-        raise HTTPException(400, "Invalid ready date")
+    try:
+        if not isinstance(payload["ready_date"], str) or date.fromisoformat(payload["ready_date"]).isoformat() != payload["ready_date"]:
+            raise ValueError()
+    except ValueError:
+        raise HTTPException(400, "Invalid ready date") from None
     return await asyncio.to_thread(api, "market_lots", token=token, method="POST", body=payload)
 
 

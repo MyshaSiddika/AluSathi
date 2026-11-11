@@ -9,6 +9,7 @@ import { scanPotatoVarietyOffline } from "@/lib/variety-offline-model";
 import { PHOTO_DEMO_ADVICE, PHOTO_DEMO_CASES } from "@/lib/photo-demo-cases";
 import { readFieldActions, saveFieldActions, type FieldAction } from "@/lib/field-actions";
 import { localToday } from "@/lib/local-date";
+import { photoThumbnail } from "@/lib/photo-thumbnail";
 
 const VARIETY_NAMES = {
   diamant: "Diamant · BARI Alu-7",
@@ -21,7 +22,7 @@ const VARIETY_SCORE = 0.7;
 const AGE_SIGNS = ["none", "sprouts", "shriveled", "both"] as const;
 
 type VarietyResult = Awaited<ReturnType<typeof scanPotatoVarietyOffline>>;
-type Reading = { presence: number; variety?: VarietyResult; condition?: TuberModelResult };
+type Reading = { presence: number; variety?: VarietyResult; condition?: TuberModelResult; thumbnail?: string };
 type Status = "empty" | "invalid" | "ready-more" | "not-potato" | "needs-potato" | "needs-detail" | "unclear" | "error" | "done";
 
 function storageAgeReading(signs: typeof AGE_SIGNS[number], bn: boolean) {
@@ -83,7 +84,7 @@ export default function TuberScan({ onLeafPhoto }: {
   const text = statusText(status, bn, finalCondition);
   const demo = PHOTO_DEMO_CASES.find(item => item.id === demoId);
 
-  function savePhotoAdvice(entry: Pick<FieldAction, "status" | "details" | "variety" | "cropAge" | "cause" | "advice" | "title" | "body" | "image">) {
+  function savePhotoAdvice(entry: Pick<FieldAction, "status" | "details" | "variety" | "cropAge" | "cause" | "advice" | "title" | "body" | "image" | "tuberModelResult">) {
     const date = localToday();
     const action: FieldAction = {
       id: `photo-${crypto.randomUUID()}`, date, district: localStorage.getItem("alusathi-district") || "Rangpur",
@@ -150,7 +151,10 @@ export default function TuberScan({ onLeafPhoto }: {
         const [condition, varietyResult] = await Promise.allSettled([
           scanPotatoTuberOffline(file), scanPotatoVarietyOffline(file, presence),
         ]);
-        if (condition.status === "fulfilled") reading.condition = condition.value;
+        if (condition.status === "fulfilled") {
+          reading.condition = condition.value;
+          if (reading.condition) reading.thumbnail = await photoThumbnail(file).catch(() => undefined);
+        }
         if (varietyResult.status === "fulfilled") reading.variety = varietyResult.value;
       }
       const next = [...previous, reading];
@@ -175,6 +179,8 @@ export default function TuberScan({ onLeafPhoto }: {
             ? (bn ? "আলুর গায়ে বড় দৃশ্যমান দাগ, নরম বা ভেজা অংশ ধরা পড়েনি।" : "No major visible mark, soft area or wet area was detected.")
             : (bn ? "আলুর গায়ে দৃশ্যমান ক্ষত বা দাগ মিলেছে; এটি আঘাত, পচন বা অন্য সমস্যার লক্ষণ হতে পারে।" : "A visible mark or damaged area was found; it may come from injury, rot or another problem."),
           advice: surface.label === "healthy" ? "healthy" : "observe",
+          image: next.find(item => item.condition === surface)?.thumbnail,
+          tuberModelResult: surface.label === "healthy" ? "healthy" : "defective",
         });
         return;
       }
