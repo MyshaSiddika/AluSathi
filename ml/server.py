@@ -93,6 +93,9 @@ def load_model() -> None:
 @app.middleware("http")
 async def security_headers(request, call_next):
     response = await call_next(request)
+    refresh = getattr(request.state, "market_refresh_token", None)
+    if refresh:
+        response.set_cookie("alusathi_refresh", refresh, httponly=True, secure=request.url.scheme == "https" or request.headers.get("origin", "").startswith("https://"), samesite="strict", path="/api", max_age=30*86400)
     response.headers.update({
         "Cache-Control": "no-store",
         "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'; base-uri 'none'",

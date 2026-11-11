@@ -31,5 +31,10 @@ class AuthSafety(unittest.TestCase):
     def test_weak_password_rejected(self):
         with self.assertRaises(HTTPException) as caught: asyncio.run(auth_action('signup',request(b'{"email":"x@example.invalid","password":"123"}')))
         self.assertEqual(caught.exception.status_code,400)
+    def test_signup_confirmation_returns_to_account(self):
+        body = b'{"email":"x@example.invalid","password":"password123","name":"Farmer"}'
+        with patch('ml.auth.call', return_value={}) as send:
+            asyncio.run(auth_action('signup', request(body)))
+        self.assertIn('%2Faccount', send.call_args.args[0])
 
 if __name__=='__main__': unittest.main()

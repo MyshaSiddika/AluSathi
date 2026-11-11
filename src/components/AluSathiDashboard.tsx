@@ -15,6 +15,7 @@ import FarmerTools from "@/components/FarmerTools";
 import FarmerNavigation from "@/components/FarmerNavigation";
 import FarmerToday from "@/components/FarmerToday";
 import SeasonProgress from "@/components/SeasonProgress";
+import { photoThumbnail } from "@/lib/photo-thumbnail";
 import FarmerProfile from "@/components/FarmerProfile";
 import FarmerNotebook from "@/components/FarmerNotebook";
 import FarmerMarketPages from "@/components/FarmerMarketPages";
@@ -231,17 +232,6 @@ async function recordLeafPhoto(file: File, allowBlurry = false): Promise<Disease
     field_validated: false, needs_expert_review: true, probabilities: {}, next_steps: { bn: [], en: [] },
     model_scope: "Photo record and symptom triage; no disease classification", treatment_status: "Expert review before treatment",
   };
-}
-
-async function photoThumbnail(file: File): Promise<string> {
-  const bitmap = await createImageBitmap(file);
-  try {
-    const scale = Math.min(160 / bitmap.width, 120 / bitmap.height, 1);
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.max(1, Math.round(bitmap.width * scale)); canvas.height = Math.max(1, Math.round(bitmap.height * scale));
-    canvas.getContext("2d")?.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    return canvas.toDataURL("image/jpeg", .65);
-  } finally { bitmap.close(); }
 }
 
 function riskFromResults(results: DiseaseResult[], weather: WeatherData | null): Risk {

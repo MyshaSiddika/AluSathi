@@ -15,6 +15,7 @@
     { "source": "/farmer", "destination": "/index.html" },
     { "source": "/life-cycle", "destination": "/index.html" },
     { "source": "/selling-preparation", "destination": "/index.html" },
+    { "source": "/selling-preparation/details", "destination": "/index.html" },
     { "source": "/cold-storage", "destination": "/index.html" }
   ]
 }

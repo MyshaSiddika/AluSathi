@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, Droplets, Eye, Flower2, Leaf, PackageCheck, Sprout, Volume2 } from "lucide-react";
+import { Camera, Check, ChevronDown, Droplets, Eye, Flower2, Leaf, PackageCheck, Sparkles, Sprout, Volume2 } from "lucide-react";
 import "@/farmer-today.css";
 import type { WeatherData } from "@/lib/api";
 import { cropAge, cropGuidance, plantingAges, rangeGuidance, type PlantingAge } from "@/lib/crop-advice";
@@ -8,8 +8,9 @@ import { spreadOutlook } from "@/lib/farmer-tools";
 import { localToday } from "@/lib/local-date";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { readFieldActions, saveFieldActions, FIELD_ACTIONS_EVENT, type FieldAction } from "@/lib/field-actions";
-import { buildTodayTasks, photoContext, readTodayPlan, type PlanContext, type PlanTask } from "@/lib/today-plan";
+import { buildTodayTasks, recentPhoto, readTodayPlan, type PlanContext, type PlanTask } from "@/lib/today-plan";
 import TodayCare from "./TodayCare";
+import { PHOTO_DEMO_CASES } from "@/lib/photo-demo-cases";
 import TodayWeather from "./TodayWeather";
 import { readCareArea } from "@/lib/care-area";
 import { PROFILE_CHANGED } from "@/lib/farmer-profile";
@@ -17,12 +18,6 @@ import { PROFILE_CHANGED } from "@/lib/farmer-profile";
 type CheckinPreview = { createdAt: string; thumbnails: string[] };
 
 const ageIcons = { lt30: Sprout, "30to60": Leaf, "60to90": Flower2, gt90: PackageCheck };
-const taskStyles = [
-  { tone: "urgent", Icon: Leaf },
-  { tone: "info", Icon: Droplets },
-  { tone: "calm", Icon: Eye },
-] as const;
-
 function readActions(): FieldAction[] {
   return readFieldActions();
 }
@@ -35,7 +30,7 @@ function ageBand(age: number | null, range: PlantingAge | ""): PlantingAge | "" 
   return "gt90";
 }
 
-export default function FarmerToday({ weather, loading, district, districts, plantingDate, onPhoto }: {
+export default function FarmerToday({ weather, loading, district, districts, plantingDate }: {
   weather: WeatherData | null; loading: boolean; district: string; districts: Record<string, string>;
   plantingDate: string; onPhoto: () => void; lastCheckin?: CheckinPreview;
 }) {
@@ -49,6 +44,7 @@ export default function FarmerToday({ weather, loading, district, districts, pla
   const [actions, setActions] = useState(readActions);
   const [area, setArea] = useState(readCareArea);
   const [saveError, setSaveError] = useState("");
+  const [expanded, setExpanded] = useState<string | null>(null);
   const [online, setOnline] = useState(() => navigator.onLine);
   useEffect(() => {
     const refresh = () => { setActions(readActions()); setArea(readCareArea()); };
@@ -83,34 +79,52 @@ export default function FarmerToday({ weather, loading, district, districts, pla
   const number = (value: number) => value.toLocaleString(bn ? "bn-BD" : "en-GB", { maximumFractionDigits: 1 });
 
   const freshWeather = Boolean(weather?.observed_at && !weather.cached && Number.isFinite(Date.parse(weather.observed_at)) && Date.now() - Date.parse(weather.observed_at) < 6 * 3600_000);
-  const treatment = actions.find(item => (item.category === "fertilizer" || item.category === "spray") && item.status === "applied");
-  const candidate: PlanContext = { date: localToday(), district, band: currentBand, rain: freshWeather && Boolean(weather && (weather.rainfall > 0 || (weather.forecastRainMm ?? 0) > 0)), humid: Boolean(risk?.high), photo: photoContext(actions), lastTreatment: treatment ? `${treatment.date} · ${treatment.details || treatment.text}` : "" };
-  const [plan, setPlan] = useState(() => readTodayPlan(candidate));
-  const tasks = useMemo(() => buildTodayTasks(plan,bn), [plan,bn]);
+  const treatment = actions.find(item => item.district === district && item.date <= localToday() && (item.category === "fertilizer" || item.category === "spray") && item.status === "applied");
+  const candidate: PlanContext = { date: localToday(), district, band: currentBand, rain: freshWeather && Boolean(weather && (weather.rainfall > 0 || (weather.forecastRainMm ?? 0) > 0)), humid: freshWeather && Boolean(risk?.high), photo: recentPhoto(actions, district, localToday()), lastTreatment: treatment ? `${treatment.date} · ${treatment.details || treatment.text}` : "" };
+  const [previousPlan] = useState(() => readTodayPlan(candidate));
   const contextKey = JSON.stringify(candidate);
-  useEffect(() => {
-    const next = JSON.parse(contextKey) as PlanContext;
-    setPlan(next);
-    try { localStorage.setItem("alusathi-today-plan-v1", contextKey); }
-    catch { setSaveError(bn ? "তালিকা সেভ হয়নি। আবার চেষ্টা করুন।" : "Checklist could not be saved. Please retry."); }
-  }, [contextKey, bn]);
-  const actionKey = (task: PlanTask) => `today|${localToday()}|${district}|${task.id}|${task.id.startsWith("photo-") ? plan.photo?.id || "" : ""}`;
-  const completed = new Set(actions.filter(action => action.date === localToday() && action.kind === "task").map(action => action.id));
+  const actionKey = (task: PlanTask) => `today|${localToday()}|${district}|${task.id}|${task.id.startsWith("photo-") ? candidate.photo?.id || "" : ""}`;
+  const completedActions = actions.filter(action => action.date === localToday() && action.kind === "task" && action.id.startsWith(`today|${localToday()}|${district}|`));
+  const tasks = (() => {
+    const oldTasks = buildTodayTasks(previousPlan, bn);
+    const done = completedActions.filter(action => !candidate.photo || !action.id.split("|")[3]?.startsWith("photo-") || action.id.split("|")[4] === candidate.photo.id).slice(0, 3).map(action => {
+      const saved = action.planTask;
+      const valid = saved && [saved.id, saved.text, saved.why, saved.how].every(value => typeof value === "string");
+      return { ...valid ? saved : oldTasks.find(task => action.id.split("|")[3] === task.id) || { id: action.id.split("|")[3], text: action.text, why: bn ? "আগে শেষ করেছেন।" : "Previously completed.", how: bn ? "কাজটি খাতায় রাখা আছে।" : "This task is in Khata." }, key: action.id };
+    });
+    const current = buildTodayTasks(candidate, bn).map(task => ({ ...task, key: actionKey(task) }));
+    const result = current.slice(0, 3);
+    for (const item of done) {
+      const existing = result.findIndex(task => task.key === item.key);
+      if (existing >= 0) result[existing] = item;
+      else {
+        let replace = result.length - 1;
+        while (replace >= 0 && (done.some(saved => saved.key === result[replace].key) || result[replace].id.startsWith("photo-"))) replace--;
+        if (replace >= 0) result[replace] = item;
+      }
+    }
+    return result;
+  })();
+  const completed = new Set(completedActions.map(action => action.id));
   const saveActions = (next: FieldAction[]) => {
-    try { localStorage.setItem("alusathi-today-plan-v1",JSON.stringify(plan)); saveFieldActions(next); setActions(next); setSaveError(""); }
+    try { localStorage.setItem("alusathi-today-plan-v1",contextKey); saveFieldActions(next); setActions(next); setSaveError(""); }
     catch { setSaveError(bn ? "রাখা যায়নি। আবার চেষ্টা করুন।" : "Could not save. Please retry."); }
   };
-  const toggleTask = (task: PlanTask) => {
-    const key = actionKey(task);
-    if (completed.has(key)) saveActions(actions.filter(action => action.id !== key));
-    else saveActions([{ id: key, date: localToday(), text: task.text, district, kind: "task" as const }, ...actions].slice(0, 100));
+  const toggleTask = (task: PlanTask & { key: string }) => {
+    const current = readActions();
+    if (completed.has(task.key)) saveActions(current.filter(action => action.id !== task.key));
+    else saveActions([{ id: task.key, date: localToday(), text: task.text, district, kind: "task" as const, planTask: { id: task.id, text: task.text, why: task.why, how: task.how } }, ...current.filter(action => action.id !== task.key)].slice(0, 100));
   };
   const choose = (value: PlantingAge) => {
     setRange(value); setRecorded(localToday());
     localStorage.setItem("alusathi-planting-age", value); localStorage.setItem("alusathi-planting-age-recorded", localToday());
   };
 
-  const completedCount = tasks.filter(item => completed.has(actionKey(item))).length;
+  const completedCount = tasks.filter(item => completed.has(item.key)).length;
+  const photo = candidate.photo;
+  const sample = photo?.sample ? PHOTO_DEMO_CASES[photo.sample - 1] : undefined;
+  const observation = sample?.[language];
+  const photoTask = buildTodayTasks(candidate, bn).find(item => item.id.startsWith("photo-"));
   const dateLabel = new Intl.DateTimeFormat(bn ? "bn-BD" : "en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "Asia/Dhaka" }).format(new Date());
 
   return <><div className="farmer-field-scene" aria-hidden="true">
@@ -128,13 +142,26 @@ export default function FarmerToday({ weather, loading, district, districts, pla
     </div>
     </div>
 
+    <section className="today-ai-insight" aria-labelledby="today-observation-title">
+      <h2 id="today-observation-title" className="today-observation-heading"><Sparkles size={22} aria-hidden="true" />{bn ? "আলুসাথী AI পর্যবেক্ষণ" : "AluSathi AI observation"}</h2>
+      {photo ? <div className="today-observation-content">
+        {sample?.image || photo.thumbnail ? <img src={sample?.image || photo.thumbnail} alt={bn ? "নির্বাচিত আলুর ছবি" : "Selected potato photo"} /> : <Camera size={28} aria-label={bn ? "ছবির থাম্বনেইল নেই" : "No thumbnail available"} />}
+        <div><strong>{photo.modelResult ? (bn ? "ছবির মডেলের ফল" : "Photo model result") : (bn ? "ছবির নোট" : "Photo notes")}</strong><p>{observation ? `${observation.title}। ${observation.body}` : photo.body || photo.title}</p></div>
+        <div><strong>{bn ? "যা করবেন" : "What to do"}</strong><p>{photoTask?.text}</p></div>
+      </div> : <p>{bn ? "আলুর ছবি বেছে নিলে এখানে ফল ও করণীয় দেখাবে।" : "Select a potato photo to see findings and suggested actions here."}</p>}
+    </section>
     <div className="today-layout"><div className="today-primary-column">
       <div className="farmer-day-card">
-        <div className="today-checklist-heading"><h2>{bn ? "আজকের চেকলিস্ট" : "Today's checklist"}</h2><span className="today-completion" role="status">{number(completedCount)} / {number(tasks.length)} {bn ? "শেষ" : "done"}</span></div>
-        <div className="today-photo-basis"><p>{plan.photo ? (bn ? "আপনার দেওয়া ছবির ভিত্তিতে আজকের কাজ।" : "Today's tasks are based on your photo.") : (bn ? "ছবি দিলে সেই অনুযায়ী কাজ দেখাবে।" : "Add a photo to see tasks based on it.")}</p>{plan.photo && <span key={contextKey} className="today-plan-ready" role="status"><Check size={16} aria-hidden="true"/>{bn ? "তালিকা তৈরি" : "Checklist ready"}</span>}</div>
+        <div className="today-checklist-heading"><div><span className="section-kicker">{bn ? "আপনার জমির জন্য" : "For your field"}</span><h2>{bn ? "আজ যে কাজগুলো দেখবেন" : "Your tasks today"}</h2></div><span className="today-completion" role="status">{number(completedCount)} / {number(tasks.length)} {bn ? "শেষ" : "done"}</span></div>
+        <div className="today-photo-basis"><p>{bn ? "শেষ হলে টিক দিন। বিস্তারিত দেখতে নিচে চাপুন।" : "Tick each task when done. Open details to learn more."}</p></div>
         {tasks.length > 0 && <progress className="today-progress" value={completedCount} max={tasks.length} aria-label={bn ? "আজকের কাজের অগ্রগতি" : "Today's task progress"} />}
-        {!hasPlanting && <p className="today-context-note">{bn ? "গাছের বয়স জানালে বয়স অনুযায়ী কাজ দেখাতে পারব।" : "Add the crop's age to see checks for its stage."}</p>}
-        <div className="today-task-list">{tasks.map((item, index) => { const done = completed.has(actionKey(item)); const { Icon } = taskStyles[index % taskStyles.length]; return <div className={`today-task ${done ? "done" : ""}`} key={item.id}><label><input type="checkbox" checked={done} onChange={() => toggleTask(item)} /><span className="task-check" aria-hidden="true">{done ? <Check size={20} /> : <Icon size={21} />}</span><strong>{item.text}</strong></label><details><summary>{bn ? "কেন?" : "Why?"}</summary><p>{item.why}</p></details></div>; })}</div>
+        <div className="today-task-list">{tasks.map((item, index) => { const done = completed.has(item.key); const Icon = item.id.startsWith("photo-") ? Eye : ["drainage", "humidity-check", "soil-observe", "soil-check"].includes(item.id) ? Droplets : item.id === "treatment-review" ? Sprout : Leaf; const open = expanded === item.key; const source = item.id.startsWith("photo-") ? (bn ? "ছবির তথ্য" : "Photo") : item.id === "treatment-review" ? (bn ? "খাতার তথ্য" : "Field records") : ["early-growth", "growing-leaves", "soil-check", "harvest-check"].includes(item.id) ? (bn ? "গাছের বয়স" : "Crop age") : ["drainage", "humidity-check"].includes(item.id) ? (bn ? "আবহাওয়া" : "Weather") : (bn ? "জমির যত্ন" : "Field care"); return <article className={`today-task task-tone-${index + 1} ${done ? "done" : ""}`} key={item.key}>
+          <div className="today-task-top"><span className="today-task-icon"><Icon size={23} aria-hidden="true" /></span><span className="today-task-source">{item.id.startsWith("photo-") ? (bn ? "ছবিভিত্তিক কাজ" : "Photo-based task") : (bn ? "নিয়মিত কাজ" : "Routine task")}</span></div>
+          <div className="today-task-copy"><h3>{item.text}</h3><p className="today-task-instruction">{item.how}</p></div>
+          <label className="today-task-check"><input type="checkbox" aria-label={`${item.text} — ${bn ? "কাজ শেষ" : "Task complete"}`} checked={done} onChange={() => toggleTask(item)} /><span className="task-check" aria-hidden="true"><Check size={18} /></span><span>{done ? (bn ? "শেষ হয়েছে" : "Done") : (bn ? "শেষ হলে টিক দিন" : "Mark done")}</span></label>
+          <button type="button" className="today-task-toggle" aria-expanded={open} aria-controls={`task-details-${index}`} onClick={() => setExpanded(open ? null : item.key)}>{open ? (bn ? "বন্ধ করুন" : "Close details") : (bn ? "বিস্তারিত দেখুন" : "See details")} <ChevronDown size={17} aria-hidden="true" /></button>
+          <div id={`task-details-${index}`} className="today-task-details" hidden={!open}><p><b>{bn ? "কীভাবে করবেন" : "How to do it"}</b><br />{item.how}</p><p><b>{bn ? "কেন দেখাচ্ছে" : "Why this task"}</b><br />{item.why}</p>{item.key === actionKey(item) && ((item.id.startsWith("photo-") && candidate.photo?.title) || (item.id === "treatment-review" && candidate.lastTreatment) || (["early-growth", "growing-leaves", "soil-check", "harvest-check"].includes(item.id) && stage)) && <p><b>{source}</b><br />{item.id.startsWith("photo-") ? candidate.photo?.title : item.id === "treatment-review" ? candidate.lastTreatment : stage}</p>}</div>
+        </article>; })}</div>
         {tasks.length === 0 && <p className="today-no-tasks">{bn ? "এখন কী কাজ করবেন, তা বোঝা যাচ্ছে না। গাছের বয়স লিখুন বা জমির নতুন খবর যোগ করুন।" : "There is not enough context for a task yet. Add crop age or a new observation."}</p>}
         {tasks.length > 0 && completedCount === tasks.length && <p className="today-all-done" role="status"><Check size={18} />{bn ? "আজকের তালিকার সব কাজ শেষ।" : "All tasks on today's list are complete."}</p>}
         {saveError && <p role="alert">{saveError}</p>}
@@ -142,7 +169,7 @@ export default function FarmerToday({ weather, loading, district, districts, pla
     </div>
 
     <TodayWeather weather={weather} loading={loading} district={bn ? districts[district] || district : district} bn={bn} fresh={freshWeather} online={online}/></div>
-    <TodayCare bn={bn} area={area} actions={actions} cropAgeDays={age} onPhoto={onPhoto} />
+    <TodayCare bn={bn} district={district} actions={actions} photo={candidate.photo} />
     <div className="today-next"><Link to="/farmer#diary">{bn ? "খাতায় যান →" : "Go to Khata →"}</Link></div>
   </section></>;
 }

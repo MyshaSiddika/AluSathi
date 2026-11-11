@@ -90,7 +90,7 @@ async def auth_action(action: str, request: Request):
     if action == "signup":
         name = data.get("name", "")
         if not isinstance(name, str) or not 1 <= len(name.strip()) <= 80: raise HTTPException(400, "Invalid name")
-        await asyncio.to_thread(call, "signup?redirect_to=" + urllib.parse.quote(request.headers["origin"] + "/auth", safe=""), {"email": email, "password": password, "data": {"farmer_name": name.strip()}})
+        await asyncio.to_thread(call, "signup?redirect_to=" + urllib.parse.quote(request.headers["origin"] + "/account", safe=""), {"email": email, "password": password, "data": {"farmer_name": name.strip()}})
         return {"sent": True}
     if action == "recover":
         await asyncio.to_thread(call, "recover?redirect_to=" + urllib.parse.quote(request.headers["origin"] + "/account", safe=""), {"email": email}); return {"sent": True}
