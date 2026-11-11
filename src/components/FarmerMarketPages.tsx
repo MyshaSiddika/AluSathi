@@ -4,6 +4,7 @@ import { ArrowRight, Check, ImagePlus, MapPin, MessageCircle, Package, Phone, Us
 import { useLanguage } from "@/contexts/LanguageContext";
 import { DISTRICT_NAMES } from "@/lib/district-names";
 import { notebookToday } from "@/lib/notebook";
+import { demoBuyerInterests } from "@/lib/demo-buyer-interests";
 import { buyerInterests, draftKey, formDraftKey, marketEvent, ownLots, providedPhotos, publishLot, readObject, salePhoto, savedPhotos, text, type BuyerInterest, type SaleLot, type ListingDetails } from "@/lib/farmer-market";
 import "@/farmer-market.css";
 import { record } from "@/lib/farmer-market";
@@ -26,7 +27,7 @@ export default function FarmerMarketPages({view, district}: {view: "market" | "i
   const [lots,setLots] = useState(ownLots), [interests,setInterests] = useState(buyerInterests);
   const [saved,setSaved] = useState<SaleLot | null>(null), [error,setError] = useState("");
   const [busy,setBusy] = useState(false), lock = useRef(false);
-  const [filter,setFilter] = useState("area"), [contact,setContact] = useState<string | null>(null);
+  const [filter,setFilter] = useState("all"), [contact,setContact] = useState<string | null>(null);
   const [showExamples,setShowExamples] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null), success = useRef<HTMLDivElement>(null);
   const profile = readObject("alusathi-farmer-profile-v1");
@@ -65,12 +66,8 @@ export default function FarmerMarketPages({view, district}: {view: "market" | "i
   }
   const current = interests.filter(item => !/^\d{4}-\d{2}-\d{2}$/.test(item.expires) || item.expires >= notebookToday());
   const exampleMode = showExamples || !current.length;
-  const examples: BuyerInterest[] = [
-    {id:"example-rahim",buyer:t("রহিম ট্রেডার্স", "Rahim Traders"),quantity:200,lot:t("আলু", "Potatoes"),notes:t("এই সপ্তাহে আলু নিতে চান। আকার ও তোলার সময় জানতে কথা বলবেন।", "Interested this week. Would discuss potato size and collection timing.")},
-    {id:"example-karim",buyer:t("করিম আলু ভান্ডার", "Karim Potato Store"),quantity:500,lot:t("আলু", "Potatoes"),notes:t("একই আকারের আলু খুঁজছেন। ছবি দেখে বিস্তারিত জানতে চান।", "Looking for similarly sized potatoes and more details after viewing photos.")},
-    {id:"example-nahar",buyer:t("নাহার স্টোর", "Nahar Store"),quantity:1000,lot:t("আলু", "Potatoes"),notes:t("পরের সপ্তাহে আলু দরকার। দাম ও নেওয়ার ব্যবস্থা ফোনে আলোচনা করবেন।", "Needs potatoes next week. Would discuss price and pickup by phone.")},
-  ].map(item=>({...item,district:area,price:22,phone:"",whatsapp:"",expires:"",contactOnly:true}));
-  const displayed = exampleMode ? examples : filter === "area" ? current.filter(item => item.district === area) : current;
+  const examples: BuyerInterest[] = demoBuyerInterests.map(item => ({id:item.id,buyer:bn ? item.nameBn : item.name,quantity:item.quantity,lot:bn ? "ডায়মন্ড" : item.variety,notes:bn ? item.noteBn : item.note,district:item.district,price:item.price,phone:"",whatsapp:"",expires:""}));
+  const displayed = (exampleMode ? examples : current).filter(item => filter === "all" || item.district === area);
   const preview = (lot:SaleLot) => `/marketplace/buyer.html?lot=${encodeURIComponent(lot.id)}&preview=farmer#buyer-detail`;
   if (view === "my-listings") return <section className="farmer-market-page app-shell"><h1>{t("আমার তালিকা", "My listings")}</h1>{lots.length ? lots.map(lot=><article className="fm-form" key={lot.id}><h2>{lot.variety}</h2><p>{n(lot.quantityKg)} {t("কেজি", "kg")} · {money(lot.askingPriceKg)} / {t("কেজি", "kg")}</p><p>{lot.upazila}, {bn ? DISTRICT_NAMES[lot.district] || lot.district : lot.district}</p><button type="button" onClick={()=>{updateForm({editingId:lot.id,quantity:String(lot.quantityKg),price:String(lot.askingPriceKg),photos:lot.photos,details:{variety:lot.variety,notes:text(lot.notes,300),harvestDate:text(lot.harvestDate,10),storageDescription:text(lot.storageDescription,200)}});window.location.hash="market";}}>{t("এডিট করুন", "Edit")}</button> <a href={preview(lot)}>{t("তালিকা দেখুন", "View listing")}</a></article>) : <p>{t("এখনো কোনো তালিকা নেই।", "No listings yet.")}</p>}<Link to="/farmer#market">{t("আলু বাজারে দিন", "Add a listing")}</Link></section>;
   return <section className="farmer-market-page app-shell" aria-labelledby="farmer-market-title">
