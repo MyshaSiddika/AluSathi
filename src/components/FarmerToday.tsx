@@ -168,7 +168,7 @@ export default function FarmerToday({ weather, loading, district, districts, pla
       </div>
     </div>
 
-    <TodayWeather weather={weather} loading={loading} district={bn ? districts[district] || district : district} bn={bn} fresh={freshWeather} online={online}/></div>
+    <TodayWeather weather={weather} loading={loading} district={bn ? districts[district] || district : district} bn={bn} online={online}/></div>
     <TodayCare bn={bn} district={district} actions={actions} photo={candidate.photo} />
     <div className="today-next"><Link to="/farmer#diary">{bn ? "খাতায় যান →" : "Go to Khata →"}</Link></div>
   </section></>;

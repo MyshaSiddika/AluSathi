@@ -136,10 +136,6 @@ export default function PublicLanding() {
                 <ArrowRight size={19} />
               </a>
             </div>
-            <section className="farmer-selling-link" aria-label={bn ? "আলু বিক্রি করুন" : "Sell potatoes"}>
-              <p>{bn ? "আলু বিক্রি করতে চান?" : "Ready to sell your potatoes?"}</p>
-              <Link to="/farmer#market" onClick={() => setDemo(true)}>{bn ? "আলু বাজারে দিন" : "Showcase your potatoes"}<ArrowRight size={17} /></Link>
-            </section>
           </div>
           <div className="home-growth-panel">
             <p className="home-growth-caption"><Sprout size={17} aria-hidden="true" />{bn ? "বীজ থেকে নতুন আলু" : "FROM SEED TO NEW POTATOES"}</p>

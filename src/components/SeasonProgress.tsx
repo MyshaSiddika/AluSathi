@@ -30,9 +30,21 @@ const milestones = [
 const upcoming = [
   { start: 15, end: 30, bn: "আগাছা আছে কি না ও গাছ কেমন বাড়ছে দেখুন", en: "Check for weeds and watch plant growth" },
   { start: 30, end: 35, bn: "গোড়ায় মাটি দেওয়ার সময় মিলিয়ে নিন", en: "Check when to earth up the plants", note: ["মাটি দিয়ে আলু ঢেকে রাখলে সবুজ হওয়ার ঝুঁকি কমে।", "Covering tubers with soil helps prevent greening."] },
+  { start: 35, end: 48, bn: "পাতায় নতুন দাগ আর গোড়ায় মাটি সরে গেছে কি না দেখুন", en: "Check for new leaf spots and soil washed away from the plant bases" },
   { start: 48, end: 63, bn: "মাটি দেখে সেচ লাগবে কি না বুঝে নিন", en: "Check soil moisture to see whether irrigation is needed" },
+  { start: 64, end: 70, bn: "গাছের অবস্থা দেখে আলু তোলার প্রস্তুতি নিন", en: "Check plant condition and start preparing for harvest" },
   { start: 71, end: 90, bn: "আলু তোলার সময় হয়েছে কি না দেখুন", en: "Check whether the crop is ready to harvest" },
 ] as const;
+
+const preparationTips = [
+  [["কয়েক সারিতে অঙ্কুর উঠেছে কি না দেখুন।", "Check for emerging shoots in several rows."], ["বৃষ্টির পর কোথায় পানি দাঁড়ায়, দেখে রাখুন।", "Note where water pools after rain."]],
+  [["আগাছা বেশি কোথায়, দেখে রাখুন।", "Note where weeds are most concentrated."], ["কয়েক সারির গাছের বৃদ্ধি মিলিয়ে দেখুন।", "Compare plant growth across several rows."]],
+  [["আলু মাটির ওপর বেরিয়ে আছে কি না দেখুন।", "Look for tubers exposed above the soil."], ["পাতার দুই পাশে নতুন দাগ আছে কি না দেখুন।", "Check both sides of leaves for new spots."]],
+  [["সেচের আগে কয়েক জায়গায় মাটির ভেজাভাব দেখুন।", "Check soil moisture in several spots before irrigating."], ["বৃষ্টি হলে পানি বের হওয়ার নালাগুলো দেখে রাখুন।", "After rain, check the drainage channels."]],
+  [["আলু তোলার আগে জাত ও গাছের অবস্থা মিলিয়ে নিন।", "Check variety and plant condition before deciding when to harvest."], ["তোলার আগে শুকনো বস্তা ও ছায়ায় বাছাইয়ের জায়গা তৈরি রাখুন।", "Prepare dry sacks and a shaded sorting area before harvest."]],
+] as const;
+
+const tipLabels = [["অঙ্কুর ও পানি", "Shoots & drainage"], ["আগাছা ও বৃদ্ধি", "Weeds & growth"], ["গোড়ার মাটি ও পাতা", "Soil cover & leaves"], ["সেচের আগে মাটি", "Soil before watering"], ["তোলার প্রস্তুতি", "Harvest prep"]] as const;
 
 function readSeasonArea() {
   const area = readCareArea();
@@ -73,17 +85,17 @@ export default function SeasonProgress({ bn, district }: { bn: boolean; district
     day.setDate(planting.getDate() + number - 1);
     const date = localToday(day);
     const records = date <= today ? actions.filter(item => item.date === date && (item.district === district || !item.district) && (item.kind === "task" || item.category === "fertilizer" && item.status === "applied")) : [];
-    const guidance = upcoming.filter(item => item.start === number);
-    return { number, day, date, records, guidance };
+    return { number, day, date, records };
   });
   const activeDay = days[preview - firstDay];
   const isToday = preview === actual;
+  const plannedWork = upcoming.filter(item => preview >= item.start && preview <= item.end).pop();
 
   return <div className="app-shell season-progress">
     <div className="season-main">
     <section className="season-card season-journey" aria-labelledby="season-title">
       <div className="season-journey-heading">
-        <div><h1 id="season-title">{t("আলুর ৯০ দিনের যাত্রা", "The 90-day potato journey")}</h1><p>{t("আপনার মৌসুমটি ঘুরে দেখুন", "Explore your growing season")}</p></div>
+        <div><h1 id="season-title">{t("আলু চাষের ৯০ দিন", "90 days of growing potatoes")}</h1><p>{t("আপনার মৌসুমটি ঘুরে দেখুন", "Explore your growing season")}</p></div>
         <span>{areaLabel}</span>
       </div>
       <div className="season-actual">
@@ -133,7 +145,9 @@ export default function SeasonProgress({ bn, district }: { bn: boolean; district
           <button type="button" onClick={() => setSelected(90)}>{t("দিন ৯০", "Day 90")} ↗</button>
         </div>
       </header>
-      <ul className="season-calendar-grid" key={week}>{days.map(({ number, day, date, records, guidance }) => (
+      <ul className="season-calendar-grid" key={week}>{days.map(({ number, day, date, records }) => {
+        const tip = tipLabels[milestones.findIndex(item => number >= item.start && number <= item.end)];
+        return (
         <li key={date}>
           <button type="button" data-day={number} disabled={number < 1 || number > 90} aria-current={number === actual ? "date" : undefined} aria-pressed={number === preview} aria-controls="season-day-details" onClick={() => setSelected(number)}>
             <span className="season-calendar-weekday">{day.toLocaleDateString(bn ? "bn-BD" : "en-GB", { weekday: "short" })}</span>
@@ -141,18 +155,22 @@ export default function SeasonProgress({ bn, district }: { bn: boolean; district
             {number >= 1 && number <= 90 && <small>{number === actual ? t("আজ · ", "Today · ") : ""}{t(`দিন ${fmt(number)}`, `Day ${fmt(number)}`)}</small>}
             {records.length > 0 && <span className="season-calendar-event recorded"><CircleCheck size={14} role="img" aria-label={t("কাজ শেষ", "Completed")} /> {t("খাতায় আছে", "In Khata")} · {fmt(records.length)}</span>}
             {number === actual && <span className="season-calendar-event">{t("আজকের কাজ", "Today’s work")}</span>}
-            {guidance.map(item => <span className="season-calendar-event" key={item.start}>{bn ? item.bn : item.en}</span>)}
+            {number > actual && tip && <span className="season-calendar-event">{tip[bn ? 0 : 1]}</span>}
           </button>
         </li>
-      ))}</ul>
+      );})}</ul>
       <div id="season-day-details" className="season-day-details" aria-live="polite">
         <span className="season-calendar-phase"><StageIcon size={16} aria-hidden="true" />{bn ? stage.bn : stage.en}</span>
         <h3>{t(`দিন ${fmt(preview)}`, `Day ${fmt(preview)}`)} · {activeDay.day.toLocaleDateString(bn ? "bn-BD" : "en-GB", { weekday: "long", day: "numeric", month: "short" })}</h3>
         {isToday && <p>{cropGuidance(actual, null, bn).reminders[0]}</p>}
+        {isToday && <a href="/farmer">{t("আজকের কাজ দেখুন", "See today’s tasks")} →</a>}
         {isToday && weeklySpray && <p>{t("শুধু মাঠে লেট ব্লাইট নিশ্চিত হলে তথ্যসূত্র:", "Reference only if field late blight is confirmed:")} {weeklySpray}.</p>}
-        {activeDay.guidance.map(item => <p key={item.start}>{bn ? item.bn : item.en}</p>)}
+        {preview > actual && <div><strong>{t("ভালো ফলনের জন্য করণীয়", "Prepare for a better harvest")}</strong><ul>
+          {plannedWork && <li>{bn ? plannedWork.bn : plannedWork.en}</li>}
+          {preparationTips[milestones.indexOf(stage)].slice(plannedWork ? 1 : 0).map(([b, e]) => <li key={e}>{t(b, e)}</li>)}
+        </ul></div>}
         {activeDay.records.map(record => <p className="season-record" key={record.id}>{t("খাতায় রাখা হয়েছে:", "Recorded in Khata:")} {record.text}</p>)}
-        {!isToday && !activeDay.records.length && !activeDay.guidance.length && <p>{t("এই দিনে আলাদা কাজ বা খাতার রেকর্ড নেই।", "No separate activity or Khata entry for this day.")}</p>}
+        {preview < actual && !activeDay.records.length && <p>{t("এই দিনে খাতায় কোনো কাজ রাখা হয়নি।", "No work was recorded in Khata for this day.")}</p>}
       </div>
     </section>
     <div className="season-reference-strip">

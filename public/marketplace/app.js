@@ -147,7 +147,7 @@ let profileOpen = false;
 let compareOpen = false;
 let comparisonQuantity = 200;
 let buyerPlan = readBuyerPlan();
-let view = hiddenInitialView ? "unavailable" : ["#transport", "#deals", "#list", "#passport", "#offers", "#storage"].includes(location.hash) && role === "farmer" ? location.hash.slice(1) : role === "buyer" && ["#transport", "#buyer-plan", "#notebook", "#needs", "#contacts"].includes(location.hash) ? location.hash.slice(1) : location.hash === "#profile" ? "profile" : location.hash === "#saved" ? "saved" : "home";
+let view = hiddenInitialView ? "unavailable" : ["#transport", "#deals", "#list", "#passport", "#offers", "#storage"].includes(location.hash) && role === "farmer" ? location.hash.slice(1) : role === "buyer" && ["#transport", "#buyer-plan", "#notebook", "#contacts"].includes(location.hash) ? location.hash.slice(1) : location.hash === "#profile" ? "profile" : location.hash === "#saved" ? "saved" : "home";
 let storageInputs = null;
 let quoteOpen = false;
 let selectedLotId = data.listings[0]?.id || "";
@@ -240,7 +240,7 @@ function save() {
 function setView(next) {
   if (role === 'buyer' && next === 'contacts') next = 'home';
   if (!SALES_FEATURE_ENABLED && legacyViews.includes(next)) next = "unavailable";
-  const allowed = role === "farmer" ? ["home", "list", "offers", "transport", "storage", "deals", "passport", "profile", "unavailable"] : ["home", "transport", "saved", "profile", "buyer-plan", "notebook", "needs", "contacts", "unavailable"];
+  const allowed = role === "farmer" ? ["home", "list", "offers", "transport", "storage", "deals", "passport", "profile", "unavailable"] : ["home", "transport", "saved", "profile", "buyer-plan", "notebook", "contacts", "unavailable"];
   if (!displayName || !allowed.includes(next)) return;
   if(role==='buyer' && next==='profile' && view!=='profile') buyerProfileDraft=null;
   view = next; reviewOfferId = ""; window.scrollTo({ top: 0, behavior: "smooth" }); render();
@@ -249,7 +249,7 @@ function setView(next) {
 window.addEventListener("hashchange", () => {
   const next = location.hash.slice(1) || "home";
   if (role === 'buyer' && next === 'contacts') { setView('home'); return; }
-  const allowed = role === "farmer" ? ["home", "list", "offers", "transport", "storage", "deals", "passport", "profile", "unavailable"] : ["home", "transport", "saved", "profile", "buyer-plan", "notebook", "needs", "contacts", "unavailable"];
+  const allowed = role === "farmer" ? ["home", "list", "offers", "transport", "storage", "deals", "passport", "profile", "unavailable"] : ["home", "transport", "saved", "profile", "buyer-plan", "notebook", "contacts", "unavailable"];
   if (!SALES_FEATURE_ENABLED && legacyViews.includes(next)) { view = "unavailable"; render(); return; }
   if (allowed.includes(next)) { view = next; render(); }
 });
@@ -288,7 +288,7 @@ function navButton(label, key, symbol) {
 
 function renderShell(content) {
   const farmerNav = [["/farmer", t("আজকের কাজ", "Today"), "leaf"], ["/farmer#photos", t("ছবি", "Photos"), "bag"], ["/selling-preparation", t("বিক্রির আগে", "Before selling"), "truck"], ["/farmer#diary", t("খাতা", "Notebook"), "clock"]].map(([href, label, symbol]) => `<a class="nav-link ${href === "/selling-preparation" ? "active" : ""}" href="${href}" ${href === "/selling-preparation" ? 'aria-current="page"' : ""}>${icon(symbol, 18)}<span>${label}</span></a>`).join("");
-  const buyerNav = [navButton(t("আলু খুঁজুন", "Find potatoes"), "home", "bag"), navButton(t("আমার চাহিদা", "My requirements"), "needs", "leaf"), navButton(t("খরচ ও লাভ", "Cost & profit"), "buyer-plan", "scale")].join("") + `<details class="buyer-tools-menu"><summary>${t('সরঞ্জাম','Tools')} ▾</summary><div>${navButton(t('খাতা','Notebook'),'notebook','clock')}${navButton(t('গাড়ির জন্য যোগাযোগ','Find a truck service'),'transport','truck')}</div></details>`;
+  const buyerNav = [navButton(t("আলু খুঁজুন", "Find potatoes"), "home", "bag"), navButton(t("খরচ ও লাভ", "Cost & profit"), "buyer-plan", "scale")].join("") + `<details class="buyer-tools-menu"><summary>${t('সরঞ্জাম','Tools')} ▾</summary><div>${navButton(t('খাতা','Notebook'),'notebook','clock')}${navButton(t('গাড়ির জন্য যোগাযোগ','Find a truck service'),'transport','truck')}</div></details>`;
   app.innerHTML = `
     <div class="site-wrap ${role}-portal">
       <header class="topbar">
@@ -298,7 +298,7 @@ function renderShell(content) {
       </header>
       ${notice ? `<div class="notice" role="status">${h(notice)}<button data-action="dismiss" aria-label="Dismiss">×</button></div>` : ""}
       <main id="main">${role === "farmer" ? `<div class="page-shell farmer-market-tools"><a href="/selling-preparation">← ${t("বিক্রির আগে", "Before selling")}</a>${["passport","list"].includes(view) ? "" : `<details><summary>${t("বিক্রির আরও সরঞ্জাম", "More selling tools")}</summary><div>${[navButton(t("আমার আলু", "My potatoes"), "home", "bag"), navButton(t("আলু যোগ করুন", "Add potatoes"), "list", "bag"), navButton(t("গাড়ি", "Transport"), "transport", "truck")].join("")}</div></details>`}</div>` : ""}${content}</main>
-      <footer class="footer"><div><strong>আলুসাথী বাজার</strong><p>${t("কৃষকের সিদ্ধান্ত, পরিষ্কার হিসাব।", "Your crop. Clear choices.")}</p></div><div><span>${t("শুধু এই ব্রাউজারে সেভ হয়", "Saved only in this browser")}</span><a class="main-return" href="${role === "farmer" ? "/farmer" : "/"}">${t("মূল অ্যাপে ফিরুন", "Back to AluSathi")}</a></div></footer>
+      <footer class="footer"><div><strong>আলুসাথী বাজার</strong><p>${t("কৃষকের সিদ্ধান্ত, পরিষ্কার হিসাব।", "Your crop. Clear choices.")}</p></div><div><span>${t("শুধু এই ব্রাউজারে সেভ হয়", "Saved only in this browser")}</span><a class="main-return" href="${"/"}">${t("মূল পাতায় ফিরুন", "Back to AluSathi")}</a></div></footer>
       <nav class="mobile-nav" aria-label="${t("মোবাইল মেনু", "Mobile navigation")}">${role === "farmer" ? farmerNav : buyerNav}</nav>
       ${reviewOfferId && SALES_FEATURE_ENABLED ? renderReview() : ""}${detailLotId ? renderBuyerLotDialog() : ""}${contactLotId ? renderFarmerContactDialog() : ""}${profileOpen ? renderProfileDrawer() : ""}
     </div>`;
@@ -663,10 +663,22 @@ function updateBuyerPlan(calculate = false) {
   const revenue = Math.round(kgToSell * price * 100) / 100;
   const profit = Math.round((revenue - cost) * 100) / 100;
   const breakEven = Math.ceil(cost * 100 / kgToSell - 1e-8) / 100;
+  const chartRow = (label, value, maximum, color) => `<div class="plan-chart-row"><div><span>${label}</span><b>${rate(value)}</b></div><div class="plan-chart-track" aria-hidden="true"><i style="width:${Math.abs(value) / maximum * 100}%;--plan-part:${color}"></i></div></div>`;
+  const priceScenarios = [0.9, 1, 1.1].map(factor => Math.round((revenue * factor - cost) * 100) / 100);
   result.innerHTML = `<section class="plan-chart-panel plan-simple-result">
     <h2 class="${profit < 0 ? "plan-loss" : "plan-profit"}">${profit === 0 ? t("লাভ–লোকসান নেই", "Break-even") : `${rate(Math.abs(profit))} ${profit < 0 ? t("আনুমানিক লোকসান", "estimated loss") : t("আনুমানিক লাভ", "estimated profit")}`}</h2>
     <p>${t("বিক্রির টাকা", "Sales revenue")}: ${rate(revenue)} · ${t("খরচ তুলতে প্রতি কেজি", "Break-even per kg")}: ${rate(breakEven)}</p>
-  </section>`;
+  </section>
+  <div class="plan-chart-grid">
+    <section class="plan-chart-panel"><h2>${t("খরচ ও বিক্রির টাকা", "Cost vs. sales revenue")}</h2>
+      ${chartRow(t("মোট খরচ", "Total cost"), cost, Math.max(cost, revenue, 1), "#467d9c")}
+      ${chartRow(t("বিক্রির টাকা", "Sales revenue"), revenue, Math.max(cost, revenue, 1), "#145744")}
+    </section>
+    <section class="plan-chart-panel"><h2>${t("বিক্রির দাম বদলালে", "If the resale price changes")}</h2>
+      <p>${t("পরিমাণ ও খরচ একই ধরে লাভ বা লোকসান।", "Profit or loss with the same quantity and cost.")}</p>
+      ${priceScenarios.map((value, i) => chartRow([t("দাম ১০% কম", "Price 10% lower"), t("আপনার দেওয়া দাম", "Your resale price"), t("দাম ১০% বেশি", "Price 10% higher")][i], value, Math.max(...priceScenarios.map(Math.abs), 1), value < 0 ? "#a44930" : "#145744")).join("")}
+    </section>
+  </div>`;
 }
 
 function closeCatalogueDialog() {
@@ -697,10 +709,10 @@ function cataloguePhotos(lot) {
     const offset = Math.floor((listingNumber - 1) / 5) % references.length;
     return [...new Set([...originals, ...references.slice(offset), ...references.slice(0, offset)])].slice(0, 3);
   }
-  if (!publicPreview || originals.length >= 3) return originals;
+  if ((!publicPreview && originals.length) || originals.length >= 3) return originals;
   const offset = Array.from(String(lot.id)).reduce((sum, char) => sum + char.codePointAt(0), 0) % publicReferencePhotos.length;
   const references = [...publicReferencePhotos.slice(offset), ...publicReferencePhotos.slice(0, offset)];
-  return [...originals, ...references].slice(0, 3);
+  return [...originals, ...references].slice(0, publicPreview ? 3 : 1);
 }
 
 const publicPhotoLabel = () => t("নমুনা লটের নাম, ছবি ও দর শুধু দেখার জন্য।", "Sample lots use illustrative names, photos and prices.");
@@ -1230,7 +1242,7 @@ document.addEventListener("change", event => {
 document.addEventListener("error", event => {
   const image = event.target;
   if (!(image instanceof HTMLImageElement) || !image.nextElementSibling?.matches(".public-photo-fallback")) return;
-  if (publicPreview && !publicReferencePhotos.includes(image.getAttribute("src"))) {
+  if (!publicReferencePhotos.includes(image.getAttribute("src"))) {
     image.src = publicReferencePhotos[0];
     return;
   }
