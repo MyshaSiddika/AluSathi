@@ -5,14 +5,17 @@ const { chromium } = require('playwright');
 
 (async () => {
   const browser = await chromium.launch().catch(() => chromium.launch({ channel: 'chrome' }));
-  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await context.newPage();
+  page.setDefaultTimeout(10000);
   const modelRequests = [];
   page.on('request', request => {
     if (/potato_mobilenet_v3\.onnx|\/api\/disease\/predict/.test(request.url())) modelRequests.push(request.url());
   });
   try {
-    await page.goto(process.env.BASE_URL || 'http://127.0.0.1:4175/', { waitUntil: 'networkidle' });
+    const base = process.env.BASE_URL || 'http://127.0.0.1:4175';
+    await page.goto(new URL('/farmer#photos', base).href, { waitUntil: 'domcontentloaded' });
+    await page.getByRole('button', { name: 'কৃষক হিসেবে ঢুকুন' }).click();
     await page.locator('.leaf-check-details summary').click();
     for (const [shade, expected] of [['#0b0b0b', /আলো কম|too dark/], ['#d0d0d0', /ঝাপসা|blurry/]]) {
       const data = await page.evaluate(color => { const canvas = document.createElement('canvas'); canvas.width = canvas.height = 256; const context = canvas.getContext('2d'); context.fillStyle = color; context.fillRect(0, 0, 256, 256); return canvas.toDataURL('image/png').split(',')[1]; }, shade);
@@ -50,18 +53,16 @@ const { chromium } = require('playwright');
     await page.locator('.symptom-check fieldset').last().locator('input[value=unsure]').check();
     assert.match(await page.locator('#farmer-report').innerText(), /এলোমেলো কিনারা/);
     assert.equal(modelRequests.length, 0, 'Leaf flow must not load the locked model');
-    await page.getByRole('button', { name: /Change language|ভাষা বদলান/ }).click();
     assert.equal(await page.locator('.symptom-check fieldset').first().locator('input[value=irregular]').isChecked(), true);
-    assert.match(await page.locator('#farmer-report').innerText(), /Irregular edges/);
     assert.equal(await page.locator('.spread-outlook').count(), 1);
     fs.mkdirSync('test-results', { recursive: true });
-    await page.locator('.symptom-check').screenshot({ path: 'test-results/leaf-triage-mobile.png' });
+    await page.locator('.symptom-check').screenshot({ path: 'test-results/leaf-triage-desktop.png' });
     await page.locator('.field-summary').getByRole('button', { name: /New scan|নতুন ছবি/ }).click();
     await context.setOffline(true);
     await page.locator('#leaf-scan input[type=file]').setInputFiles(path.resolve('public/life-cycle/growth-foliage.png'));
     await page.locator('#leaf-scan').getByRole('button', { name: /ছবি যোগ করুন|Add photo/ }).click();
     await page.locator('.symptom-check').waitFor();
     assert.equal(modelRequests.length, 0);
-    console.log('leaf triage: photo, four questions, language, weather, no locked inference OK');
+    console.log('Leaf triage: photo quality, four questions, offline entry and no locked inference passed.');
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

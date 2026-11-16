@@ -87,7 +87,7 @@ async function addThreePhotos(page) {
   await offlinePage.reload({ waitUntil: "domcontentloaded" });
   await offlinePage.waitForFunction(() => navigator.onLine === false);
   await addThreePhotos(offlinePage);
-  await offlinePage.getByText(/এই ফোনেই AI পরীক্ষা হয়েছে|AI checked this on your phone/).waitFor();
+  await offlinePage.getByText(/ছবিটি এই ডিভাইসেই পরীক্ষা করা হয়েছে|Photo checked on this device/).waitFor();
   const offlineEntries = await offlinePage.evaluate(() => JSON.parse(localStorage.getItem("alusathi-field-diary-v1") || "[]"));
   if (offlineEntries.length !== 1 || offlineEntries[0].inferenceMode !== "offline") throw new Error("Offline diagnosis was not recorded correctly");
   await offlinePage.screenshot({ path: "test-results/offline-diagnosis-mobile.png", fullPage: true });

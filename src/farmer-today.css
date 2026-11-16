@@ -10,7 +10,6 @@
   color: var(--home-ink);
 }
 .farmer-v2[data-view="today"] .farmer-today { max-width: 1440px; padding: 24px 28px 36px; }
-.farmer-v2[data-view="today"] .farmer-field-scene { height:150px; min-height:150px; }
 .farmer-v2[data-view="today"] .farmer-today .today-titlebar { display:flex; align-items:center; justify-content:space-between; gap:24px; margin-bottom:24px; }
 .today-titlebar .today-field-context { margin:0; padding:12px 16px; gap:12px 18px; max-width:58%; }
 .today-titlebar .today-field-context .today-crop-context { padding-left:18px; }
@@ -55,12 +54,10 @@
 .farmer-v2[data-view="today"] .farmer-today .task-check { display: grid; flex: 0 0 28px; width: 28px; height: 28px; border: 1.5px solid var(--home-muted); border-radius: 8px; background: #fff; color: #fff; }
 .farmer-v2[data-view="today"] .farmer-today .today-task:not(.done) .task-check svg { visibility: hidden; }
 .farmer-v2[data-view="today"] .farmer-today .today-task input:focus-visible + .task-check { outline: 3px solid var(--home-green); outline-offset: 4px; }
-.farmer-v2[data-view="today"] .farmer-today .today-task.done { background: color-mix(in srgb,var(--home-soft) 45%,white); }
 .farmer-v2[data-view="today"] .farmer-today .today-task.done .task-check { background: var(--home-green); border-color: var(--home-green); }
 .today-task-guidance { display:grid; gap:5px; padding-left:42px; color:var(--home-muted); font-size:15px; line-height:1.65; }
 .today-task-guidance b { color:var(--home-ink); }
-.farmer-v2[data-view="today"] .farmer-today .today-task.task-tone-2 { background:#fff6e5; }
-.farmer-v2[data-view="today"] .farmer-today .today-task.task-tone-3 { background:#eaf4f8; }
+.today-weather-reason { margin:4px 0 0; color:#68460e; font-size:14px; }
 .farmer-v2[data-view="today"] .farmer-today .today-task.done { border-color:var(--home-green); }
 .today-task-top { display:flex; align-items:center; gap:8px; }
 .today-task-icon { display:grid; place-items:center; flex:none; width:38px; height:38px; border-radius:11px; background:white; color:var(--home-green); }
@@ -292,6 +289,20 @@
 }
 .farmer-today .today-ai-insight { margin-bottom:22px; padding:20px; border:1px solid var(--home-line); border-radius:18px; background:var(--home-soft); }
 .today-ai-insight .today-observation-heading { gap:10px; margin:0 0 12px; font-size:19px; }
+.today-layout + .today-ai-insight { margin-top:22px; }
+.today-record-links { display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; margin-top:16px; color:var(--home-green); }
+.today-record-links a { font-weight:700; text-decoration:underline; text-underline-offset:3px; }
+.today-record-links span:empty { display:none; }
+.photo-follow-up { margin-top:14px; border-top:1px solid var(--home-line); padding-top:12px; }
+.photo-follow-up summary { display:flex; align-items:center; gap:8px; width:fit-content; cursor:pointer; font-weight:700; color:var(--home-green); }
+.photo-follow-up summary::after { content:"+"; margin-inline-start:4px; }
+.photo-follow-up[open] summary::after { content:"−"; }
+.photo-follow-up-body { padding:14px; margin-top:10px; background:white; border:1px solid var(--home-line); border-radius:12px; }
+.photo-follow-up-questions { display:flex; flex-wrap:wrap; gap:8px; }
+.photo-follow-up-questions button { border:1px solid var(--home-line); padding:7px 12px; border-radius:8px; cursor:pointer; }
+.photo-follow-up-questions button[aria-pressed=true] { color:white; background:#235744; }
+.photo-follow-up-body p { margin:10px 0 0; }
+.photo-follow-up-body a { display:inline-flex; align-items:center; gap:5px; margin-top:8px; color:var(--home-green); text-decoration:underline; }
 .today-observation-content { display:grid; grid-template-columns:80px repeat(2,minmax(0,1fr)); align-items:center; gap:18px; }
 .today-observation-content img { width:80px; height:70px; object-fit:cover; border-radius:10px; }
 .today-observation-content p { margin:4px 0 0; overflow-wrap:anywhere; }
@@ -362,9 +373,10 @@
 .season-calendar-controls button:nth-child(2) { background:#eff8ef; color:#174936; }
 .season-calendar-controls button:nth-child(2):hover { background:white; }
 .season-calendar-controls button:disabled { opacity:.5; cursor:default; }
-.season-week .season-calendar-grid { gap:0; padding:0; margin:12px 0 0; border:1px solid var(--season-border); border-radius:12px; }
+.season-week .season-calendar-grid { grid-template-columns:repeat(7,minmax(156px,1fr)); gap:0; padding:0; margin:12px 0 0; border:1px solid var(--season-border); border-radius:12px; }
+.season-week .season-calendar-compact { grid-template-columns:repeat(3,minmax(156px,1fr)); }
 .season-calendar-grid li + li { border-inline-start:1px solid var(--season-border); }
-.season-week .season-calendar-grid button { align-content:start; justify-items:stretch; gap:5px; min-height:142px; padding:9px; text-align:start; border-radius:0; border:0; background:white; transition:background-color 160ms; }
+.season-week .season-calendar-grid button { align-content:start; justify-items:stretch; gap:5px; min-height:230px; padding:12px; text-align:start; border-radius:0; border:0; background:white; transition:background-color 160ms; }
 .season-week .season-calendar-grid button:not(:disabled):hover { background:#f1f7f3; }
 .season-calendar-grid time strong { font-size:clamp(18px,2vw,28px); line-height:1; }
 .season-calendar-grid button:disabled { opacity:.4; cursor:default; }
@@ -375,6 +387,10 @@
 .season-calendar-grid [aria-current=date] small { color:var(--home-green); }
 .season-calendar-event { display:flex; gap:4px; align-items:start; padding:4px 6px; border-inline-start:2px solid var(--home-green); border-radius:4px; background:#edf4fb; overflow-wrap:anywhere; font-size:12px; }
 .season-calendar-event.recorded { background:var(--home-soft); }
+.season-calendar-tip { display:block; margin-top:4px; padding-top:9px; border-top:1px solid var(--season-border); color:var(--home-ink); font-size:14px; line-height:1.75; white-space:normal; overflow-wrap:break-word; }
+.season-week .season-calendar-grid [aria-current=date] .season-calendar-tip { text-decoration:none; }
+.season-card .season-calendar-note { margin:12px 0; color:var(--home-muted); font-size:13px; line-height:1.7; }
+.season-day-details .season-day-tip { margin:8px 0; font-weight:600; line-height:1.8; }
 .season-calendar .season-day-details { position:relative; padding-inline-start:16px; border-inline-start:3px solid var(--home-green); background:#f0f7f2; }
 .season-calendar-phase { display:inline-flex; align-items:center; gap:5px; margin-bottom:5px; color:#174936; font-size:13px; font-weight:700; }
 @media (prefers-reduced-motion:no-preference) {

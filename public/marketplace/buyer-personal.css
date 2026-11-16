@@ -1,4 +1,5 @@
 .buyer-personal { color:var(--home-ink); }
+.buyer-notebook-banner { display:block; width:100%; height:auto; }
 .buyer-personal [hidden] { display:none !important; }
 .buyer-personal h1 { font-size:36px; line-height:1.3; margin:8px 0 12px; }
 .buyer-personal h2,.buyer-personal legend { font-size:21px; font-weight:700; }

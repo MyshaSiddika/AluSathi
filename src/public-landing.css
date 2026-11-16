@@ -141,7 +141,16 @@
 .farmer-selling-link a { display: inline-flex; min-height: 40px; align-items: center; gap: 7px; border: 1px solid var(--home-line); border-radius: 999px; background: #fff; padding: 7px 14px; color: #176744; font-weight: 750; }
 .farmer-selling-link a:hover { border-color: #43835e; }
 
-.public-footer { display: flex; min-height: 80px; align-items: center; justify-content: space-between; gap: 18px; border-top: 1px solid #d2e2da; background: #fafffc; padding: 18px max(24px, calc((100% - 1180px) / 2)); color: #536b60; }
+.public-footer { display: flex; min-height: 80px; align-items: flex-start; justify-content: space-between; gap: 28px; border-top: 1px solid #d2e2da; background: #fafffc; padding: 34px max(24px, calc((100% - 1180px) / 2)); color: #536b60; }
+.public-footer-intro, .public-footer-links > div { display: grid; gap: 8px; }
+.public-footer-links { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 20px 36px; width: min(460px, 100%); }
+.public-footer-links strong, .public-footer-links a[href="/about"] { color: #fff; font-size: inherit; font-weight: 700; }
+.public-footer-links a { color: inherit; font-size: 14px; }
+.public-footer-links a:hover, .public-footer-links a:focus-visible { text-decoration: underline; text-underline-offset: 4px; }
+.public-footer { flex-wrap: wrap; }
+.public-footer-bottom { flex-basis: 100%; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 24px; border-top: 1px solid #ffffff38; padding-top: 16px; }
+.public-footer-policy-links { display: flex; gap: 24px; font-size: 14px; }
+.public-footer-policy-links a:hover, .public-footer-policy-links a:focus-visible { text-decoration: underline; text-underline-offset: 4px; }
 .footer-brand { display: inline-flex; align-items: center; gap: 9px; color: var(--home-ink) !important; }
 .footer-brand .brand-mark { width: 38px; height: 38px; border-radius: 12px; }
 .public-footer p { font-size: 14px; }

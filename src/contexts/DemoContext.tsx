@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Leaf, Truck } from 'lucide-react';
 import { useLanguage } from './LanguageContext';
 
@@ -20,6 +20,8 @@ export function DemoEntry() {
   const { setDemo } = useDemo();
   const { language } = useLanguage();
   const navigate = useNavigate();
+  const { state } = useLocation();
+  const farmerHash = typeof state?.farmerHash === 'string' && /^#[a-z-]+$/.test(state.farmerHash) ? state.farmerHash : '#photos';
   const bn = language === 'bn';
   return <main className={`account-page ${bn ? 'font-bangla' : ''}`}><section className="account-card">
     <Link to="/" className="text-button"><ArrowLeft size={18} />{bn ? 'মূল পাতায় ফিরুন' : 'Back to home'}</Link>
@@ -27,7 +29,7 @@ export function DemoEntry() {
     <p className="section-kicker">{bn ? 'আলুসাথী · কাজ বেছে নিন' : 'ALUSATHI · CHOOSE YOUR ROLE'}</p>
     <h1>{bn ? 'আপনি কী কাজ করেন?' : 'Choose your role'}</h1>
     <p>{bn ? 'কৃষক ও ক্রেতার জন্য আলাদা পাতা। আপনার কাজ বেছে নিন।' : 'Farmers and buyers have separate pages. Choose what you do.'}</p>
-    <button className="main-button" onClick={() => { setDemo(true); navigate('/farmer#photos', { replace: true }); }}><Leaf size={22} />{bn ? 'কৃষক হিসেবে ঢুকুন' : 'Enter as farmer'}</button>
+    <button className="main-button" onClick={() => { setDemo(true); navigate({ pathname: '/farmer', hash: farmerHash }, { replace: true }); }}><Leaf size={22} />{bn ? 'কৃষক হিসেবে ঢুকুন' : 'Enter as farmer'}</button>
     <a className="main-button" href="/marketplace/buyer.html" onClick={() => { try { sessionStorage.setItem('alusathi-role', 'buyer'); sessionStorage.setItem('alusathi-demo', 'false'); } catch { /* Session remains usable in this tab. */ } }}><Truck size={22} />{bn ? 'ক্রেতা হিসেবে ঢুকুন' : 'Enter as buyer'}</a>
   </section></main>;
 }

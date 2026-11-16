@@ -1,11 +1,6 @@
 /* Catalogue-only layout; other buyer tools and farmer screens retain their styling. */
 .buyer-discovery { padding-top: 20px; padding-bottom: 36px; }
-.buyer-discovery .buyer-market-banner { margin-bottom: 20px; }
-.buyer-discovery .catalogue-hero { position: relative; isolation: isolate; min-height: 160px; height: clamp(160px, 13vw, 230px); overflow: hidden; border-radius: 16px; margin-bottom: 14px; background: #164338; }
-.buyer-discovery .catalogue-hero .buyer-market-banner { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; }
-.catalogue-hero-copy { position: relative; z-index: 1; display: grid; align-content: center; height: 100%; padding: 18px clamp(18px, 3vw, 48px); color: #fff; background: linear-gradient(90deg, #082f25f5 0%, #082f25df 19%, #082f255e 36%, transparent 57%); pointer-events: none; }
-.buyer-discovery .catalogue-hero-copy h1 { color: inherit; font-size: clamp(30px, 3.3vw, 52px); }
-.catalogue-hero-copy p { max-width: 26ch; margin: 0; color: inherit; font-size: clamp(15px, 1.3vw, 20px); }
+.buyer-market-banner { margin-bottom: 0; }
 .buyer-discovery .catalogue-filter-error { flex-basis: 100%; margin: 0; color: #8b3126; }
 .catalogue-filter-error:empty { display: none; }
 .buyer-discovery .buyer-catalogue-filters:has(.catalogue-filter-error:not(:empty)) { flex-wrap: wrap; }
@@ -138,11 +133,6 @@
 .public-market-header a { text-underline-offset: 3px; }
 .public-market-header .brand { text-decoration: none; }
 .public-market-header :focus-visible { outline: 3px solid var(--home-green); outline-offset: 3px; }
-.public-market.buyer-discovery { padding-top: 0; }
-.public-market .catalogue-hero { min-height: 180px; margin-bottom: 18px; background: #164338 url("./banners/buyer-market-living-v1/banner-still.png") center / cover no-repeat; }
-.public-market .catalogue-hero-copy { background: linear-gradient(90deg, #082f25 0%, #082f25ed 24%, #082f2599 55%, #082f2500 88%); }
-.public-market .catalogue-hero-copy .section-kicker { margin-bottom: 4px; color: #ffe2a3; font-weight: 800; }
-.public-market .catalogue-hero-copy p { max-width: 36ch; }
 .public-market .buyer-catalogue-filters { flex-wrap: wrap; align-items: end; gap: 10px; }
 .public-market .buyer-catalogue-filters label { position: relative; flex: 1 1 135px; min-width: 0; }
 @media (min-width: 768px) {
@@ -190,7 +180,6 @@ img:not([hidden])[src^="/marketplace/demo-lots/"] ~ .public-reference-label { di
 @media (max-width: 640px) {
   .public-market-page .page-shell { padding-inline: 14px; }
   .public-market-header > div { gap: 8px; }
-  .public-market .catalogue-hero-copy { background: linear-gradient(90deg, #082f25, #082f25ad); }
   .catalogue-photo-grid :is(.buyer-catalogue, .buyer-picks) .lot-grid { grid-template-columns: minmax(0, 1fr); }
   .public-market .buyer-catalogue-filters label { flex-basis: 42%; }
 }

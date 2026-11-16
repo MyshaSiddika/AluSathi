@@ -57,11 +57,11 @@ async function toggleLanguage(page) {
 
       await input.setInputFiles(potato);
       await button.click();
-      await scanner.getByText(/experimental AI check|পরীক্ষামূলক AI ফল|another photo|আরেক দিক থেকে ছবি/).first().waitFor({ timeout: 90000 });
+      await scanner.getByText(/The photo was checked on this device|ছবিটি এই ডিভাইসেই পরীক্ষা করা হয়েছে|another photo|আরেক দিক থেকে ছবি/).first().waitFor({ timeout: 90000 });
       if (/another photo|আরেক দিক থেকে ছবি/.test(await scanner.innerText()) && !/experimental|পরীক্ষামূলক/.test(await scanner.innerText())) {
         await input.setInputFiles(anotherSide);
         await button.click();
-        await scanner.getByText(/experimental AI check|পরীক্ষামূলক AI ফল/).first().waitFor({ timeout: 90000 });
+        await scanner.getByText(/The photo was checked on this device|ছবিটি এই ডিভাইসেই পরীক্ষা করা হয়েছে/).first().waitFor({ timeout: 90000 });
       }
       const result = await scanner.innerText();
       if (!/Diamant|Asterix/.test(result) || !/seed record|বীজের রেকর্ড/.test(result)) {
@@ -100,7 +100,7 @@ async function toggleLanguage(page) {
       }
       await input.setInputFiles(anotherSide);
       await button.click();
-      await scanner.getByText(/experimental AI check|পরীক্ষামূলক AI ফল/).first().waitFor({ timeout: 90000 });
+      await scanner.getByText(/The photo was checked on this device|ছবিটি এই ডিভাইসেই পরীক্ষা করা হয়েছে/).first().waitFor({ timeout: 90000 });
 
       for (let photo = 0; photo < 3; photo++) {
         await input.setInputFiles(unclear);

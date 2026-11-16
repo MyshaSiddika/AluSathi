@@ -5,12 +5,13 @@ const base = process.env.BASE_URL || 'http://127.0.0.1:4175';
 (async () => {
   const browser = await chromium.launch({ headless: true });
   try {
-    for (const width of [390, 1440]) {
-      const context = await browser.newContext({ viewport: { width, height: 900 }, serviceWorkers: 'block' });
+    for (const [entry, tab, view] of [['/auth', 'photos', '.potato-scan'], ['/farmer#season', 'season', '.season-progress']]) {
+      const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, serviceWorkers: 'block' });
       const page = await context.newPage();
-      await page.goto(`${base}/auth`);
+      await page.goto(`${base}${entry}`);
       await page.locator('.account-card button.main-button').click();
-      await page.waitForURL(`${base}/farmer`);
+      await page.waitForURL(`${base}/farmer#${tab}`);
+      await page.locator(view).waitFor();
       assert.equal(await page.locator('#cold-storage').count(), 0);
       await page.goto(`${base}/selling-preparation`);
       await page.locator('#cold-storage').waitFor();

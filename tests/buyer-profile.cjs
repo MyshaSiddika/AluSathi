@@ -89,7 +89,7 @@ const key='alusathi-buyer-profile-v1';
    await form.locator('[data-buyer-photo=remove]').click();await save();await page.reload();
    assert.equal(await form.locator('.buyer-account-avatar img').count(),0);
    await form.locator('input[type=file]').setInputFiles({name:'bad.svg',mimeType:'image/svg+xml',buffer:Buffer.from('<svg onload="alert(1)"/>')});
-   await form.locator('[data-photo-error]').filter({hasText:bn?'বৈধ JPG':'valid JPG'}).waitFor();
+   await form.locator('[data-photo-error]').filter({hasText:bn?'বৈধ JPG':'We could not open this photo. Choose a JPG, PNG or WebP photo under 50 MB.'}).waitFor();
    assert.equal(await page.evaluate(k=>JSON.parse(localStorage.getItem(k)).photo,key),'');
    await form.locator('[name=contactPerson]').fill('<img src=x onerror=alert(1)>');await save();await page.reload();
    assert.equal(await form.locator('[name=contactPerson]').inputValue(),'<img src=x onerror=alert(1)>');

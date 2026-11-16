@@ -70,6 +70,7 @@
 .plan-freight-link { margin: 8px 0 16px; text-align: right; color: var(--home-green); }
 .plan-freight-link a { text-decoration: underline; }
 .plan-chart-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.plan-break-even-volume { grid-column: 1 / -1; }
 .plan-chart-panel { min-width: 0; padding: clamp(14px, 2vw, 24px); background: #fff; border: 1px solid var(--home-line); border-radius: 16px; }
 .plan-chart-panel h2 { color: var(--home-green); }
 .plan-chart-panel p, .plan-chart-legend { margin: 8px 0 12px; color: var(--home-muted); font-size: 14px; }
