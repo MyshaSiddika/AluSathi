@@ -75,3 +75,6 @@
 }
 @media(prefers-reduced-motion:reduce) { .photo-demo-card { transition: none; } }
 
+
+.photo-page-titlebar .photo-crop-age { display:inline-flex; flex-wrap:wrap; align-items:center; gap:12px; margin-top:14px; padding:10px 16px; border:1px solid #b9d4c6; border-radius:12px; background:#fffef8; color:#123c30; }
+.photo-crop-age strong { font-size:20px; }

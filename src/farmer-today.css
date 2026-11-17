@@ -373,10 +373,10 @@
 .season-calendar-controls button:nth-child(2) { background:#eff8ef; color:#174936; }
 .season-calendar-controls button:nth-child(2):hover { background:white; }
 .season-calendar-controls button:disabled { opacity:.5; cursor:default; }
-.season-week .season-calendar-grid { grid-template-columns:repeat(7,minmax(156px,1fr)); gap:0; padding:0; margin:12px 0 0; border:1px solid var(--season-border); border-radius:12px; }
-.season-week .season-calendar-compact { grid-template-columns:repeat(3,minmax(156px,1fr)); }
+.season-week .season-calendar-grid { grid-template-columns:repeat(7,minmax(88px,1fr)); gap:0; padding:0; margin:12px 0 0; border:1px solid var(--season-border); border-radius:12px; }
+.season-week .season-calendar-compact { grid-template-columns:repeat(3,minmax(88px,1fr)); }
 .season-calendar-grid li + li { border-inline-start:1px solid var(--season-border); }
-.season-week .season-calendar-grid button { align-content:start; justify-items:stretch; gap:5px; min-height:230px; padding:12px; text-align:start; border-radius:0; border:0; background:white; transition:background-color 160ms; }
+.season-week .season-calendar-grid button { align-content:start; justify-items:stretch; gap:4px; min-height:148px; padding:10px; text-align:start; border-radius:0; border:0; background:white; transition:background-color 160ms; }
 .season-week .season-calendar-grid button:not(:disabled):hover { background:#f1f7f3; }
 .season-calendar-grid time strong { font-size:clamp(18px,2vw,28px); line-height:1; }
 .season-calendar-grid button:disabled { opacity:.4; cursor:default; }
@@ -432,3 +432,11 @@
 @media(prefers-reduced-motion:reduce) {
  .season-milestones button, .season-week button { transition:none; }
 }
+
+.season-preview { display:grid; gap:8px; margin:14px 0; font-size:14px; font-weight:700; }
+.season-preview input { width:100%; accent-color:var(--home-green); }
+.season-calendar-grid time { display:flex; flex-wrap:wrap; align-items:baseline; gap:5px; }
+.season-calendar-grid .season-calendar-event { font-size:11px; }
+@media(max-width:760px) { .season-week .season-calendar-grid { grid-template-columns:repeat(7,minmax(88px,1fr)); }.season-week .season-calendar-compact { grid-template-columns:repeat(3,minmax(88px,1fr)); }.season-calendar-head { padding:12px; }.season-calendar-controls { gap:6px; }.season-week .season-calendar-grid button { min-height:142px; padding:8px; } }
+
+.season-week .season-calendar-controls button { display:inline-flex; align-items:center; justify-content:center; min-height:40px; padding:6px 10px; font-size:14px; }

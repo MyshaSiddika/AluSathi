@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { CalendarDays, ChevronDown, CircleCheck, Flower2, Leaf, PackageCheck, Sprout } from "lucide-react";
+import { CalendarDays, ChevronDown, CircleCheck, CircleMinus, Clock, Flower2, Leaf, PackageCheck, Sprout } from "lucide-react";
 import { areaSquareMetres } from "@/lib/farmer-tools";
 import { cropGuidance } from "@/lib/crop-advice";
 import { localToday } from "@/lib/local-date";
@@ -129,7 +129,6 @@ export default function SeasonProgress({ bn, district, weather }: { bn: boolean;
         <p>{stage.note[bn ? 0 : 1]}</p>
         <p className="season-activity"><CircleCheck size={16} aria-hidden="true" /><span>{t("এই ধাপের কাজ:", "Stage activity:")} {cropGuidance(preview, null, bn).reminders[0]}</span></p>
       </section>
-      <p className="season-safety">{t("এটি আনুমানিক ধাপ, জমির নিশ্চিত অবস্থা নয়। সার বা স্প্রে প্রয়োগের নির্দেশও নয়।", "These stages are estimates, not confirmed field conditions. They are not instructions to add fertiliser or spray.")}</p>
     </section>
     <div className="season-side">
     <section className="season-card season-upcoming" aria-labelledby="season-upcoming-title">
@@ -165,21 +164,22 @@ export default function SeasonProgress({ bn, district, weather }: { bn: boolean;
           </button>
         </div>
       </header>
-      <ul id="season-calendar-days" className={`season-calendar-grid${expanded ? "" : " season-calendar-compact"}`} key={firstDay} ref={calendarRef}>{days.map(({ number, day, date, records, tip, weatherDay }) => (
+      <ul id="season-calendar-days" className={`season-calendar-grid${expanded ? "" : " season-calendar-compact"}`} key={firstDay} ref={calendarRef}>{days.map(({ number, day, date, records, weatherDay }) => (
         <li key={date}>
           <button type="button" data-day={number} disabled={number < 1 || number > 90} aria-current={number === actual ? "date" : undefined} aria-pressed={number === preview} aria-controls="season-day-details" onClick={() => setSelected(number)}>
             <span className="season-calendar-weekday">{day.toLocaleDateString(bn ? "bn-BD" : "en-GB", { weekday: "short" })}</span>
-            <time dateTime={date}><strong>{fmt(day.getDate())}</strong> {day.toLocaleDateString(bn ? "bn-BD" : "en-GB", { month: "short" })}</time>
+            <time dateTime={date}><strong>{fmt(day.getDate())}</strong> <span className="season-calendar-month">{day.toLocaleDateString(bn ? "bn-BD" : "en-GB", { month: "short" })}</span></time>
             {number >= 1 && number <= 90 && <small>{number === actual ? t("আজ · ", "Example · ") : ""}{t(`দিন ${fmt(number)}`, `Day ${fmt(number)}`)}</small>}
             {records.length > 0 && <span className="season-calendar-event recorded"><CircleCheck size={14} role="img" aria-label={t("কাজ শেষ", "Completed")} /> {t("খাতায় আছে", "In Khata")} · {fmt(records.length)}</span>}
             {number === actual && <span className="season-calendar-event">{t("আজকের কাজ", "Tasks for this day")}</span>}
             {weatherDay && number >= 1 && number <= 90 && <span className="season-calendar-event">
               {t("আবহাওয়ার পূর্বাভাস", "Forecast")} · {fmt(Math.round(weatherDay.minimum))}–{fmt(Math.round(weatherDay.maximum))}°C · {t("বৃষ্টি", "Rain")} {fmt(Math.round(weatherDay.rainMm))} {t("মিমি", "mm")}
             </span>}
-            {tip && <span className="season-calendar-tip">{t(tip.bn, tip.en)}</span>}
+            {number >= 1 && number <= 90 && (records.length ? <CircleCheck size={16} aria-label={t("কাজ শেষ", "Completed")} /> : date >= today ? <Clock size={16} aria-label={t("বাকি", "Pending")} /> : <CircleMinus size={16} aria-label={t("কাজ লেখা নেই", "No activity recorded")} />)}
           </button>
         </li>
       ))}</ul>
+      <label className="season-preview"><span>{t("যে দিনটি দেখছেন", "Preview day")} · {fmt(preview)}</span><input aria-label={t("যে দিনটি দেখছেন", "Preview day")} type="range" min={1} max={90} value={preview} onChange={event => setSelected(Number(event.target.value))} /></label>
       <p className="season-calendar-note">{t(seasonTipsNote.bn, seasonTipsNote.en)}</p>
       <div id="season-day-details" className="season-day-details" aria-live="polite">
         <span className="season-calendar-phase"><StageIcon size={16} aria-hidden="true" />{bn ? stage.bn : stage.en}</span>
@@ -198,7 +198,7 @@ export default function SeasonProgress({ bn, district, weather }: { bn: boolean;
           {plannedWork && <li>{bn ? plannedWork.bn : plannedWork.en}</li>}
           {preparationTips[milestones.indexOf(stage)].slice(plannedWork ? 1 : 0).map(([b, e]) => <li key={e}>{t(b, e)}</li>)}
         </ul></div>}
-        {activeDay.records.map(record => <p className="season-record" key={record.id}>{t("খাতায় রাখা হয়েছে:", "Recorded in Khata:")} {record.text}</p>)}
+        {activeDay.records.map(record => <p className="season-record" key={record.id}>{record.text}</p>)}
         {preview < actual && !activeDay.records.length && <p>{t("এই দিনে খাতায় কোনো কাজ রাখা হয়নি।", "No work was recorded in Khata for this day.")}</p>}
       </div>
     </section>

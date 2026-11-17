@@ -11,19 +11,6 @@ export function enquiryQuestions(lot, t, condition) {
   ].filter(Boolean).join(' ');
 }
 
-export function mountWeightConverter(root, t) {
-  if (!root) return;
-  root.insertAdjacentHTML('beforeend', `<details class="sourcing-panel" id="buyer-weight-converter"><summary>${t('কেজি, মণ ও বস্তার হিসাব','Convert kg, maunds and bags')}</summary><div class="sourcing-fields"><label>${t('পরিমাণ','Amount')}<input name="amount" inputmode="decimal" maxlength="12"></label><label>${t('একক','Unit')}<select name="unit"><option value="kg">${t('কেজি','kg')}</option><option value="maund">${t('মণ','maund')}</option><option value="bag">${t('বস্তা','Sack')}</option></select></label><label>${t('প্রতি বস্তায় কেজি','kg per sack')}<input name="bagKg" inputmode="decimal" maxlength="12"></label></div><p>${t('১ মণ = ৪০ কেজি','1 maund = 40 kg')}</p><output aria-live="polite">—</output></details>`);
-  const box = root.querySelector('#buyer-weight-converter');
-  box.addEventListener('input', () => {
-    const amount = number(box.querySelector('[name=amount]').value), bag = number(box.querySelector('[name=bagKg]').value), unit = box.querySelector('select').value;
-    const kg = amount * (unit === 'maund' ? 40 : unit === 'bag' ? bag : 1);
-    const format = new Intl.NumberFormat(t('bn-BD','en-BD'), {maximumFractionDigits: 3});
-    const validBag = Number.isFinite(bag) && bag > 0 && bag <= 10000;
-    box.querySelector('output').textContent = !Number.isFinite(kg) || amount <= 0 || kg > 10000000 || (unit === 'bag' && !validBag) ? '—' :
-      `${format.format(kg)} ${t('কেজি','kg')} · ${format.format(kg / 40)} ${t('মণ','maunds')}${validBag ? ` · ${format.format(kg / bag)} ${t('বস্তা','sacks')}` : ''}`;
-  });
-}
 export function keepContact(lot) {
   if (!lot || lot.practice) return false;
   const rows = read(contactsKey);
