@@ -7,6 +7,7 @@ import { cropAge, cropGuidance, plantingAges, rangeGuidance, type PlantingAge } 
 import { spreadOutlook } from "@/lib/farmer-tools";
 import { localToday } from "@/lib/local-date";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useDemo } from "@/contexts/DemoContext";
 import { readFieldActions, saveFieldActions, FIELD_ACTIONS_EVENT, type FieldAction } from "@/lib/field-actions";
 import { buildPhotoTasks, buildTodayTasks, rainTaskIds, recentPhoto, readTodayPlan, type PlanContext, type PlanTask } from "@/lib/today-plan";
 import TodayCare from "./TodayCare";
@@ -36,6 +37,7 @@ export default function FarmerToday({ weather, loading, district, districts, pla
   plantingDate: string; onPhoto: () => void; lastCheckin?: CheckinPreview;
 }) {
   const { language } = useLanguage(); const bn = language === "bn";
+  const { demo } = useDemo();
   const [range, setRange] = useState<PlantingAge | "">(() => {
     const value = localStorage.getItem("alusathi-planting-age");
     return plantingAges.includes(value as PlantingAge) ? value as PlantingAge : "";
@@ -76,7 +78,7 @@ export default function FarmerToday({ weather, loading, district, districts, pla
   const risk = spreadOutlook(weather);
   const hasPlanting = age !== null || Boolean(approximate);
   const currentBand = ageBand(age, approximate ? range : "");
-  const stage = age !== null ? `${bn ? `লাগানোর ${age.toLocaleString("bn-BD")} দিন` : `Day ${age}`} · ${advice.stage}` : approximate?.stage;
+  const stage = age !== null ? `${bn ? `লাগানোর ${age.toLocaleString("bn-BD")} দিন` : `Day ${age}`} · ${advice.stage}` : demo && approximate && range === "lt30" ? (bn ? "৮ দিন" : "8 days") : approximate?.stage;
   const number = (value: number) => value.toLocaleString(bn ? "bn-BD" : "en-GB", { maximumFractionDigits: 1 });
 
   const freshWeather = Boolean(weather?.observed_at && !weather.cached && Number.isFinite(Date.parse(weather.observed_at)) && Date.now() - Date.parse(weather.observed_at) < 6 * 3600_000);

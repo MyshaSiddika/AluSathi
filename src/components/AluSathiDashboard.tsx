@@ -571,9 +571,10 @@ export default function AluSathiDashboard({ farmerHome = false }: { farmerHome?:
 
       {farmerHome && <div hidden={farmerView !== "today"}><FarmerToday weather={weather} loading={weatherLoading} district={district} districts={districtOptions} plantingDate={plantingDate} onPhoto={() => startScan("quick")} lastCheckin={diary[0] ? { createdAt: diary[0].createdAt, thumbnails: (diary[0].thumbnails || []).filter(src => /^data:image\/jpeg;base64,/.test(src)) } : undefined} /></div>}
       {farmerHome && farmerView === "season" && <>
-        <video className="farmer-season-banner" aria-hidden="true" autoPlay muted loop playsInline poster="/alusathi-season-banner.webp">
-          <source src="/alusathi-season-field-path.mp4" type="video/mp4" media="(prefers-reduced-motion: no-preference)" />
-        </video>
+        <picture className="farmer-season-banner" aria-hidden="true">
+          <source srcSet="/banners/farmer-season-breeze/banner-still.png" media="(prefers-reduced-motion: reduce)" />
+          <img src="/banners/farmer-season-breeze/farmer-weather-breeze.webp" width="2172" height="304" alt="" />
+        </picture>
         <SeasonProgress district={district} bn={language === "bn"} weather={weather} />
       </>}
 
@@ -588,9 +589,9 @@ export default function AluSathiDashboard({ farmerHome = false }: { farmerHome?:
         <span className="field-bird field-bird-one"><svg viewBox="0 0 62 28" fill="none"><path d="M2 20 Q9 11 17 19 Q25 11 32 20 M29 9 Q35 2 41 9 Q48 2 54 10" /></svg></span>
         <span className="field-bird field-bird-two"><svg viewBox="0 0 62 28" fill="none"><path d="M2 21 Q15 2 30 17 Q45 2 60 21" /></svg></span>
       </div>}
-      {farmerHome && farmerView === "photos" && <section className="app-shell photo-page-titlebar" aria-labelledby="photo-page-title"><div className="farmer-greeting"><div><h1 id="photo-page-title">{language === "bn" ? "আলুর ছবি দিন" : "Add a potato photo"}</h1><p>{language === "bn" ? "ছবি বাছুন → ফল দেখুন → আজকের কাজে যান।" : "Choose a photo → See the result → Go to today's tasks."}</p></div></div></section>}
+      {farmerHome && farmerView === "photos" && <section className="app-shell photo-page-titlebar" aria-labelledby="photo-page-title"><div className="farmer-greeting"><div><h1 id="photo-page-title">{language === "bn" ? "আলুর ছবি দিন" : "Add a potato photo"}</h1><p>{language === "bn" ? "ছবি বাছুন → ফল দেখুন → আজকের কাজে যান।" : "Choose a photo → See the result → Go to today's tasks."}</p></div></div><p className="photo-crop-age"><span>{language === "bn" ? "চাষের সময়" : "Crop age"}</span><strong>{age !== null || demo ? `${(age ?? 8).toLocaleString(language === "bn" ? "bn-BD" : "en-GB")} ${language === "bn" ? "দিন" : "days"}` : (language === "bn" ? "দেওয়া নেই" : "Not provided")}</strong></p></section>}
       <div hidden={farmerHome && farmerView !== "photos"} className={farmerHome ? "" : "landing-reveal"}><Suspense fallback={<div id="scan" className="app-shell py-12" role="status">{language === "bn" ? "ছবি স্ক্যানার খুলছে…" : "Opening photo check..."}</div>}><TuberScan /></Suspense></div>
-      <details hidden={farmerHome && farmerView !== "photos"} className="app-shell leaf-check-details" open={leafOpen} onToggle={event => setLeafOpen(event.currentTarget.open)}><summary>{language === "bn" ? "গাছের পাতায় সমস্যা?" : "Problem with the plant’s leaves?"}</summary>
+      {!farmerHome && <details className="app-shell leaf-check-details" open={leafOpen} onToggle={event => setLeafOpen(event.currentTarget.open)}><summary>{language === "bn" ? "গাছের পাতায় সমস্যা?" : "Problem with the plant’s leaves?"}</summary>
       <section id="leaf-scan" ref={scanRef} className="app-shell scroll-mt-24 py-16 sm:py-24">
         <div className="section-heading"><div><p className="section-kicker"><ScanLine size={16} />{copy.scanKicker}</p><h2>{copy.scanTitle}</h2><p>{copy.scanBody}</p></div></div>
         {!fieldResults.length && !file && <button className="secondary-main mb-4" onClick={() => startScan(mode === "quick" ? "field" : "quick")}>{language === "bn" ? (mode === "quick" ? "চাইলে ৩টি ছবি দিন" : "১টি ছবি দিয়ে শুরু করুন") : (mode === "quick" ? "Use three photos instead" : "Use one photo instead")}</button>}
@@ -600,7 +601,7 @@ export default function AluSathiDashboard({ farmerHome = false }: { farmerHome?:
        {scanComplete && <ScanInsights key={reportImage} results={fieldResults} weather={weather} district={district} image={reportImage} cropAgeDays={age} />}
       </section>
 
-      </details>
+      </details>}
       <div hidden={farmerHome && farmerView !== "tools"} className={farmerHome ? "" : "landing-reveal"}><FarmerTools showReminders={!farmerHome} /></div>
       {farmerHome && dashboardAccess && farmerView === "diary" && <>
         <video className="farmer-ledger-banner" aria-hidden="true" autoPlay muted loop playsInline poster="/alusathi-ledger-writing.webp">
@@ -628,7 +629,6 @@ export default function AluSathiDashboard({ farmerHome = false }: { farmerHome?:
       </section>
     </main>
 
-    <footer><div className="app-shell"><div className="footer-brand"><span className="brand-mark"><Leaf size={22} /></span><div><strong>আলুসাথী</strong><small>{copy.footer}</small></div></div></div></footer>
     {!farmerHome && <nav className="bottom-nav" style={{ gridTemplateColumns: `repeat(${dashboardAccess ? 4 : 3}, minmax(0, 1fr))` }} aria-label="Mobile menu"><a href="#scan"><Camera />{copy.navScan}</a><a href={marketHref}><Store />{language === "bn" ? "বাজার" : "Market"}</a>{dashboardAccess && <a href="#diary"><History />{copy.navField}</a>}<Link to="/life-cycle"><Sprout />{language === "bn" ? "আলুর জীবন" : "Potato life cycle"}</Link></nav>}
   </div>;
 }

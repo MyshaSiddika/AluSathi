@@ -1,0 +1,12 @@
+const {chromium}=require('playwright'),assert=require('node:assert/strict');
+const base=process.env.BASE_URL||'http://127.0.0.1:8080';
+(async()=>{const {initialData}=await import('../public/marketplace/market.mjs'),data=initialData();
+const own={...data.listings[0],id:'contact-test',sample:false,variety:'Potatoes',potatoVariety:'Cardinal',farmerName:'Farmer <img src=x onerror="window.injected=1">',contactSharingEnabled:true,farmerPhone:'01712345678',farmerWhatsapp:'+8801812345678'};
+data.listings=[own];const browser=await chromium.launch({channel:process.env.PLAYWRIGHT_CHANNEL||undefined});
+try{const context=await browser.newContext({serviceWorkers:'block'}),page=await context.newPage();await context.addInitScript(data=>{localStorage.setItem('alusathi-lang','en');localStorage.setItem('alusathi-marketplace-pilot-v1',JSON.stringify(data));},data);
+await page.goto(base+'/marketplace/buyer.html');const card=page.locator('.buyer-contact-card').filter({has:page.locator('[data-action=contact-lot][data-id=contact-test]')});assert.equal(await card.locator('h3').innerText(),'Cardinal');await card.locator('[data-action=contact-lot]').click();const dialog=page.locator('.catalogue-contact-dialog');await dialog.waitFor();assert.equal(await dialog.locator('a[data-contact-channel=phone]').getAttribute('href'),'tel:+8801712345678');
+assert.equal(await dialog.locator('a[data-contact-channel=whatsapp]').getAttribute('href'),'https://wa.me/8801812345678');const message=await dialog.locator('a[data-contact-channel=message]').getAttribute('href');assert.equal(new URL(message).searchParams.get('text'),await dialog.locator('textarea').inputValue());assert.ok(new URL(message).searchParams.get('text').startsWith('I am interested in buying your potatoes.'));
+assert.equal(await page.locator('img[src=x]').count(),0);assert.equal(await page.evaluate(()=>window.injected),undefined);await page.keyboard.press('Escape');
+await page.locator('#catalogue-query').fill('\"><img src=x onerror="window.injected=1">');await page.locator('#buyer-search-prompt button[type=submit]').click();assert.equal(await page.locator('img[src=x]').count(),0);assert.equal(await page.evaluate(()=>window.injected),undefined);
+console.log('Shared contacts, message encoding, variety fallback and safe rendering passed. No external contact link was opened.');
+await context.close();}finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1});

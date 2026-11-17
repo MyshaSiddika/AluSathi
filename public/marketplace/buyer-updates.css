@@ -1,0 +1,80 @@
+.smart-potato-search { margin:24px 0; padding:22px; border:1px solid var(--home-line); border-radius:20px; background:linear-gradient(120deg,#f4faf5,#fffef8); }
+.smart-potato-search header { display:flex; gap:14px; align-items:start; }
+.smart-potato-search h2 { margin:0 0 7px; font-size:25px; line-height:1.45; }
+.smart-potato-search header p { color:var(--home-muted); margin:0; line-height:1.7; }
+.search-spark { display:grid; place-items:center; flex:none; width:44px; height:44px; border-radius:14px; background:#e2efe5; color:#1e6247; font-size:25px; }
+.smart-potato-search .catalogue-query-row { display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:8px; }
+.smart-potato-search .catalogue-query-row input { width:100%; min-width:0; }
+.smart-potato-search [role=status]:empty { display:none; }
+.search-match-summary { padding:12px 16px; background:#e2efe5; color:#174b35; border-radius:10px; font-weight:700; }
+.buyer-budget-modal { position:fixed; width:min(880px,calc(100vw - 32px)); max-height:90dvh; padding:26px; border:1px solid #c7ded1; border-radius:24px; background:#fffefa; color:#123c30; box-shadow:0 24px 90px #0b2f2850; overflow:auto; }
+.buyer-budget-modal::backdrop { background:#0e3029a6; }
+body:has(.buyer-budget-modal[open]) { overflow:hidden; }
+.budget-close { display:block; width:42px; height:42px; margin-left:auto; background:white; color:#123c30; border:1px solid #c7ded1; border-radius:50%; font:inherit; font-size:26px; cursor:pointer; }
+.buyer-budget { max-width:850px; margin:0 auto; color:var(--home-ink,#123c30); }
+.buyer-budget h2 { font-size:30px; line-height:1.4; margin:6px 0; }
+.buyer-budget h3 { margin:0 0 14px; font-size:20px; }
+.buyer-budget header>p { line-height:1.7; }
+.budget-eyebrow { color:#90702b; font-size:14px; font-weight:700; }
+.budget-lot { background:#eaf3ed; border-radius:10px; padding:10px 14px; }
+.budget-main-fields,.budget-expenses { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+.buyer-budget label { display:grid; gap:8px; min-width:0; font-size:16px; font-weight:700; }
+.buyer-budget input { width:100%; min-width:0; min-height:46px; padding:10px 12px; border:1px solid #b9d2c4; border-radius:10px; background:white; color:#123c30; font:inherit; }
+.buyer-budget fieldset { margin:22px 0; padding:18px; border:1px solid #d2e3d9; border-radius:16px; }
+.buyer-budget legend { font-size:18px; font-weight:700; }
+.buyer-budget fieldset p,.budget-resale p,.budget-chart p { color:#5b7167; font-size:14px; line-height:1.7; margin:0 0 16px; }
+.budget-resale { margin:18px 0; border-top:1px solid #d2e3d9; padding-top:14px; }
+.budget-resale summary { margin-bottom:14px; cursor:pointer; font-weight:700; }
+.budget-resale label { max-width:340px; }
+.budget-resale p { margin-top:10px; }
+.budget-results:empty { display:none; }
+.budget-total { margin:26px 0 18px; padding:22px; background:#e6f1e8; border:1px solid #b8d5c1; border-radius:18px; }
+.budget-total>span { display:block; font-weight:700; }
+.budget-total>strong { display:block; margin:8px 0; font-size:36px; line-height:1.4; }
+.budget-total p { margin:0; font-size:15px; line-height:1.7; }
+.budget-total.over-budget { background:#fff0e9; border-color:#e1b9a5; }
+.budget-breakdown { margin:0; padding:0; }
+.budget-breakdown>div { display:flex; justify-content:space-between; gap:18px; padding:12px 4px; border-bottom:1px solid #dce7df; }
+.budget-breakdown dt { min-width:0; }.budget-breakdown dd { margin:0; white-space:nowrap; font-weight:700; }
+.budget-sum { border-top:2px solid #abcbb8; font-weight:700; }
+.budget-chart { margin:24px 0; padding:20px; border:1px solid #d2e3d9; border-radius:16px; background:white; }
+.budget-chart ul { list-style:none; margin:0; padding:0; display:grid; gap:15px; }
+.budget-chart li>div { display:flex; justify-content:space-between; gap:12px; margin-bottom:7px; font-size:14px; }
+.budget-chart strong { white-space:nowrap; }
+.budget-bar-track { display:block; height:12px; border-radius:999px; background:#eef3ef; overflow:hidden; }
+.budget-bar-track i { display:block; height:100%; min-width:0; border-radius:inherit; background:#28624b; }
+.budget-bar-track .budget-available { background:#527f76; }
+.budget-loss,.budget-incomplete { color:#9c4429; }.budget-incomplete { padding:16px; border:1px solid #dfc6b5; border-radius:12px; line-height:1.7; }
+.buyer-budget button:focus-visible,.buyer-budget input:focus-visible,.budget-close:focus-visible { outline:3px solid #b59647; outline-offset:3px; }
+.contact-phone-row { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:18px; border:1px solid #c9decf; border-radius:14px; background:#f2f8f2; }
+.contact-phone-row small,.contact-phone-row strong { display:block; }.contact-phone-row strong { margin-top:6px; font-size:24px; font-variant-numeric:tabular-nums; }
+.contact-social-actions { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:14px 0; }
+.farmer-contact-actions p { font-size:14px; color:var(--home-muted); line-height:1.7; }
+.farmer-contact-actions [role=status]:empty { display:none; }
+.buyer-portal .header-actions .buyer-profile-trigger { display:inline-flex; align-items:center; gap:7px; min-height:42px; padding:9px 12px; background:#fff; border:1px solid var(--home-line); border-radius:999px; color:var(--home-ink); font-size:14px; font-weight:700; }
+.buyer-portal .profile-drawer { width:min(420px,92vw); padding:34px 24px; background:#f5f8f4; box-shadow:-20px 0 60px #10342833; }
+.buyer-portal .profile-drawer h2 { margin:18px 0 6px; font-size:28px; }
+.buyer-portal .profile-drawer>p { color:#61766b; }
+.buyer-portal .profile-drawer>.button { display:flex; justify-content:center; margin-top:14px; }
+@media(max-width:760px) {
+  .smart-potato-search { padding:18px 14px; }.smart-potato-search h2{font-size:23px;}
+  .smart-potato-search .catalogue-query-row { grid-template-columns:1fr 1fr; }.smart-potato-search .catalogue-query-row input { grid-column:1/-1; }
+  .budget-main-fields,.budget-expenses { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }.budget-main-fields>label:first-child { grid-column:1/-1; }
+  .buyer-budget-modal { padding:18px 14px; width:calc(100vw - 20px); max-height:93dvh; border-radius:18px; }.buyer-budget fieldset { padding:14px; }
+  .budget-chart { padding:16px 12px; }.buyer-budget label { font-size:16px; }.budget-chart li>div{font-size:14px;}
+  .contact-phone-row { padding:14px 12px; }.contact-phone-row strong { font-size:20px; }.contact-social-actions { grid-template-columns:1fr; }
+  .buyer-portal .header-actions .buyer-profile-trigger { width:42px; height:42px; padding:0; justify-content:center; }.buyer-profile-trigger span { display:none; }
+}
+
+.buyer-more { position:relative; }
+.buyer-more summary { display:flex; gap:8px; align-items:center; min-height:44px; padding:10px 14px; border:1px solid var(--home-line); border-radius:999px; font-weight:700; cursor:pointer; list-style:none; }
+.buyer-more summary::-webkit-details-marker { display:none; }
+.buyer-more>div { position:absolute; z-index:80; right:0; top:calc(100% + 10px); width:220px; padding:10px; border:1px solid var(--home-line); border-radius:16px; background:white; box-shadow:0 12px 40px #123c3020; }
+.buyer-more>div button { display:block; width:100%; padding:12px; text-align:start; border:0; border-radius:8px; background:white; color:var(--home-ink); font:inherit; cursor:pointer; }
+.buyer-more>div button:hover { background:var(--home-soft); }
+.buyer-more summary:focus-visible,.buyer-more button:focus-visible { outline:3px solid #a68838; outline-offset:3px; }
+.buyer-portal .profile-drawer>.button { background:white; border-color:#d1ded6; color:#123c30; min-height:52px; }
+.buyer-budget-modal .budget-close { position:sticky; top:0; z-index:2; }
+.budget-chart span,.budget-chart li>div { overflow-wrap:anywhere; }
+
+body:has(.profile-backdrop,.catalogue-contact-dialog,.catalogue-detail-dialog) { overflow:hidden; }

@@ -35,12 +35,12 @@ export default function PotatoDetailsDialog() {
     } catch {setError(t("সেভ হয়নি। আপনার লেখা এখানেই আছে—আবার চেষ্টা করুন।", "Could not save. Your details are still here. Please try again."));}
   }
   return <section id="potato-details" className="prep-certificate-card" aria-labelledby="prep-certificate-title">
-    <div><FileText size={25}/><h2 id="prep-certificate-title">{t("আলুর পরিচিতি", "Potato details")}</h2></div>
+    <div><FileText size={25}/><h2 id="prep-certificate-title">{t("আলুর তথ্য দিন", "Potato details")}</h2></div>
     <p>{t("আলুর জাত, কোথায় ফলিয়েছেন আর কী কাজে লাগবে, লিখে রাখুন।", "Record the variety, where it was grown and what it is used for.")}</p>
     <Dialog open={open} onOpenChange={setOpen}><DialogTrigger asChild><button type="button" className="prep-certificate-trigger">{t("আলুর তথ্য দিন", "Enter potato details")}</button></DialogTrigger>
       <DialogContent hideCloseButton className={`potato-certificate ${bn?"font-bangla":""}`} data-home-theme={theme}>
         <DialogClose className="potato-certificate-close" aria-label={t("বন্ধ করুন", "Close")}><X size={21}/></DialogClose>
-        <div className="potato-certificate-heading"><FileText size={25}/><DialogTitle>{t("আলুর পরিচিতি", "Potato details")}</DialogTitle></div>
+        <div className="potato-certificate-heading"><FileText size={25}/><DialogTitle>{t("আলুর তথ্য দিন", "Potato details")}</DialogTitle></div>
         <DialogDescription>{t("যা জানেন, শুধু সেটাই লিখুন। বাকি ঘর খালি রাখতে পারেন।", "Fill in what you know. You can leave the other fields blank.")}</DialogDescription>
         <form className="potato-details-form" onSubmit={save}>
           <label>{t("কী কাজে লাগবে?", "Use")}<select name="potatoPurpose" value={details.purpose} onChange={e=>change("purpose",e.target.value)}><option value="">{t("বাছুন", "Choose")}</option><option value="table">{t("খাওয়ার আলু", "Potatoes for eating")}</option><option value="seed">{t("বীজ আলু", "Seed potatoes")}</option><option value="processing">{t("চিপস বা অন্য খাবার তৈরি", "For processing")}</option></select></label>

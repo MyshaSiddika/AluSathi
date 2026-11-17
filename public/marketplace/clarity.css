@@ -436,6 +436,9 @@
 .buyer-purchases-birds .bird-three { transform: translate(318px, 49px) scale(.62); }
 @keyframes buyer-purchases-flight { from { translate: 0 0; } to { translate: 245px -12px; } }
 .buyer-transport-page { padding-top: 28px; padding-bottom: 42px; }
+.buyer-transport-banner { display:block; width:100%; margin:0; }
+.buyer-transport-banner img { display:block; width:100%; height:auto; object-fit:cover; }
+@media(max-width:760px) { .buyer-transport-banner img { height:clamp(120px,33.333vw,150px); object-position:35% center; } }
 .buyer-transport-provider { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: 30px; align-items: center; padding: 28px; background: linear-gradient(115deg,#fffdf8,#f3f7ef); }
 .buyer-transport-provider h1 { margin: 8px 0; }
 .buyer-transport-provider p { color: var(--muted); line-height: 1.65; }

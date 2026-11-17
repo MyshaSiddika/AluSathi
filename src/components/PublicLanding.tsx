@@ -214,29 +214,7 @@ export default function PublicLanding() {
         </section>
       </main>
 
-      <footer className="public-footer">
-        <div className="public-footer-intro">
-          <a href="/" className="footer-brand"><span className="brand-mark"><Leaf size={19} /></span><strong>{bn ? "আলুসাথী" : "AluSathi"}</strong></a>
-          <p>{bn ? "সহজ তথ্য, সিদ্ধান্ত আপনার।" : "Clear information. Your decision."}</p>
-        </div>
-        <nav className="public-footer-links" aria-label={bn ? "পাতার নিচের লিংক" : "Footer navigation"}>
-          <div>
-            <a href="/about">{bn ? "আমাদের প্রকল্প" : "Our Project"}</a>
-          </div>
-          <div>
-            <strong>{bn ? "সহায়তা" : "Support"}</strong>
-            <a href="/contact">{bn ? "যোগাযোগ" : "Contact"}</a>
-            <a href="/help">{bn ? "সহায়তা কেন্দ্র" : "Help Center"}</a>
-          </div>
-        </nav>
-        <div className="public-footer-bottom">
-          <small>{bn ? "© ২০২৬ আলুসাথী। সর্বস্বত্ব সংরক্ষিত।" : "© 2026 AluSathi. All rights reserved."}</small>
-          <div className="public-footer-policy-links">
-            <a href="/privacy">{bn ? "তথ্য সুরক্ষা" : "Privacy"}</a>
-            <a href="/terms">{bn ? "ব্যবহারের শর্ত" : "Terms"}</a>
-          </div>
-        </div>
-      </footer>
+
     </div>
   );
 }

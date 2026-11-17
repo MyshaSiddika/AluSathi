@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useSiteTheme } from "@/hooks/useSiteTheme";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,13 +7,15 @@ export default function AboutPage() {
   const { language } = useLanguage();
   const theme = useSiteTheme();
   const bn = language === "bn";
+  const { hash } = useLocation();
+  const navigate = useNavigate();
 
   return (
     <div className={`farmer-v2 min-h-screen ${bn ? "font-bangla" : ""}`} data-home-theme={theme}>
       <main className="app-shell py-12">
         <Link to="/" className="text-button">← {bn ? "মূল পাতায় ফিরুন" : "Back to home"}</Link>
         <h1 className="my-4 text-3xl font-bold">{bn ? "আমাদের প্রকল্প" : "Our Project"}</h1>
-        <Tabs defaultValue="team">
+        <Tabs value={hash === "#project" ? "project" : "team"} onValueChange={value => navigate(`/about#${value}`, { replace: true })}>
           <TabsList aria-label={bn ? "আমাদের প্রকল্প" : "Our Project"}>
             <TabsTrigger value="team">{bn ? "আমাদের সম্পর্কে" : "About Us"}</TabsTrigger>
             <TabsTrigger value="project">{bn ? "প্রকল্প সম্পর্কে" : "About This Project"}</TabsTrigger>

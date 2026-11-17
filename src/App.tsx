@@ -12,6 +12,7 @@ import Auth from "@/pages/Auth";
 import SupportPage from "@/pages/SupportPage";
 import AboutPage from "@/pages/AboutPage";
 import PolicyPage from "@/pages/PolicyPage";
+import Footer from "@/components/Footer";
 
 function PageTitle() {
   const { pathname } = useLocation();
@@ -57,6 +58,7 @@ export default function App() {
           <Route path="/cold-storage" element={<Navigate to="/selling-preparation" replace />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
+        <Footer />
       </BrowserRouter></DemoProvider></AuthProvider>
     </LanguageProvider>
   );

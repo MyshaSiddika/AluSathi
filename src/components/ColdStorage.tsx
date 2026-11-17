@@ -13,7 +13,7 @@ function validProvider(item: unknown): item is Provider {
 export default function ColdStorage() {
   const { language } = useLanguage(); const bn = language === "bn";
   const t = (b: string, e: string) => bn ? b : e;
-  const [district] = useState(farmerDistrict);
+  const [district, setDistrict] = useState(farmerDistrict);
   const [providers, setProviders] = useState<Provider[] | null>(null);
   const [searched, setSearched] = useState("");
   const [loading, setLoading] = useState(false);
@@ -44,6 +44,7 @@ export default function ColdStorage() {
     <header><span className="storage-symbol"><Snowflake size={27}/></span><div><h2 id="storage-title">{t("হিমাগারে রাখতে চান?", "Want to use cold storage?")}</h2><p>{t("আপনার এলাকা:", "Your area:")} {bn ? DISTRICT_NAMES[district] || district : district}</p></div></header>
     <p className="storage-directory-note">{t("এটি যোগাযোগের তালিকা। আপনার কাছের সব হিমাগার এখানে নাও থাকতে পারে।", "This is a contact directory. It may not include stores near you.")}</p>
     <form className="storage-search-form" onSubmit={e => { e.preventDefault(); void search(); }}>
+      <label>{t("এলাকা", "Area")}<select value={district} onChange={event => { setDistrict(event.target.value); setProviders(null); setError(false); }}>{Object.entries(DISTRICT_NAMES).filter(([key])=>key!=="Other").map(([key,label])=><option key={key} value={key}>{bn ? label : key}</option>)}</select></label>
       <button type="submit" disabled={loading}>{loading ? <Loader2 className="storage-spinner" size={19}/> : <Search size={19}/>} {loading ? t("তালিকায় খোঁজা হচ্ছে…", "Searching the directory…") : t("হিমাগার খুঁজুন", "Find cold storage")}</button>
     </form>
     <div aria-live="polite" aria-busy={loading}>
