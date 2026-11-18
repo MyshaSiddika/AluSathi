@@ -57,9 +57,10 @@ export default function SeasonProgress({ bn, district, weather }: { bn: boolean;
   const today = localToday(now);
   const plantingDate = localStorage.getItem("alusathi-planting-date") || "";
   const currentDay = seasonDay(plantingDate, now);
-  const actual = Math.min(90, currentDay ?? 8);
+  const actual = currentDay ?? 8;
+  const planDay = Math.min(90, actual);
   const [selected, setSelected] = useState<number | null>(null);
-  const preview = selected ?? actual;
+  const preview = selected ?? planDay;
   const calendarRef = useRef<HTMLUListElement>(null);
   useEffect(() => {
     const calendar = calendarRef.current;
@@ -114,8 +115,8 @@ export default function SeasonProgress({ bn, district, weather }: { bn: boolean;
         <span>{areaLabel}</span>
       </div>
       <div className="season-actual">
-        <div className="season-progress-label"><strong>{t("মৌসুমের পরিকল্পনা", "Season plan")}</strong><span className="season-current">{t(`দিন ${fmt(actual)} / ৯০`, `Day ${fmt(actual)} / 90`)}</span></div>
-        <div className="season-track"><progress value={actual} max={90} aria-label={t("মৌসুমের পরিকল্পনা", "Season plan")} /><i aria-hidden="true" style={{ insetInlineStart: `${actual / 90 * 100}%` }} /></div>
+        <div className="season-progress-label"><strong>{t("মৌসুমের পরিকল্পনা", "Season plan")}</strong><span className="season-current">{actual > 90 ? t(`দিন ${fmt(actual)} · ৯০ দিনের পরিকল্পনা শেষ`, `Day ${fmt(actual)} · 90-day plan ended`) : t(`দিন ${fmt(actual)} / ৯০`, `Day ${fmt(actual)} / 90`)}</span></div>
+        <div className="season-track"><progress value={planDay} max={90} aria-label={t("মৌসুমের পরিকল্পনা", "Season plan")} /><i aria-hidden="true" style={{ insetInlineStart: `${planDay / 90 * 100}%` }} /></div>
       </div>
       <div className="season-milestones">{milestones.map(item => <button type="button" key={item.start} aria-pressed={stage === item} aria-current={actual >= item.start && actual <= item.end ? "step" : undefined} aria-controls="season-stage" onClick={() => setSelected(item.start)}>
         <item.icon size={22} aria-hidden="true" />
@@ -154,14 +155,15 @@ export default function SeasonProgress({ bn, district, weather }: { bn: boolean;
         </div>
         <div className="season-calendar-controls">
           <button type="button" disabled={firstDay <= 1} onClick={() => setSelected(Math.max(1, firstDay - 7))}>← {t("আগের সপ্তাহ", "Previous week")}</button>
-          <button type="button" className="season-return-today" onClick={() => setSelected(null)}>{t("আজকের দিনে ফিরে যান", "Return to today")}</button>
+          <button type="button" className="season-return-today" onClick={() => setSelected(null)}>{actual > 90 ? t("দিন ৯০-এ ফিরুন", "Return to Day 90") : t("আজকের দিনে ফিরে যান", "Return to today")}</button>
           <button type="button" disabled={firstDay + 6 >= 90} onClick={() => setSelected(firstDay + 7)}>{t("পরের সপ্তাহ", "Next week")} →</button>
           <button type="button" onClick={() => setSelected(90)}>{t("দিন ৯০", "Day 90")} ↗</button>
         </div>
       </header>
+      {actual > 90 && <p className="season-calendar-note" role="status">{t(`আপনার আলু চাষের ${fmt(actual)}ম দিন চলছে। এই ক্যালেন্ডারে প্রথম ৯০ দিনের পরিকল্পনা দেখানো হয়।`, `Your crop is on day ${fmt(actual)}. This calendar covers only days 1–90.`)}</p>}
       <ul id="season-calendar-days" className="season-calendar-grid" key={firstDay} ref={calendarRef}>{days.map(({ number, day, date, records, tip, weatherDay }) => (
         <li key={date}>
-          <button type="button" data-day={number} disabled={number < 1 || number > 90} aria-current={number === actual ? "date" : undefined} aria-pressed={number === preview} aria-controls="season-day-details" onClick={() => setSelected(number)}>
+          <button type="button" data-day={number} disabled={number < 1 || number > 90} aria-current={number >= 1 && number <= 90 && number === actual ? "date" : undefined} aria-pressed={number === preview} aria-controls="season-day-details" onClick={() => setSelected(number)}>
             <span className="season-calendar-weekday">{day.toLocaleDateString(bn ? "bn-BD" : "en-GB", { weekday: "short" })}</span>
             <time dateTime={date}><strong>{fmt(day.getDate())}</strong> <span className="season-calendar-month">{day.toLocaleDateString(bn ? "bn-BD" : "en-GB", { month: "short" })}</span></time>
             {number >= 1 && number <= 90 && <small>{number === actual ? t("আজ · ", "Today · ") : ""}{t(`দিন ${fmt(number)}`, `Day ${fmt(number)}`)}</small>}

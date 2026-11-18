@@ -18,18 +18,10 @@ export function initializeFarmerAccount() {
       return value && typeof value === "object" && !Array.isArray(value) ? value : {};
     };
     const profile = read("alusathi-farmer-profile-v1");
-    if (profile.accountPreset === "zarif-v2") return;
-    if (profile.accountPreset === "zarif-v1") {
-      const seeded = new Date(localStorage.getItem("alusathi-planting-age-recorded") + "T12:00:00");
-      seeded.setDate(seeded.getDate() - 8);
-      if (localToday(seeded) === localStorage.getItem("alusathi-planting-date")) {
-        seeded.setDate(seeded.getDate() + 1);
-        localStorage.setItem("alusathi-planting-date", localToday(seeded));
-      }
-      localStorage.setItem("alusathi-farmer-profile-v1", JSON.stringify({...profile, accountPreset:"zarif-v2"}));
-      return;
-    }
     const draft = read("alusathi-potato-sale-details-v1");
+    // Demo defaults belong only to a new browser account, never saved farm data.
+    if (Object.keys(profile).length || Object.keys(draft).length ||
+        ["alusathi-planting-date", "alusathi-planting-age", "alusathi-care-area"].some(key => localStorage.getItem(key))) return;
     const variety = typeof profile.variety === "string" && profile.variety.trim()
       ? profile.variety : typeof draft.variety === "string" && draft.variety.trim() && draft.variety !== "Potatoes"
       ? draft.variety : "Diamant";

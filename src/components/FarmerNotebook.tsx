@@ -51,7 +51,7 @@ export default function FarmerNotebook({ userId, photos, onDeletePhoto }: { user
   if(row.action?.kind==="task" && /স্প্রে|spray/i.test(row.title))return "spray";
   return "other";
  }
- const estimates=rows.filter(r=>r.kind==="advice"&&(!filterDate||r.date===filterDate));
+ const estimates=filter==="work"&&workFilter==="all"?rows.filter(r=>r.kind==="advice"&&(!filterDate||r.date===filterDate)):[];
  const visible=rows.filter(r=>(!filterDate||r.date===filterDate)&&(filter==="expenses"?r.kind==="expense":r.kind!=="expense"&&r.kind!=="advice"&&(workFilter==="all"||workType(r)===workFilter)));
  const days=[...new Set(visible.map(r=>r.date))];
  const allDays=[...new Set([...days,...estimates.map(r=>r.date)])].sort((a,b)=>b.localeCompare(a));

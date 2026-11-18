@@ -10,14 +10,15 @@ const base=process.env.BASE_URL||'http://127.0.0.1:8080';
   await context.addInitScript(lang=>{localStorage.setItem('alusathi-lang',lang);sessionStorage.setItem('alusathi-demo','true');sessionStorage.setItem('alusathi-role','farmer');localStorage.setItem('alusathi-district','Rangpur');localStorage.setItem('alusathi-planting-age','lt30');localStorage.setItem('alusathi-planting-age-recorded','2026-11-17');
    localStorage.setItem('alusathi-field-actions-v1',JSON.stringify(Array.from({length:6},(_,i)=>({id:'task-'+i,date:'2026-11-'+String(17-i).padStart(2,'0'),kind:'task',category:'field',district:'Rangpur',text:'Work '+i}))));
   },lang);
+  await page.route('**/api/retail-potato-prices',route=>route.fulfill({json:{checkedAt:new Date('2026-11-17T04:00:00Z').toISOString(),prices:{}}}));
   const footer=page.locator('footer.project-footer');
   for(const route of ['/','/auth','/account','/farmer#photos','/farmer#season','/farmer#diary','/selling-preparation','/selling-preparation/details','/life-cycle','/not-a-page','/about','/contact','/help','/privacy','/terms','/marketplace/farmer.html','/marketplace/buyer.html','/marketplace/index.html?public=1']){
    await page.goto(base+route);await footer.getByRole('link',{name:bn?'আমাদের সম্পর্কে':'About us',exact:true}).waitFor();assert.equal(await footer.count(),1);
    assert.ok(await footer.getByRole('link',{name:bn?'প্রকল্প সম্পর্কে':'About the project',exact:true}).isVisible());
    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),route+' overflow');
   }
-  await footer.getByRole('link',{name:bn?'প্রকল্প সম্পর্কে':'About the project',exact:true}).click();await page.getByRole('tab',{name:bn?'প্রকল্প সম্পর্কে':'About This Project',exact:true}).waitFor();assert.equal(await page.getByRole('tab',{name:bn?'প্রকল্প সম্পর্কে':'About This Project',exact:true}).getAttribute('aria-selected'),'true');
-  await footer.getByRole('link',{name:bn?'আমাদের সম্পর্কে':'About us',exact:true}).click();assert.equal(await page.getByRole('tab',{name:bn?'আমাদের সম্পর্কে':'About Us',exact:true}).getAttribute('aria-selected'),'true');
+  await footer.getByRole('link',{name:bn?'প্রকল্প সম্পর্কে':'About the project',exact:true}).click();await page.getByRole('tab',{name:bn?'প্রকল্প সম্পর্কে':'About This Project',exact:true}).waitFor();assert.equal(await page.getByRole('tab',{name:bn?'প্রকল্প সম্পর্কে':'About This Project',exact:true}).getAttribute('aria-selected'),'true');assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'About tab overflow');
+  await footer.getByRole('link',{name:bn?'আমাদের সম্পর্কে':'About us',exact:true}).click();assert.equal(await page.getByRole('tab',{name:bn?'আমাদের সম্পর্কে':'About Us',exact:true}).getAttribute('aria-selected'),'true');assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'About tab overflow');
   await page.goto(base+'/farmer#photos');assert.equal(await page.locator('.leaf-check-details').count(),0);assert.match(await page.locator('.photo-crop-age').innerText(),bn?/৮ দিন/:/8 days/);
   await page.goto(base+'/farmer');assert.match(await page.locator('.today-crop-context strong').innerText(),bn?/৮ দিন/:/8 days/);
   await page.goto(base+'/farmer#season');assert.equal(await page.locator('.season-milestones button').count(),5);assert.equal(await page.locator('.season-safety').count(),0);
@@ -43,12 +44,16 @@ const base=process.env.BASE_URL||'http://127.0.0.1:8080';
   await budget.waitFor({state:'detached'});
   await page.locator('.desktop-nav [data-view=buyer-plan],.mobile-nav [data-view=buyer-plan]').filter({visible:true}).first().click();
   await page.waitForURL('**#buyer-plan');
-  await page.locator('#buyer-plan-form').waitFor();
+  await page.locator('.retail-market-grid').waitFor();
+  assert.equal(await page.locator('[data-retail-group]').count(),2);
+  assert.equal(await page.locator('.retail-shop-table').count(),2);
   assert.equal(await page.locator('#buyer-weight-converter').count(),0);
   assert.equal(await page.locator('.buyer-plan-page .practice-note').count(),0);
   assert.equal(await page.locator('.buyer-budget-modal').count(),0);
   await page.reload();
-  await page.locator('#buyer-plan-form').waitFor();
+  await page.locator('.retail-market-grid').waitFor();
+  assert.equal(await page.locator('[data-retail-group]').count(),2);
+  assert.equal(await page.locator('.retail-shop-table').count(),2);
   await page.locator('[data-action=open-profile]').click();await page.locator('.profile-drawer').waitFor();await page.keyboard.press('Escape');assert.ok(await page.locator('[data-action=open-profile]').evaluate(el=>el===document.activeElement));
   assert.deepEqual(errors,[]);console.log(`${lang} ${width}px: shared footer, Farmer changes, local search, contact popup, calculator and profile passed`);await context.close();
  }} finally{await browser.close();}

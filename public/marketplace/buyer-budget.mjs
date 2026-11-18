@@ -12,6 +12,7 @@ const dhakaRoutes = {
 };
 const jamunaToll = 1000;
 const workerCharge = 2 * 600;
+export const presetTruckCapacityKg = 5000;
 export function routeExpenses(district) {
   if (!Object.hasOwn(dhakaRoutes, district)) return null;
   return {transport: String(dhakaRoutes[district].fare), labour: String(workerCharge),
@@ -25,11 +26,12 @@ export function calculateBudget(values,available=Infinity) {
   const budget=budgetNumber(values.budget),quantity=budgetNumber(values.quantity),price=budgetNumber(values.price);
   const costs=Object.fromEntries(expenseFields.map(([key])=>[key,budgetNumber(values[key])])),missing=Object.keys(costs).filter(key=>costs[key]===null&&(key!=='coldStorage'||String(values[key]??'').trim()!==''));
   const invalid=!(budget>0)||!(quantity>0)||quantity>1000000||!(price>0)||price>10000||quantity>available;
+  const needsTruckQuote = values.expenseMode === 'estimate' && quantity > presetTruckCapacityKg;
   const round=n=>Math.round(n*100)/100,potatoes=quantity>0&&price>0?round(quantity*price):null;
   const subtotal=round((potatoes??0)+Object.values(costs).reduce((sum,n)=>sum+(n??0),0));
-  const complete=!invalid&&!missing.length,total=complete?subtotal:null,remaining=complete?round(budget-total):null;
+  const complete=!invalid&&!missing.length&&!needsTruckQuote,total=complete?subtotal:null,remaining=complete?round(budget-total):null;
   const rawResale=budgetNumber(values.resale),resale=rawResale!==null&&rawResale<=10000?rawResale:null,revenue=complete&&resale!==null?round(quantity*resale):null;
-  return {budget,quantity,price,costs,missing,invalid,potatoes,subtotal,complete,total,remaining,unitCost:complete?round(total/quantity):null,revenue,profit:revenue!==null?round(revenue-total):null};
+  return {budget,quantity,price,costs,missing,invalid,needsTruckQuote,potatoes,subtotal,complete,total,remaining,unitCost:complete?round(total/quantity):null,revenue,profit:revenue!==null?round(revenue-total):null};
 }
 function budgetStorageKey(lot) { return lot ? `${storageKey}:${lot.id}` : storageKey; }
 function savedBudget(lot) { try { const value=JSON.parse(localStorage.getItem(budgetStorageKey(lot))||'{}');return value&&typeof value==='object'&&!Array.isArray(value)?value:{}; }catch{return {};}}
@@ -83,8 +85,12 @@ export function mountBudget(root,{t,h,money,lot,available=Infinity}) {
   let expenseMode = '';
   let calculationTimer;
   const draw=()=>{
-    const values=Object.fromEntries(new FormData(form)),r=calculateBudget(values,lot?available:Infinity);
+    const values=Object.fromEntries(new FormData(form)),r=calculateBudget({...values,expenseMode},lot?available:Infinity);
     try {localStorage.setItem(budgetStorageKey(lot),JSON.stringify({...values, fareRevision: 4, expenseMode}));root.querySelector('.budget-save-status').textContent='';}catch{root.querySelector('.budget-save-status').textContent=t('এই ব্রাউজারে সেভ হয়নি। হিসাবটি নিচে আছে।','Not saved in this browser. The result is shown below.');}
+    if (r.needsTruckQuote) {
+      output.innerHTML = `<p class="budget-incomplete" role="alert">${t('হিসাব অসম্পূর্ণ। ৫,০০০ কেজির বেশি আলুর জন্য একাধিক ট্রাক বা বড় গাড়ির ভাড়া লাগবে। “নিজে লিখুন” বেছে মোট খরচের কোট লিখুন।','Calculation incomplete. Loads above 5,000 kg need a multi-truck or larger-truck quote. Choose “Enter yourself” and enter the quoted total expenses.')}</p>`;
+      return;
+    }
     if (r.budget > 0 && r.quantity > 0 && r.quantity <= Math.min(available, 1000000) && !r.price && !values.price.trim() && !r.missing.length) {
       const balance = Math.round((r.budget - r.subtotal) * 100) / 100;
       output.innerHTML = `<div class="budget-total ${balance < 0 ? 'over-budget' : ''}">
@@ -116,7 +122,12 @@ export function mountBudget(root,{t,h,money,lot,available=Infinity}) {
     }, 900);
   });
   const updateAssumed = () => {
-    const {costs,missing} = calculateBudget(Object.fromEntries(new FormData(form)));
+    const {costs,missing,needsTruckQuote} = calculateBudget({...Object.fromEntries(new FormData(form)),expenseMode});
+    if (needsTruckQuote) {
+      total.textContent = t('গাড়িভাড়ার কোট প্রয়োজন','Truck quote needed');
+      estimateLines.replaceChildren();
+      return;
+    }
     total.textContent = missing.length ? '—' : money(Object.values(costs).reduce((sum, cost) => sum + (cost ?? 0), 0));
     estimateLines.innerHTML = expenseFields
       .filter(([key]) => costs[key] > 0)

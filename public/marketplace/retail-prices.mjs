@@ -87,8 +87,8 @@ export function mountRetailPrices(root, { group, t, h }) {
     readout.innerHTML = `
       <table class="retail-shop-table"><thead><tr><th scope="col">${t("দোকান","Shop")}</th><th scope="col">${t("আলুর ধরন","Potato type")}</th><th scope="col">${t("টাকা/কেজি","taka/kg")}</th></tr></thead><tbody>
         ${rows.map(product => {
-          const assumed = !validPrice(current[product.id]);
-          return `<tr><th scope="row">${shopLink(product)}</th><td>${series.find(item => item.key === product.type).name}</td><td class="retail-price-cell"><strong>${number.format(assumed ? 28 : current[product.id])}</strong><span>${t("টাকা/কেজি","taka/kg")}</span></td></tr>`;
+          const missing = !validPrice(current[product.id]);
+          return `<tr><th scope="row">${shopLink(product)}</th><td>${series.find(item => item.key === product.type).name}</td><td class="retail-price-cell"><strong>${missing ? "—" : number.format(current[product.id])}</strong><span>${missing ? t("দর পাওয়া যায়নি","Price not available") : t("টাকা/কেজি","taka/kg")}</span></td></tr>`;
         }).join("")}</tbody></table>
       ${chart ? `<div class="retail-history-chart">${chart}</div>` : ""}`;
   }
