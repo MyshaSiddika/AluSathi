@@ -1,3 +1,4 @@
+import { localToday } from "./local-date";
 import { DISTRICT_NAMES } from "./district-names";
 
 export const PROFILE_CHANGED = "alusathi-farmer-profile-changed";
@@ -8,4 +9,42 @@ export function farmerDistrict() {
   } catch { /* Keep the existing district if the profile is unreadable. */ }
   const saved = localStorage.getItem("alusathi-district") || "";
   return DISTRICT_NAMES[saved] ? saved : "Rangpur";
+}
+
+export function initializeFarmerAccount() {
+  try {
+    const read = (key: string): Record<string, unknown> => {
+      const value = JSON.parse(localStorage.getItem(key) || "{}");
+      return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+    };
+    const profile = read("alusathi-farmer-profile-v1");
+    if (profile.accountPreset === "zarif-v2") return;
+    if (profile.accountPreset === "zarif-v1") {
+      const seeded = new Date(localStorage.getItem("alusathi-planting-age-recorded") + "T12:00:00");
+      seeded.setDate(seeded.getDate() - 8);
+      if (localToday(seeded) === localStorage.getItem("alusathi-planting-date")) {
+        seeded.setDate(seeded.getDate() + 1);
+        localStorage.setItem("alusathi-planting-date", localToday(seeded));
+      }
+      localStorage.setItem("alusathi-farmer-profile-v1", JSON.stringify({...profile, accountPreset:"zarif-v2"}));
+      return;
+    }
+    const draft = read("alusathi-potato-sale-details-v1");
+    const variety = typeof profile.variety === "string" && profile.variety.trim()
+      ? profile.variety : typeof draft.variety === "string" && draft.variety.trim() && draft.variety !== "Potatoes"
+      ? draft.variety : "Diamant";
+    const planting = new Date();
+    planting.setDate(planting.getDate() - 7);
+    localStorage.setItem("alusathi-planting-date", localToday(planting));
+    localStorage.setItem("alusathi-planting-age", "lt30");
+    localStorage.setItem("alusathi-planting-age-recorded", localToday());
+    localStorage.setItem("alusathi-care-area", JSON.stringify({value:"1",unit:"acre",bigha:"33"}));
+    localStorage.setItem("alusathi-potato-sale-details-v1", JSON.stringify({...draft,variety}));
+    localStorage.setItem("alusathi-farmer-profile-v1", JSON.stringify({
+      ...profile, name:"Zarif Ahmed", land:"1", landUnit:"acre", variety,
+      district:profile.district || localStorage.getItem("alusathi-district") || "Rangpur",
+      accountPreset:"zarif-v2",
+    }));
+    sessionStorage.setItem("alusathi-market-demo-farmer", "Zarif Ahmed");
+  } catch { /* Keep the farmer page available when local storage is full. */ }
 }

@@ -23,6 +23,11 @@ export function cropAge(plantingDate: string, now = new Date()): number | null {
   return days >= 0 && days <= 180 ? days : null;
 }
 
+export function seasonDay(plantingDate: string, now = new Date()) {
+  const elapsed = cropAge(plantingDate, now);
+  return elapsed === null ? null : elapsed + 1;
+}
+
 export function cropGuidance(days: number | null, weather: WeatherData | null, bn: boolean) {
   const stage = days === null ? (bn ? "চাষের তারিখ দিন" : "Add planting date")
     : days < 15 ? (bn ? "অঙ্কুর বের হওয়ার সময়" : "Sprouts appearing")

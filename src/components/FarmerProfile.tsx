@@ -7,16 +7,17 @@ import { DISTRICT_NAMES } from "@/lib/district-names";
 import { FARMER_LOCATIONS } from "@/data/farmer-locations";
 import { PROFILE_CHANGED } from "@/lib/farmer-profile";
 import { marketEvent, ownLots, phoneLink, photoSource, readObject, record, profilePhoto, text as safeText, type SaleLot } from "@/lib/farmer-market";
+import { seasonDay } from "@/lib/crop-advice";
 import { notebookToday, validDay } from "@/lib/notebook";
 import "@/farmer-profile.css";
 
 const key = "alusathi-farmer-profile-v1";
-type Profile = { photo?: string; name?: string; district?: string; upazila?: string; village?: string; phone?: string; whatsapp?: string; land?: string; landUnit?: string; tenure?: string; preferredLanguage?: string; contactSharingEnabled?: boolean };
+type Profile = { photo?: string; name?: string; district?: string; upazila?: string; village?: string; phone?: string; whatsapp?: string; land?: string; landUnit?: string; variety?: string; tenure?: string; preferredLanguage?: string; contactSharingEnabled?: boolean };
 function readProfile(): Profile {
   try {
     const value=JSON.parse(localStorage.getItem(key) || "{}");
     if(!value||typeof value!=="object"||Array.isArray(value))return {};
-    for(const field of ["name","district","upazila","village","phone","whatsapp","land","landUnit","tenure","preferredLanguage"])if(typeof value[field]!=="string")delete value[field];
+    for(const field of ["name","district","upazila","village","phone","whatsapp","land","landUnit","variety","tenure","preferredLanguage"])if(typeof value[field]!=="string")delete value[field];
     if(typeof value.contactSharingEnabled!=="boolean")delete value.contactSharingEnabled;
     value.photo = photoSource(value.photo);
     return value;
@@ -78,7 +79,7 @@ export default function FarmerProfile() {
     event.preventDefault();
     if(busy) return;
     const form = new FormData(event.currentTarget);
-    const next = Object.fromEntries(["name", "district", "upazila", "village", "phone", "whatsapp", "land", "landUnit"].map(field => [field, String(form.get(field) || "").trim().slice(0, field === "phone" || field === "whatsapp" ? 25 : 100)])) as Profile;
+    const next = Object.fromEntries(["name", "district", "upazila", "village", "phone", "whatsapp", "land", "landUnit", "variety"].map(field => [field, String(form.get(field) || "").trim().slice(0, field === "phone" || field === "whatsapp" ? 25 : 100)])) as Profile;
     next.photo = photoSource(profile.photo);
     next.contactSharingEnabled = form.get("contactSharingEnabled") === "on";
     setFailed(true);
@@ -96,6 +97,7 @@ export default function FarmerProfile() {
     try { const saved = {...readProfile(), ...next}; localStorage.setItem(key, JSON.stringify(saved)); window.dispatchEvent(new Event(PROFILE_CHANGED)); setProfile(saved); setFailed(false); setStatus(text("প্রোফাইল সেভ হয়েছে।", "Profile saved.")); }
     catch { setStatus(text("সেভ হয়নি। ব্রাউজারে জায়গা খালি করে আবার চেষ্টা করুন।", "Could not save. Free some space in this browser and try again.")); }
   }
+  const plantingDays = seasonDay(localStorage.getItem("alusathi-planting-date") || "");
   const labelClass = "farmer-profile-field";
   return <section className="app-shell farmer-profile-page" aria-labelledby="profile-title"><header><div><p className="section-kicker">{text("আমার পরিচয়", "My details")}</p><h1 id="profile-title">{text("কৃষকের প্রোফাইল", "Farmer profile")}</h1><p>{text("আপনার পরিচয়, জমি আর বিক্রির আলু—এক জায়গায়।", "Your details, field and potatoes for sale in one place.")}</p></div><span className="profile-role"><Sprout size={17}/>{text("কৃষক", "Farmer")}</span></header><div className="profile-account-card"><form className="farmer-profile-form" onSubmit={save} onChange={()=>setStatus("")}>
     <section className="profile-photo-section" aria-labelledby="profile-photo-title"><div className="profile-photo-preview">{profile.photo && profile.photo !== failedPhoto ? <img src={profile.photo} alt={text("আপনার প্রোফাইল ছবি", "Your profile photo")} onError={()=>setFailedPhoto(profile.photo || "")}/> : <UserRound size={42} aria-hidden="true"/>}<span aria-hidden="true"><Camera size={16}/></span></div><div><h2 id="profile-photo-title">{text("প্রোফাইল ছবি", "Profile photo")}</h2><p>{text("নিজের একটি পরিষ্কার ছবি দিন।", "Add a clear photo of yourself.")}</p><div className="profile-photo-controls"><label className="profile-upload-button"><Camera size={17}/>{busy ? text("ছবি তৈরি হচ্ছে…", "Preparing photo…") : text("ছবি যোগ করুন", "Add photo")}<input type="file" aria-label={text("প্রোফাইল ছবি আপলোড", "Add profile photo")} accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={event=>{void upload(event.target.files?.[0]);event.target.value="";}}/></label>{profile.photo && <button type="button" disabled={busy} onClick={()=>{setProfile({...profile,photo:""});setStatus("");}}>{text("ছবি সরান", "Remove photo")}</button>}</div><small>JPG, PNG, WebP</small></div></section>
@@ -109,9 +111,10 @@ export default function FarmerProfile() {
     <label className={labelClass}>{text("ফোন", "Phone")}<input name="phone" type="tel" autoComplete="tel" maxLength={25} value={profile.phone || ""} onChange={e => setProfile({ ...profile, phone: e.target.value })} /></label>
     <label className={labelClass}>WhatsApp<input name="whatsapp" type="tel" maxLength={25} value={profile.whatsapp || ""} onChange={e => setProfile({ ...profile, whatsapp: e.target.value })} /></label>
     </div><label className="profile-sharing"><input name="contactSharingEnabled" type="checkbox" checked={Boolean(profile.contactSharingEnabled)} onChange={e => setProfile({ ...profile, contactSharingEnabled: e.target.checked })} /><span>{text("আলুর লটের সঙ্গে আমার ফোন ও WhatsApp দেখান", "Show my phone and WhatsApp with my potato lots")}<small>{text("ক্রেতা সরাসরি কথা বলবেন। কেনাবেচা আলুসাথীর বাইরে হবে।", "Buyers contact you directly. Buying and selling happen outside AluSathi.")}</small></span></label></fieldset>
-    <fieldset><legend><Sprout size={21}/>{text("জমির তথ্য", "Field details")}</legend><div className="profile-fields">
+    <fieldset><legend><Sprout size={21}/>{text("জমির তথ্য", "Field details")}</legend>{plantingDays !== null && <p>{text("চাষের সময়", "Crop age")} · {number(plantingDays)} {text("দিন", "days")}</p>}<div className="profile-fields">
     <label className={labelClass}>{text("চাষের জমি", "Land size")}<input name="land" inputMode="decimal" maxLength={12} value={profile.land || ""} onChange={e => setProfile({ ...profile, land: e.target.value })} /></label>
     <label className={labelClass}>{text("জমির একক", "Land unit")}<select name="landUnit" value={profile.landUnit || "decimal"} onChange={e => setProfile({ ...profile, landUnit: e.target.value })}><option value="decimal">{text("শতক", "shatak (1/100 acre)")}</option><option value="acre">{text("একর", "acre")}</option><option value="bigha">{text("বিঘা", "bigha")}</option><option value="hectare">{text("হেক্টর", "hectare")}</option></select></label>
+    <label className={labelClass}>{text("আলুর জাত", "Potato variety")}<input name="variety" maxLength={60} value={profile.variety || ""} onChange={e=>setProfile({...profile,variety:e.target.value})}/></label>
     </div></fieldset>
     <div className="farmer-profile-actions"><button className="secondary-main" type="button" disabled={busy} onClick={()=>{setProfile(readProfile());setStatus("");}}>{text("বাতিল করুন", "Cancel")}</button><button className="main-button" type="submit" disabled={busy}><Check size={18}/>{text("সেভ করুন", "Save profile")}</button></div>{status && <p role={failed?"alert":"status"} className="farmer-profile-status">{status}</p>}
   </form></div>

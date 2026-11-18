@@ -2,13 +2,15 @@ import { createContext, useContext, useState, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Leaf, Truck } from 'lucide-react';
 import { useLanguage } from './LanguageContext';
+import { initializeFarmerAccount } from '@/lib/farmer-profile';
 
 const DemoContext = createContext({ demo: false, setDemo: (_value: boolean) => {} });
 export function DemoProvider({ children }: { children: ReactNode }) {
   const [demo, update] = useState(() => {
-    try { return sessionStorage.getItem('alusathi-demo') === 'true'; } catch { return false; }
+    try { const active = sessionStorage.getItem('alusathi-demo') === 'true'; if (active) initializeFarmerAccount(); return active; } catch { return false; }
   });
   function setDemo(value: boolean) {
+    if (value) initializeFarmerAccount();
     try { sessionStorage.setItem('alusathi-demo', String(value)); sessionStorage.setItem('alusathi-role', value ? 'farmer' : ''); } catch { /* In-memory session still works. */ }
     update(value);
   }

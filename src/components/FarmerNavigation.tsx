@@ -13,7 +13,7 @@ function farmerIdentity() {
 }
 
 export default function FarmerNavigation({ active = "today" }: { active?: string }) {
-  const { language } = useLanguage();
+  const { language, setLanguage } = useLanguage();
   const { user, signOut, configured } = useAuth();
   const { setDemo } = useDemo();
   const [error, setError] = useState("");
@@ -46,6 +46,8 @@ export default function FarmerNavigation({ active = "today" }: { active?: string
     return () => { document.removeEventListener("keydown", keyboard); document.removeEventListener("focusin", keepFocus); document.body.style.overflow = overflow; if (previous?.isConnected) previous.focus(); };
   }, [profileOpen]);
   const bn = language === "bn";
+  const name = bn && identity.name.toLowerCase() === "zarif ahmed" ? "জারিফ আহমেদ" : identity.name || (bn ? "কৃষক" : "Farmer");
+  const profileLabel = active === "photos" ? `${bn ? "স্বাগতম" : "Welcome"} ${name}` : name;
   const tabs = [
     ["photos", "/farmer#photos", bn ? "ছবি" : "Photos", Camera],
     ["today", "/farmer", bn ? "আজকের কাজ" : "Today's tasks", Sun],
@@ -65,15 +67,25 @@ export default function FarmerNavigation({ active = "today" }: { active?: string
       <Link to="/farmer" className="site-brand" onClick={() => window.scrollTo(0, 0)}><span className="brand-mark"><Leaf size={22} /></span><strong>আলুসাথী</strong></Link>
       <nav className="farmer-tabs" aria-label={bn ? "মূল মেনু" : "Main menu"}>{links}</nav>
       <div className="farmer-header-actions">
-      <button type="button" className="farmer-profile-trigger" aria-label={bn ? "প্রোফাইল খুলুন" : "Open profile"} onClick={() => { setIdentity(farmerIdentity()); setProfileOpen(true); }}><UserRound size={18} /><span>{bn ? "প্রোফাইল" : "Profile"}</span></button>
-      <details className="farmer-more" onKeyDown={event => { if (event.key === "Escape") { event.currentTarget.open = false; event.currentTarget.querySelector("summary")?.focus(); } }}><summary><Menu size={18} />{bn ? "আরও" : "More"}</summary><div onClick={event => { if ((event.target as Element).closest("a,button")) event.currentTarget.closest("details")?.removeAttribute("open"); }}>
-        <Link to="/farmer#profile">{bn ? "প্রোফাইল" : "Profile"}</Link>
-        {!user && configured && <Link to="/account">{bn ? "অনলাইন খাতায় লগইন" : "Log in to online Khata"}</Link>}
-        <button onClick={leave}>{user ? (bn ? "বের হন" : "Sign out") : (bn ? "মূল পাতায় ফিরুন" : "Go to home")}</button>
-      </div></details>
+      <button type="button" className="farmer-profile-trigger" aria-label={bn ? "প্রোফাইল খুলুন" : "Open profile"} onClick={() => { setIdentity(farmerIdentity()); setProfileOpen(true); }}><UserRound size={18} /><span>{profileLabel}</span></button>
+      <details className="farmer-more" onKeyDown={event => {
+        if (event.key === "Escape") {
+          event.currentTarget.open = false;
+          event.currentTarget.querySelector("summary")?.focus();
+        }
+      }}>
+        <summary><Menu size={18} aria-hidden="true"/>{bn ? "আরও" : "More"}</summary>
+        <div onClick={event => {
+          if ((event.target as Element).closest("a,button")) event.currentTarget.closest("details")?.removeAttribute("open");
+        }}>
+          <Link to="/farmer#profile">{bn ? "প্রোফাইল" : "Profile"}</Link>
+          <button type="button" onClick={() => setLanguage(bn ? "en" : "bn")}>{bn ? "English" : "বাংলা"}</button>
+          <Link to="/">{bn ? "মূল পাতায় ফিরুন" : "Back to home"}</Link>
+        </div>
+      </details>
       </div>
     </div>{error && <p role="alert" className="app-shell">{error}</p>}</header>
     <nav className="farmer-bottom-tabs" aria-label={bn ? "ফোনের মূল মেনু" : "Mobile menu"}>{mobileLinks}<details className="farmer-mobile-more" onKeyDown={event=>{if(event.key==="Escape"){event.currentTarget.open=false;event.currentTarget.querySelector('summary')?.focus();}}}><summary className={active==="market" ? "is-current" : ""}><Menu size={19}/><span>{bn ? "আরও" : "More"}</span></summary><div onClick={event=>{if((event.target as Element).closest('a'))event.currentTarget.closest('details')?.removeAttribute('open')}}><Link to="/farmer#market" aria-current={active==="market"?"page":undefined}><Package size={19}/>{bn ? "বাজারে দিন" : "List for sale"}</Link><Link to="/farmer#profile"><UserRound size={19}/>{bn ? "প্রোফাইল" : "Profile"}</Link></div></details></nav>
-    {profileOpen && <div className="farmer-profile-overlay" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setProfileOpen(false); }}><aside className="farmer-profile-drawer" role="dialog" aria-modal="true" aria-label={bn ? "আমার প্রোফাইল" : "My profile"}><button className="farmer-profile-close" type="button" aria-label={bn ? "বন্ধ করুন" : "Close"} onClick={() => setProfileOpen(false)}>×</button><p className="section-kicker">{bn ? "আমার প্রোফাইল" : "My profile"}</p><div className="farmer-drawer-avatar">{identity.photo && identity.photo !== failedPhoto ? <img src={identity.photo} alt={bn ? "সেভ করা প্রোফাইল ছবি" : "Saved profile photo"} onError={() => setFailedPhoto(identity.photo)} /> : <UserRound size={38} aria-hidden="true" />}</div><h2>{identity.name || (bn ? "কৃষক" : "Farmer")}</h2><p>{bn ? "কৃষক" : "Farmer"}</p><Link className="secondary-main" to="/farmer#profile" onClick={() => setProfileOpen(false)}>{bn ? "প্রোফাইল দেখুন" : "View profile"}</Link><Link className="secondary-main" to="/farmer#my-listings" onClick={() => setProfileOpen(false)}>{bn ? "আমার তালিকা" : "My listings"}</Link></aside></div>}
+    {profileOpen && <div className="farmer-profile-overlay" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setProfileOpen(false); }}><aside className="farmer-profile-drawer" role="dialog" aria-modal="true" aria-label={bn ? "আমার প্রোফাইল" : "My profile"}><button className="farmer-profile-close" type="button" aria-label={bn ? "বন্ধ করুন" : "Close"} onClick={() => setProfileOpen(false)}>×</button><p className="section-kicker">{bn ? "আমার প্রোফাইল" : "My profile"}</p><div className="farmer-drawer-avatar">{identity.photo && identity.photo !== failedPhoto ? <img src={identity.photo} alt={bn ? "সেভ করা প্রোফাইল ছবি" : "Saved profile photo"} onError={() => setFailedPhoto(identity.photo)} /> : <UserRound size={38} aria-hidden="true" />}</div><h2>{identity.name || (bn ? "কৃষক" : "Farmer")}</h2><p>{bn ? "কৃষক" : "Farmer"}</p><Link className="secondary-main" to="/farmer#profile" onClick={() => setProfileOpen(false)}>{bn ? "প্রোফাইল দেখুন" : "View profile"}</Link>{!user && configured && <Link className="secondary-main" to="/account">{bn ? "অনলাইন খাতায় লগইন" : "Log in to online Khata"}</Link>}{user && <button className="secondary-main" onClick={leave}>{bn ? "বের হন" : "Sign out"}</button>}<Link className="secondary-main" to="/farmer#my-listings" onClick={() => setProfileOpen(false)}>{bn ? "আমার তালিকা" : "My listings"}</Link></aside></div>}
   </>;
 }

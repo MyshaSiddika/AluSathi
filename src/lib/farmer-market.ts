@@ -8,7 +8,7 @@ export const formDraftKey = "alusathi-sale-form-v1";
 export const providedPhotos = [1,2,3].map(i => ({src:`/marketplace/listing-photos/potato-0${i}.webp`}));
 type RecordData = Record<string, unknown>;
 export type SaleLot = RecordData & { id: string; quantityKg: number; askingPriceKg: number; district: string; upazila: string; variety: string; createdAt: string; photos: { src: string }[] };
-export type ListingDetails = { variety: string; notes: string; harvestDate: string; storageDescription: string; country?: string; purpose?: string; batchCode?: string; packedMonth?: string };
+export type ListingDetails = { variety: string; notes: string; harvestDate: string; storageDescription: string; condition?: string; country?: string; purpose?: string; batchCode?: string; packedMonth?: string };
 export function record(value: unknown): RecordData { return value && typeof value === "object" && !Array.isArray(value) ? value as RecordData : {}; }
 export function text(value: unknown, limit = 200) { return typeof value === "string" ? value.slice(0, limit) : ""; }
 export function readObject(key: string) { try { return record(JSON.parse(localStorage.getItem(key) || "{}")); } catch { return {}; } }
@@ -66,7 +66,7 @@ export function publishLot(quantity: string, price: string, photos: {src: string
     farmerName: text(previous?.farmerName ?? profile.name, 100), readyDate: (!pickupChanged && text(previous?.readyDate,10)) || ready.toISOString().slice(0,10), createdAt: text(previous?.createdAt,30) || new Date().toISOString(), updatedAt:new Date().toISOString(),
     notes: text(previous?.notes ?? draft.notes, 300), storageDescription: text(previous?.storageDescription ?? draft.storageDescription), photos, photo: photos[0].src,
     preparation: previous?.preparation ?? { checks: Array.isArray(prep.checks) ? prep.checks.filter(c => ["sort","bag","weight","label","photos","example","scales","terms"].includes(String(c))) : [], checkedOn: text(prep.checkedOn, 10) },
-    ...(details ? {variety:text(details.variety.trim(),60) || "Potatoes",notes:text(details.notes.trim(),300),harvestDate:text(details.harvestDate,10),storageDescription:text(details.storageDescription.trim(),200)} : {}),
+    ...(details ? {variety:text(details.variety.trim(),60) || "Potatoes",notes:text(details.notes.trim(),300),harvestDate:text(details.harvestDate,10),storageDescription:text(details.storageDescription.trim(),200),condition:["harvested","cold-storage","unharvested"].includes(details.condition || "") ? details.condition : ""} : {}),
     ...(details ? {country:text(details.country,60), purpose:["table","seed","processing"].includes(details.purpose || "") ? details.purpose : "unknown", batchCode:text(details.batchCode,40), packedMonth:/^\d{4}-(0[1-9]|1[0-2])$/.test(details.packedMonth || "") ? details.packedMonth : ""} : {}),
   };
   localStorage.setItem(marketKey, JSON.stringify({...data, listings: editingId ? (data.listings as RecordData[]).map(l=>l.id===editingId ? lot : l) : [lot, ...(data.listings as unknown[])]}));

@@ -24,7 +24,7 @@ import { useDemo } from "@/contexts/DemoContext";
 import ScanInsights from "@/components/ScanInsights";
 import { deleteRecord, readRecords, writeRecord } from "@/lib/farmer-records";
 import type { Json } from "@/integrations/supabase/types";
-import { cropAge } from "@/lib/crop-advice";
+import { seasonDay } from "@/lib/crop-advice";
 import { localToday } from "@/lib/local-date";
 import { spreadOutlook } from "@/lib/farmer-tools";
 import { DISTRICT_NAMES } from "@/lib/district-names";
@@ -523,7 +523,7 @@ export default function AluSathiDashboard({ farmerHome = false }: { farmerHome?:
 
   const weatherRisk = Boolean(spreadOutlook(weather)?.high);
   const weatherAlerts = weather?.cached ? [] : weather?.alerts || [];
-  const age = cropAge(plantingDate);
+  const age = seasonDay(plantingDate);
   const marketHref = dashboardAccess ? "/marketplace/farmer.html" : "/marketplace/";
 
   async function logout() {

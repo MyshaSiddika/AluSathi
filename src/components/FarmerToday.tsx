@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Camera, Check, ChevronDown, Droplets, Flower2, Leaf, PackageCheck, Sparkles, Sprout, Volume2 } from "lucide-react";
 import "@/farmer-today.css";
 import type { WeatherData } from "@/lib/api";
-import { cropAge, cropGuidance, plantingAges, rangeGuidance, type PlantingAge } from "@/lib/crop-advice";
+import { seasonDay, cropAge, cropGuidance, plantingAges, rangeGuidance, type PlantingAge } from "@/lib/crop-advice";
 import { spreadOutlook } from "@/lib/farmer-tools";
 import { localToday } from "@/lib/local-date";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -70,7 +70,7 @@ export default function FarmerToday({ weather, loading, district, districts, pla
     return () => { speechSynthesis.removeEventListener("voiceschanged", refresh); speechSynthesis.cancel(); };
   }, []);
 
-  const age = cropAge(plantingDate);
+  const age = seasonDay(plantingDate);
   const elapsed = cropAge(recorded);
   const stale = Boolean(range) && (elapsed === null || elapsed >= 30);
   const approximate = age === null && range && !stale ? rangeGuidance(range, bn) : null;

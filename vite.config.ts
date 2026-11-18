@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { readFileSync } from "node:fs";
+import retailPotatoPrices from "./api/retail-potato-prices.mjs";
 import { VitePWA } from "vite-plugin-pwa";
 
 // https://vitejs.dev/config/
@@ -30,6 +31,11 @@ export default defineConfig(() => ({
   },
   plugins: [
     react(),
+    {
+      name: "retail-potato-prices",
+      configureServer(server) { server.middlewares.use("/api/retail-potato-prices", retailPotatoPrices); },
+      configurePreviewServer(server) { server.middlewares.use("/api/retail-potato-prices", retailPotatoPrices); },
+    },
     {
       name: "marketplace-directory-index",
       apply: "serve",

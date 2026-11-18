@@ -3,6 +3,12 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useSiteTheme } from "@/hooks/useSiteTheme";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+const team = [
+  { name: "Mst. Shuraia Parvin", phone: "01732616653", email: "shuraiajenin@gmail.com" },
+  { name: "Zarif Ahmed", phone: "01797092258", email: "zarifahmed14@gmail.com" },
+  { name: "Mysha Tamanna Siddika", phone: "01859983081", email: "myshatamanna@gmail.com" },
+];
+
 export default function AboutPage() {
   const { language } = useLanguage();
   const theme = useSiteTheme();
@@ -21,7 +27,15 @@ export default function AboutPage() {
             <TabsTrigger value="project">{bn ? "প্রকল্প সম্পর্কে" : "About This Project"}</TabsTrigger>
           </TabsList>
           <TabsContent value="team" className="mt-6">
-            <p>{bn ? "দলের সদস্যদের পরিচিতি শিগগিরই এখানে পাওয়া যাবে।" : "Team profiles will be available here."}</p>
+            <div className="grid grid-cols-3 gap-6">
+              {team.map(member => <article key={member.email} className="rounded-2xl border border-[var(--home-line)] bg-white p-6">
+                <h2 className="mb-5 text-xl font-bold">{member.name}</h2>
+                <dl className="grid gap-4">
+                  <div><dt className="text-sm text-[var(--home-muted)]">{bn ? "ফোন" : "Phone"}</dt><dd><a className="inline-block py-2 font-semibold text-[var(--home-green)] underline underline-offset-4" href={`tel:+880${member.phone.slice(1)}`}>{member.phone}</a></dd></div>
+                  <div><dt className="text-sm text-[var(--home-muted)]">{bn ? "ইমেইল" : "Email"}</dt><dd><a className="inline-block break-all py-2 text-[var(--home-green)] underline underline-offset-4" href={`mailto:${member.email}`}>{member.email}</a></dd></div>
+                </dl>
+              </article>)}
+            </div>
           </TabsContent>
           <TabsContent value="project" className="mt-6">
             <p className="max-w-2xl text-lg">{bn

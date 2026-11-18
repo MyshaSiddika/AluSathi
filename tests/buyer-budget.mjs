@@ -3,6 +3,9 @@ import {calculateBudget,budgetNumber,expenseFields} from '../public/marketplace/
 import {parsePotatoRequest} from '../public/marketplace/buyer-search.mjs';
 const values={budget:'10000',quantity:'200',price:'25',transport:'1000',labour:'500',loading:'300',toll:'200',phone:'100',other:'0'};
 const result=calculateBudget(values,1250);
+assert.equal(result.costs.coldStorage,null);
+assert.equal(calculateBudget({...values,coldStorage:"300"}).total,7400);
+assert.equal(calculateBudget({...values,coldStorage:"bad"}).complete,false);
 assert.equal(result.total,7100);assert.equal(result.remaining,2900);assert.equal(result.unitCost,35.5);assert.equal(result.profit,null);
 assert.equal(calculateBudget({...values,transport:''}).remaining,null);
 assert.equal(calculateBudget({...values,phone:'bad'}).complete,false);
@@ -14,7 +17,7 @@ assert.equal(calculateBudget({...values,resale:'30'}).profit,-1100);
 assert.equal(calculateBudget({...values,phone:'',resale:'40'}).profit,null);
 assert.equal(budgetNumber('১০,০০০'),10000);assert.equal(budgetNumber(''),null);assert.equal(budgetNumber('-1'),null);assert.equal(budgetNumber('Infinity'),null);
 assert.equal(calculateBudget({...values,quantity:'100000000'}).invalid,true);
-assert.equal(new Set(expenseFields.map(([key])=>key)).size,6);
+assert.equal(new Set(expenseFields.map(([key])=>key)).size,7);
 const context={varieties:[['Diamant','ডায়মন্ড'],['Granola','গ্রানোলা']],districts:[['Rangpur','রংপুর'],['Dinajpur','দিনাজপুর']],places:[{upazila:'Birganj',district:'Dinajpur'}]};
 assert.deepEqual(parsePotatoRequest('রংপুরে ৫০০ কেজি ডায়মন্ড আলু',context),{quantity:500,variety:'Diamant',district:'Rangpur',upazila:''});
 assert.equal(parsePotatoRequest('1,250 kg Diamond in Rangpur',context).quantity,1250);

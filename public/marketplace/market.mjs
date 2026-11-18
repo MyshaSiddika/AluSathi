@@ -7,9 +7,9 @@ export const todayPlus = days => {
 const photo = name => `/marketplace/listing-photos/${name}.webp`;
 
 const sampleLots = [
-  {farmerName:"Rahima Begum",farmerNameBn:"রহিমা বেগম",district:"Rangpur",upazila:"Pirganj",variety:"Diamant",purpose:"table",quantityKg:1250,askingPriceKg:22,readyIn:0,packaging:"Loose, sorted",packagingBn:"বাছাই করা, খোলা",notes:"Medium and large, dry potatoes; weigh at pickup.",notesBn:"মাঝারি ও বড় শুকনো আলু; নেওয়ার সময় ওজন মিলিয়ে নিন।",images:["potato-01"]},
-  {farmerName:"Abdul Karim",farmerNameBn:"আবদুল করিম",district:"Bogura",upazila:"Shibganj",variety:"Cardinal",purpose:"table",quantityKg:840,askingPriceKg:25,readyIn:1,packaging:"Wooden crates",packagingBn:"কাঠের ঝুড়িতে",notes:"Red-skinned potatoes in crates. Check their size before collecting.",notesBn:"লাল খোসার আলু ঝুড়িতে রাখা; নেওয়ার আগে আকার দেখে নিন।",images:["red-crate"]},
-  {farmerName:"Nurul Islam",farmerNameBn:"নুরুল ইসলাম",district:"Dinajpur",upazila:"Birganj",variety:"Granola",purpose:"table",quantityKg:2200,askingPriceKg:20,readyIn:2,packaging:"Loose on burlap",packagingBn:"চটের ওপর খোলা",notes:"Mostly similar-sized potatoes. Sacks are not included in the price.",notesBn:"বেশির ভাগ আলু একই আকারের; বস্তা দরের মধ্যে নেই।",images:["yellow-burlap"]},
+  {farmerName:"Rahima Begum",condition:"harvested",farmerNameBn:"রহিমা বেগম",district:"Rangpur",upazila:"Pirganj",variety:"Diamant",purpose:"table",quantityKg:1250,askingPriceKg:22,readyIn:0,packaging:"Loose, sorted",packagingBn:"বাছাই করা, খোলা",notes:"Medium and large, dry potatoes; weigh at pickup.",notesBn:"মাঝারি ও বড় শুকনো আলু; নেওয়ার সময় ওজন মিলিয়ে নিন।",images:["potato-01","yellow-sorted","yellow-display"]},
+  {farmerName:"Abdul Karim",condition:"cold-storage",farmerNameBn:"আবদুল করিম",district:"Bogura",upazila:"Shibganj",variety:"Cardinal",purpose:"table",quantityKg:840,askingPriceKg:25,readyIn:1,packaging:"Wooden crates",packagingBn:"কাঠের ঝুড়িতে",notes:"Red-skinned potatoes in crates. Check their size before collecting.",notesBn:"লাল খোসার আলু ঝুড়িতে রাখা; নেওয়ার আগে আকার দেখে নিন।",images:["red-crate","red-market","red-tray"]},
+  {farmerName:"Nurul Islam",condition:"unharvested",farmerNameBn:"নুরুল ইসলাম",district:"Dinajpur",upazila:"Birganj",variety:"Granola",purpose:"table",quantityKg:2200,askingPriceKg:20,readyIn:2,packaging:"Loose on burlap",packagingBn:"চটের ওপর খোলা",notes:"Mostly similar-sized potatoes. Sacks are not included in the price.",notesBn:"বেশির ভাগ আলু একই আকারের; বস্তা দরের মধ্যে নেই।",images:["yellow-burlap","yellow-basket","yellow-crates"]},
   {farmerName:"Selina Akter",farmerNameBn:"সেলিনা আক্তার",district:"Rajshahi",upazila:"Paba",variety:"Asterix",purpose:"processing",quantityKg:1100,askingPriceKg:27,readyIn:3,packaging:"Jute sacks",packagingBn:"চটের বস্তায়",notes:"Long red-skinned potatoes. Check for yourself if they suit processing.",notesBn:"লম্বা লাল খোসার আলু; প্রক্রিয়াজাতের উপযোগিতা নিজে দেখে নিন।",images:["red-sacks"]},
   {farmerName:"Jahangir Alam",farmerNameBn:"জাহাঙ্গীর আলম",district:"Munshiganj",upazila:"Tongibari",variety:"Courage",purpose:"table",quantityKg:3100,askingPriceKg:19,readyIn:5,packaging:"Sorted in bamboo baskets",packagingBn:"বাঁশের ঝুড়িতে বাছাই",notes:"This large lot also has some small potatoes. Check their share when collecting.",notesBn:"বড় লটে কিছু ছোট আলুও আছে; নেওয়ার সময় ভাগ মিলিয়ে নিন।",images:["yellow-sorted"]},
   {farmerName:"Nasima Khatun",farmerNameBn:"নাসিমা খাতুন",district:"Panchagarh",upazila:"Tetulia",variety:"Lady Rosetta",purpose:"table",quantityKg:650,askingPriceKg:29,readyIn:7,packaging:"Trays and baskets",packagingBn:"ট্রে ও ঝুড়িতে",notes:"Small lot of red-skinned potatoes. Check surface marks before buying.",notesBn:"ছোট লাল খোসার লট; কেনার আগে বাইরের দাগ দেখুন।",images:["red-tray","red-market"]},
@@ -21,11 +21,52 @@ const sampleLots = [
   {farmerName:"Mofizur Rahman",farmerNameBn:"মফিজুর রহমান",district:"Bogura",upazila:"Shibganj",variety:"Courage",purpose:"table",quantityKg:1875,askingPriceKg:20.5,readyIn:21,packaging:"Bamboo basket",packagingBn:"বাঁশের ঝুড়িতে",notes:"Medium potatoes in a basket. Check the total number of sacks.",notesBn:"ঝুড়িতে মাঝারি আকারের আলু; মোট বস্তার সংখ্যা মিলিয়ে নিন।",images:["yellow-basket"]},
 ];
 
-export const catalogueListings = () => sampleLots.map((lot, i) => {
+const extraSampleLots = [
+  ["Rangpur", "Mithapukur", "Cardinal", 24, 680, "red-crate"],
+  ["Rangpur", "Badarganj", "Granola", 22, 1440, "yellow-burlap"],
+  ["Bogura", "Shibganj", "Diamant", 23, 1050, "potato-01"],
+  ["Bogura", "Sadar", "Asterix", 27, 910, "red-sacks"],
+  ["Bogura", "Shibganj", "Lady Rosetta", 28, 560, "red-tray"],
+  ["Dinajpur", "Birganj", "Courage", 22, 1240, "yellow-basket"],
+  ["Dinajpur", "Sadar", "Cardinal", 25, 820, "red-crate"],
+  ["Rajshahi", "Paba", "Diamant", 23, 630, "potato-02"],
+  ["Rajshahi", "Paba", "Granola", 24, 1980, "yellow-burlap"],
+  ["Naogaon", "Badalgachhi", "Cardinal", 25, 1250, "red-crate"],
+  ["Naogaon", "Badalgachhi", "Asterix", 27, 730, "red-sacks"],
+  ["Panchagarh", "Tetulia", "Courage", 21, 1470, "yellow-sorted"],
+  ["Panchagarh", "Tetulia", "Diamant", 24, 520, "potato-01"],
+  ["Thakurgaon", "Baliadangi", "Granola", 22, 1550, "yellow-display"],
+  ["Thakurgaon", "Baliadangi", "Lady Rosetta", 29, 460, "red-tray"],
+  ["Munshiganj", "Tongibari", "Diamant", 23, 2100, "potato-02"],
+  ["Munshiganj", "Sadar", "Cardinal", 26, 1170, "red-crate"],
+  ["Jashore", "Jhikargacha", "Courage", 21, 750, "yellow-table"],
+  ["Cumilla", "Chandina", "Asterix", 27, 660, "red-sacks"],
+  ["Cumilla", "Chandina", "Granola", 24, 1320, "yellow-crates"],
+].map(([district, upazila, variety, askingPriceKg, quantityKg, image], index) => ({
+  district, upazila, variety, askingPriceKg, quantityKg,
+  farmerName: "Example grower", farmerNameBn: "নমুনা চাষি",
+  readyIn: 2 + index % 8, purpose: "table", images: [image],
+}));
+
+export const catalogueListings = () => [...sampleLots, ...extraSampleLots].map((lot, i) => {
   const {images, readyIn, ...details} = lot;
   return {id:`illustrative-lot-${i + 1}`,sample:true,...details,priceKg:details.askingPriceKg,
     readyDate:todayPlus(readyIn),createdAt:new Date().toISOString(),photo:photo(images[0]),photos:images.map(name=>({src:photo(name)}))};
 });
+
+// Refresh the three local showcase listings without changing their IDs or prices.
+export function refreshShowcaseLots(listings) {
+  const replacements = sampleLots.slice(0, 3);
+  let index = 0;
+  return listings.map(lot => {
+    if (index >= replacements.length || lot.sample || lot.archivedAt || lot.hiddenAt ||
+        !["farzana begum", "ফারজানা বেগম"].includes(String(lot.farmerName || lot.farmerNameBn || "").trim().toLowerCase()) ||
+        lot.district !== "Rangpur" || String(lot.upazila).trim().toLowerCase() !== "pirganj" ||
+        (lot.variety && lot.variety !== "Potatoes") || lot.potatoVariety) return lot;
+    const { variety, farmerName, farmerNameBn, district, upazila, images } = replacements[index++];
+    return { ...lot, variety, farmerName, farmerNameBn, district, upazila, photo: photo(images[0]), photos: images.map(name => ({ src: photo(name) })) };
+  });
+}
 
 export const initialData = () => ({
   listings: catalogueListings(),
