@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {calculateBudget,budgetNumber,expenseFields} from '../public/marketplace/buyer-budget.mjs';
+import {calculateBudget,budgetNumber,expenseFields,routeExpenses,presetTruckCapacityKg} from '../public/marketplace/buyer-budget.mjs';
 import {parsePotatoRequest} from '../public/marketplace/buyer-search.mjs';
 const values={budget:'10000',quantity:'200',price:'25',transport:'1000',labour:'500',loading:'300',toll:'200',phone:'100',other:'0'};
 const result=calculateBudget(values,1250);
@@ -30,3 +30,9 @@ assert.equal(parsePotatoRequest('রংপুরে বাজেট পাঁচ
 assert.equal(calculateBudget({...values,transport:'-50'}).complete,false);
 assert.equal(calculateBudget({...values,price:'<img src=x onerror=alert(1)>'}).invalid,true);
 assert.equal(budgetNumber('1e4'),null);
+const load={...values,...routeExpenses('Rangpur'),budget:'300000',quantity:'6000',expenseMode:'estimate',resale:'30'};
+const needsQuote=calculateBudget(load,10000);
+assert.equal(needsQuote.needsTruckQuote,true);
+for(const key of ['total','remaining','unitCost','profit'])assert.equal(needsQuote[key],null);
+assert.equal(calculateBudget({...load,quantity:String(presetTruckCapacityKg)},10000).complete,true);
+assert.equal(calculateBudget({...load,expenseMode:'manual',transport:'29000'},10000).complete,true);

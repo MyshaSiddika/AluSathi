@@ -27,8 +27,8 @@ export default function AboutPage() {
             <TabsTrigger value="project">{bn ? "প্রকল্প সম্পর্কে" : "About This Project"}</TabsTrigger>
           </TabsList>
           <TabsContent value="team" className="mt-6">
-            <div className="grid grid-cols-3 gap-6">
-              {team.map(member => <article key={member.email} className="rounded-2xl border border-[var(--home-line)] bg-white p-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+              {team.map(member => <article key={member.email} className="min-w-0 rounded-2xl border border-[var(--home-line)] bg-white p-6">
                 <h2 className="mb-5 text-xl font-bold">{member.name}</h2>
                 <dl className="grid gap-4">
                   <div><dt className="text-sm text-[var(--home-muted)]">{bn ? "ফোন" : "Phone"}</dt><dd><a className="inline-block py-2 font-semibold text-[var(--home-green)] underline underline-offset-4" href={`tel:+880${member.phone.slice(1)}`}>{member.phone}</a></dd></div>
@@ -41,7 +41,7 @@ export default function AboutPage() {
             <p className="max-w-2xl text-lg">{bn
               ? "আলুসাথী বাংলাদেশের আলুচাষিদের জন্য তৈরি। আলু লাগানো থেকে ফসল তোলা পর্যন্ত জমির কাজ গুছিয়ে রাখতে আর পরে ক্রেতাদের কাছে আলুর তথ্য পৌঁছে দিতে এটি সাহায্য করে।"
               : "AluSathi is built for potato farmers in Bangladesh. It helps them keep track of fieldwork from planting through harvest and share information about their potatoes with buyers."}</p>
-            <div className="mt-8 grid max-w-4xl grid-cols-2 gap-5">
+            <div className="mt-8 grid max-w-4xl grid-cols-1 gap-5 sm:grid-cols-2">
               <section className="rounded-2xl border border-[var(--home-line)] bg-[var(--home-soft)] p-5" aria-labelledby="about-growing">
                 <h2 id="about-growing" className="mb-2 text-xl font-bold">{bn ? "জমির কাজ এক জায়গায়" : "Keep track of fieldwork"}</h2>
                 <p>{bn
@@ -58,7 +58,7 @@ export default function AboutPage() {
             <section className="mt-8 max-w-4xl" aria-labelledby="about-evaluation">
               <h2 id="about-evaluation" className="mb-2 text-xl font-bold">{bn ? "প্রকল্পের পরিসংখ্যান" : "Project Statistics"}</h2>
               <p>{bn ? "আলুর পাতার ছবি শনাক্তকরণের পরীক্ষায় পাওয়া ফল।" : "Results from testing the potato leaf classifier."}</p>
-              <dl className="my-4 grid grid-cols-3 gap-5">
+              <dl className="my-4 grid grid-cols-1 gap-5 sm:grid-cols-3">
                 <div className="rounded-2xl border border-[var(--home-line)] bg-[var(--home-soft)] p-5">
                   <dt>{bn ? "আঞ্চলিক পরীক্ষার ছবি" : "Regional test images"}</dt>
                   <dd className="mt-1 text-2xl font-bold">{bn ? "১৩,৮০০" : "13,800"}</dd>
