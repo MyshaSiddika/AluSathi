@@ -93,7 +93,7 @@ export default function PublicLanding() {
       <header className="public-header">
         <a href="/" className="public-brand" aria-label={bn ? "আলুসাথীর মূল পাতা" : "AluSathi home"}>
           <span className="brand-mark"><Leaf size={22} /></span>
-          <span><strong>আলুসাথী</strong><small>{bn ? "আলু চাষ থেকে বিক্রি—পাশে" : "From field to market"}</small></span>
+          <span><strong>আলুসাথী</strong><small>{bn ? "আলু চাষ থেকে বিক্রি, প্রতিটি ধাপে আলুসাথী" : "From field to market"}</small></span>
         </a>
         <nav className="public-nav" aria-label={bn ? "মূল নেভিগেশন" : "Main navigation"}>
           <Link to="/farmer#photos" onClick={() => setDemo(true)}>{bn ? "কৃষকের জন্য" : "For farmers"}</Link>
