@@ -187,13 +187,13 @@
 .today-weather-card header { display:flex; justify-content:space-between; align-items:center; gap:10px; }
 .today-weather-card header h2 { font-size:21px; font-weight:700; }
 .weather-location-picker { position:relative; display:flex; align-items:center; min-width:0; max-width:60%; color:var(--home-green); }
-.weather-location-picker select { width:100%; min-width:0; min-height:44px; padding:8px 20px 8px 23px; border:0; border-radius:8px; background:transparent; color:inherit; font:inherit; font-size:15px; cursor:pointer; appearance:none; text-overflow:ellipsis; }
+.weather-location-picker select { width:100%; min-width:0; min-height:44px; padding:8px 28px 8px 30px; border:1px solid #78a99c; border-radius:10px; background:#e0f0ea; color:inherit; font:inherit; font-size:15px; font-weight:700; box-shadow:0 2px 0 #bdd7ce; cursor:pointer; appearance:none; text-overflow:ellipsis; }
 .weather-location-picker > svg { position:absolute; pointer-events:none; }
-.weather-location-picker > svg:first-child { left:3px; }
-.weather-location-picker > svg:last-child { right:2px; }
-.weather-location-picker:hover { background:var(--home-soft); border-radius:8px; }
+.weather-location-picker > svg:first-child { left:9px; }
+.weather-location-picker > svg:last-child { right:9px; }
+.weather-location-picker select:hover { background:#cce5db; border-color:var(--home-green); }
 .weather-location-picker select:focus-visible { outline:3px solid var(--home-green); outline-offset:2px; }
-.weather-location-note { margin-top:4px; color:var(--home-muted); font-size:13px; }
+.farmer-v2[data-view="today"] .today-weather-card > .weather-location-note { margin-top:12px; color:var(--home-muted); font-size:13px; }
 .weather-current { display:flex; justify-content:space-between; align-items:center; gap:12px; margin:22px 0; }
 .weather-current strong { font-size:60px; font-weight:600; line-height:1.1; letter-spacing:-3px; font-variant-numeric:tabular-nums; }
 .weather-current p { margin-top:8px; color:var(--home-muted); font-size:17px; }
@@ -314,6 +314,7 @@
 .today-observation-content img { width:80px; height:70px; object-fit:cover; border-radius:10px; }
 .today-observation-content p { margin:4px 0 0; overflow-wrap:anywhere; }
 .today-task-instruction { margin:0; color:var(--home-muted); font-size:14px; }
+.farmer-v2[data-view="season"][data-home-theme] { background:var(--home-sky); }
 .app-shell.season-progress { --season-neutral:#f4f4f4; --season-border:#e7e7e7; max-width:1440px; padding-block:24px 36px; }
 .season-main, .season-side { display:grid; gap:16px; min-width:0; }
 .season-main { align-items:start; margin-bottom:16px; }
@@ -374,7 +375,7 @@
 .season-day-details h3 { margin:0; font-size:16px; font-weight:700; }
 .season-calendar { margin-top:16px; overflow:hidden; }
 .season-calendar-head, .season-calendar-controls { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
-.season-calendar-head { position:relative; isolation:isolate; overflow:clip; justify-content:space-between; gap:24px; padding:26px; border:1px solid #c9dce0; border-radius:20px; color:var(--home-ink); background:#fffaf0 url("/banners/season-calendar-countryside.png") center bottom / cover no-repeat; }
+.season-calendar-head { position:relative; isolation:isolate; overflow:clip; justify-content:space-between; gap:24px; padding:26px; border:1px solid #e6d2ae; border-radius:20px; color:var(--home-ink); background:#fffaf0 url("/banners/season-calendar-warm-field.png") center bottom / 100% 100% no-repeat; }
 .season-calendar-title { display:flex; align-items:center; gap:18px; }
 .season-calendar-emblem { display:flex; flex-direction:column; align-items:center; justify-content:start; flex:none; width:72px; min-height:82px; border:1px solid #decbb1; border-radius:13px; overflow:hidden; background:#fff; color:var(--home-ink); box-shadow:0 4px 0 #e9ddca,0 9px 18px #76552b12; transform:rotate(-4deg); }
 .season-calendar-emblem > span { display:flex; align-items:center; justify-content:center; gap:5px; width:100%; padding:5px; background:#a94f31; color:white; font-size:12px; font-weight:700; }
